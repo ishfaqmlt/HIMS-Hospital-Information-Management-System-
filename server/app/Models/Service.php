@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
-class Patient extends Model
+class Service extends Model
 {
     use HasFactory;
 
@@ -14,31 +14,32 @@ class Patient extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'patientId',
-        'cnic',
-        'mobile',
-        'email',
-        'pName',
-        'gName',
-        'gender',
-        'dob',
-        'address',
-        'allergy',
+        'Code',
+        'DepartmentId',
+        'ServiceName',
+        'DefaultCharges',
         'isActive',
+        'printToken',
         'isSynced',
     ];
 
     protected $casts = [
-        'dob' => 'date',
+        'DefaultCharges' => 'decimal:2',
         'isActive' => 'boolean',
+        'printToken' => 'boolean',
         'isSynced' => 'boolean',
     ];
 
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'DepartmentId');
+    }
+
     protected static function booted(): void
     {
-        static::creating(function (Patient $patient) {
-            if (empty($patient->id)) {
-                $patient->id = Str::uuid();
+        static::creating(function (Service $service) {
+            if (empty($service->id)) {
+                $service->id = Str::uuid();
             }
         });
     }

@@ -1,19 +1,11 @@
-import api from "./axios";
+import axios from "@/lib/axios";
 
-export const getDepartments = async () => {
-    const res = await api.get("/departments");
-    return res.data?.data || [];
-};
-export const getDepartmentById = async (id) => {
-    const res = await api.get(`/departments/${id}`);
-    return res.data?.data || {};
-}
-export const createDepartment = async (data) => {
-    const res = await api.post("/departments", data);
-    return res.data?.data || {};
+const departmentService = {
+  getAll: () => axios.get("/departments"),
+  getById: (id) => axios.get(`/departments/${id}`),
+  create: (data) => axios.post("/departments", data),
+  update: (id, data) => axios.put(`/departments/${id}`, data),
+  delete: (id) => axios.delete(`/departments/${id}`),
 };
 
-export const updateDepartment = async (id, data) => {
-    const res = await api.put(`/departments/${id}`, data);
-    return res.data?.data || {};
-};
+export default departmentService;

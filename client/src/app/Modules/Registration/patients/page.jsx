@@ -23,11 +23,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { patientSchema } from "@/lib/zodeSchema";
 import patientService from "@/services/patient.service";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, Search } from "lucide-react";
 
 export default function PatientsPage() {
   const [loading, setLoading] = useState(true);
   const [patients, setPatients] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [message, setMessage] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -46,6 +47,9 @@ export default function PatientsPage() {
       gName: "",
       gender: "",
       dob: "",
+      year: 0,
+      month: 0,
+      day: 0,
       address: "",
       cnic: "",
       mobile: "",
@@ -56,6 +60,10 @@ export default function PatientsPage() {
   });
 
   const genderValue = watch("gender");
+  const dobValue = watch("dob");
+  const yearValue = watch("year");
+  const monthValue = watch("month");
+  const dayValue = watch("day");
 
   useEffect(() => {
     loadPatients();
@@ -66,6 +74,30 @@ export default function PatientsPage() {
     const t = setTimeout(() => setMessage(null), 4000);
     return () => clearTimeout(t);
   }, [message]);
+
+  // When DOB changes, calculate year, month, day
+  useEffect(() => {
+    if (!dobValue) return;
+    const dob = new Date(dobValue);
+    const today = new Date();
+    let years = today.getFullYear() - dob.getFullYear();
+    let months = today.getMonth() - dob.getMonth();
+    let days = today.getDate() - dob.getDate();
+
+    if (days < 0) {
+      months--;
+      const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+      days += prevMonth.getDate();
+    }
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+
+    setValue("year", years);
+    setValue("month", months);
+    setValue("day", days);
+  }, [dobValue, setValue]);
 
   const loadPatients = async () => {
     try {
@@ -80,6 +112,24 @@ export default function PatientsPage() {
     }
   };
 
+  // When year, month, day change, calculate DOB
+  const handleAgeChange = (field, value) => {
+    const numValue = parseInt(value) || 0;
+    setValue(field, numValue);
+
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth();
+    const currentDay = new Date().getDate();
+
+    const yr = field === "year" ? numValue : (yearValue || 0);
+    const mo = field === "month" ? numValue : (monthValue || 0);
+    const dy = field === "day" ? numValue : (dayValue || 0);
+
+    const dobDate = new Date(currentYear - yr, currentMonth - mo, currentDay - dy);
+    const dobStr = dobDate.toISOString().split("T")[0];
+    setValue("dob", dobStr);
+  };
+
   const openCreate = () => {
     setEditingId(null);
     reset({
@@ -87,6 +137,9 @@ export default function PatientsPage() {
       gName: "",
       gender: "",
       dob: "",
+      year: 0,
+      month: 0,
+      day: 0,
       address: "",
       cnic: "",
       mobile: "",
@@ -97,13 +150,28 @@ export default function PatientsPage() {
     setIsDialogOpen(true);
   };
 
-  const openEdit = (patient) => {
-    setEditingId(patient.id);
+  const openEdit =async (patient) => {
+   await setEditingId(patient.id);
+    // alert(editingId);
+    let yr = 0, mo = 0, dy = 0;
+    if (patient.dob) {
+      const dob = new Date(patient.dob);
+      const today = new Date();
+      yr = today.getFullYear() - dob.getFullYear();
+      mo = today.getMonth() - dob.getMonth();
+      dy = today.getDate() - dob.getDate();
+      if (dy < 0) { mo--; dy += new Date(today.getFullYear(), today.getMonth(), 0).getDate(); }
+      if (mo < 0) { yr--; mo += 12; }
+    }
+
     reset({
       pName: patient.pName || "",
       gName: patient.gName || "",
       gender: patient.gender || "",
       dob: patient.dob ? patient.dob.split("T")[0] : "",
+      year: yr,
+      month: mo,
+      day: dy,
       address: patient.address || "",
       cnic: patient.cnic || "",
       mobile: patient.mobile || "",
@@ -116,11 +184,13 @@ export default function PatientsPage() {
 
   const onSubmit = async (data) => {
     try {
+      const { year, month, day, ...submitData } = data;
       if (editingId) {
-        await patientService.update(editingId, data);
+        await patientService.update(editingId, submitData);
         setMessage({ type: "success", text: "Patient updated successfully" });
       } else {
-        await patientService.create(data);
+        const { year: _y, month: _m, day: _d, ...createData } = data;
+        await patientService.create(createData);
         setMessage({ type: "success", text: "Patient created successfully" });
       }
       setIsDialogOpen(false);
@@ -145,6 +215,17 @@ export default function PatientsPage() {
   };
 
   const columns = getColumns({ onEdit: openEdit, onDelete: handleDelete });
+
+  const filteredPatients = patients.filter((patient) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      (patient.patientId && patient.patientId.toLowerCase().includes(term)) ||
+      (patient.mobile && patient.mobile.toLowerCase().includes(term)) ||
+      (patient.cnic && patient.cnic.toLowerCase().includes(term)) ||
+      (patient.pName && patient.pName.toLowerCase().includes(term))
+    );
+  });
 
   return (
     <div className="space-y-6">
@@ -178,7 +259,25 @@ export default function PatientsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : (
-        <DataTable columns={columns} data={patients} />
+        <>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by Patient ID, Mobile, CNIC, or Name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            {searchTerm && (
+              <Button variant="outline" onClick={() => setSearchTerm("")}>
+                Clear
+              </Button>
+            )}
+          </div>
+          <DataTable columns={columns} data={filteredPatients} />
+        </>
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -233,6 +332,38 @@ export default function PatientsPage() {
                 {errors.dob && (
                   <p className="text-sm text-destructive">{errors.dob.message}</p>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Year(s)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={yearValue}
+                  onChange={(e) => handleAgeChange("year", e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Month(s)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="11"
+                  value={monthValue}
+                  onChange={(e) => handleAgeChange("month", e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Day(s)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="31"
+                  value={dayValue}
+                  onChange={(e) => handleAgeChange("day", e.target.value)}
+                />
               </div>
 
               <div className="space-y-2">

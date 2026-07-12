@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
-class Patient extends Model
+class VisitType extends Model
 {
     use HasFactory;
 
@@ -14,31 +14,19 @@ class Patient extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'patientId',
-        'cnic',
-        'mobile',
-        'email',
-        'pName',
-        'gName',
-        'gender',
-        'dob',
-        'address',
-        'allergy',
-        'isActive',
+        'visitType',
         'isSynced',
     ];
 
     protected $casts = [
-        'dob' => 'date',
-        'isActive' => 'boolean',
         'isSynced' => 'boolean',
     ];
 
     protected static function booted(): void
     {
-        static::creating(function (Patient $patient) {
-            if (empty($patient->id)) {
-                $patient->id = Str::uuid();
+        static::creating(function (VisitType $visitType) {
+            if (empty($visitType->id)) {
+                $visitType->id = Str::uuid();
             }
         });
     }

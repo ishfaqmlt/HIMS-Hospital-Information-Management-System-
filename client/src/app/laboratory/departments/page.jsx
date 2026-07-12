@@ -16,11 +16,7 @@ import { useForm, Controller } from "react-hook-form";
 // import { z } from "zod";
 import { departmentSchema } from "@/lib/zodeSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  getDepartmentById,
-  createDepartment,
-  updateDepartment,
-} from "@/services/department.service";
+import departmentService from "@/services/department.service";
 import { fetchDepartments } from "@/reduxToolKit/slices/departmentsSlice";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -80,9 +76,9 @@ export default function Departments() {
 
     try {
       if (editingId) {
-        await updateDepartment(editingId, data);
+        await departmentService.update(editingId, data);
       } else {
-        await createDepartment(data);
+        await departmentService.create(data);
       }
 
       setMessage({
@@ -112,7 +108,7 @@ export default function Departments() {
     try {
       setLoading(true);
 
-      const departmentData = await getDepartmentById(id);
+      const departmentData = await departmentService.getById(id);
 
       reset({
         department_name: departmentData?.department_name ?? "",

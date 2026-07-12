@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+import { ArrowUpDown } from "lucide-react"
 import { DataTablePagination } from "./data-table-pagination"
 import { DataTableToolbar } from "./data-table-toolbar"
 
@@ -60,20 +61,27 @@ export function DataTable({ columns, data, filterColumn }) {
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-
-                  </TableHead>
-                ))}
-
+                {headerGroup.headers.map((header) => {
+                  const canSort = header.column.getCanSort()
+                  return (
+                    <TableHead
+                      key={header.id}
+                      className={canSort ? "cursor-pointer select-none" : ""}
+                    >
+                      {header.isPlaceholder ? null : (
+                        <div
+                          className="flex items-center gap-1"
+                          onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {canSort && (
+                            <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                        </div>
+                      )}
+                    </TableHead>
+                  )
+                })}
               </TableRow>
             ))}
           </TableHeader>

@@ -80,13 +80,13 @@ export const getColumns = ({ onEdit, onDelete }) => [
           >
             Edit
           </Button>
-          <Button
+          {/* <Button
             variant="destructive"
             size="sm"
             onClick={() => onDelete(patient.id)}
           >
             Delete
-          </Button>
+          </Button> */}
         </div>
       );
     },

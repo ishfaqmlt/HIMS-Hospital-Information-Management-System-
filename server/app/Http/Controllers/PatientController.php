@@ -71,7 +71,7 @@ class PatientController extends Controller
     private function generatePatientId(): string
     {
         $today = now();
-        $datePart = $today->format('dmY'); // e.g., 090726
+        $datePart = $today->format('dmy'); // e.g., 090726
 
         // Get today's count (including this new record)
         $count = Patient::whereDate('created_at', $today->toDateString())->count() + 1;

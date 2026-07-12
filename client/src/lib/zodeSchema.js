@@ -17,11 +17,36 @@ export const registerSchema = z
     path: ["password_confirmation"],
   });
 
+export const doctorSchema = z.object({
+  Name: z.string().min(1, "Doctor name is required").max(100),
+  Gender: z.enum(["Male", "Female", "Other"]).optional(),
+  Dob: z.string().optional(),
+  Email: z.string().email("Invalid email").optional().or(z.literal("")),
+  Phone: z.string().optional(),
+  Cnic: z.string().optional(),
+  RegistrationNo: z.string().optional(),
+  Address: z.string().optional(),
+  JoiningDate: z.string().optional(),
+  EmployeementStatus: z.enum(["Active", "Resigned", "Terminated", "Retired"]).optional(),
+  Stamp: z.string().optional(),
+  Opd: z.coerce.boolean(),
+  Surgeon: z.coerce.boolean(),
+  Anesthetist: z.coerce.boolean(),
+});
+
+export const serviceSchema = z.object({
+  Code: z.string().optional(),
+  DepartmentId: z.string().min(1, "Department is required"),
+  ServiceName: z.string().min(1, "Service name is required").max(50),
+  DefaultCharges: z.coerce.number().min(0, "Charges must be positive"),
+  isActive: z.coerce.boolean(),
+  printToken: z.coerce.boolean(),
+});
+
 export const departmentSchema = z.object({
-  department_name: z
-    .string()
-    .min(2, "Department name must be at least 2 characters long"),
-  isActive: z.coerce.boolean().default(true),
+  DepartmentName: z.string().min(1, "Department name is required").max(50),
+  ServingBy: z.enum(["Doctor", "Department"]),
+  isActive: z.coerce.boolean(),
 });
 
 export const masterTestSchema = z.object({
@@ -112,15 +137,6 @@ export const testParameterSchema = z.object({
   isActive: z.coerce.boolean(),
 
   normalRange: z.string().optional().nullable(),
-});
-
-export const doctorSchema = z.object({
-  doctorName: z.string().min(1, "Doctor name is required"),
-  specialization: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email("Invalid email format").optional(),
-  commissionPercentage: z.coerce.number().min(0).max(100).optional(),
-  isActive: z.coerce.boolean(),
 });
 
 export const labProfileSchema = z.object({

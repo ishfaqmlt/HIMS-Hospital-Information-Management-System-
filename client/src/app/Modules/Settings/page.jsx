@@ -11,6 +11,27 @@ const settingsModules = [
     color: "bg-blue-500",
     href: "/Modules/Settings/hospitalProfile",
   },
+  {
+    name: "Departments",
+    description: "Manage hospital departments and their configurations",
+    icon: Building2,
+    color: "bg-blue-500",
+    href: "/Modules/Settings/departments",
+  },
+  {
+    name: "Doctors",
+    description: "Manage hospital doctors and their configurations",
+    icon: Building2,
+    color: "bg-blue-500",
+    href: "/Modules/Settings/doctors",
+  },
+  {
+    name: "Services",
+    description: "Manage hospital services and their configurations",
+    icon: Building2,
+    color: "bg-blue-500",
+    href: "/Modules/Settings/services",
+  },
 ];
 
 export default function SettingsPage() {

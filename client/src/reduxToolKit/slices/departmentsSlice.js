@@ -1,13 +1,13 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getDepartments } from "@/services/department.service";
+import departmentService from "@/services/department.service";
 
 // 🔹 Async fetch
 export const fetchDepartments = createAsyncThunk(
   "departments/fetchDepartments",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await getDepartments();
-      return response;
+      const response = await departmentService.getAll();
+      return response.data;
     } catch (error) {
       return rejectWithValue(error.message);
     }
