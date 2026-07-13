@@ -18,6 +18,21 @@ const settingsModules = [
     color: "bg-blue-500",
     href: "/Modules/Settings/departments",
   },
+  
+  {
+    name: "Services",
+    description: "Manage hospital services and their configurations",
+    icon: Building2,
+    color: "bg-blue-500",
+    href: "/Modules/Settings/services",
+  },
+  {
+    name: "Service Charges",
+    description: "Manage hospital service charges and pricing",
+    icon: Building2,
+    color: "bg-blue-500",
+    href: "/Modules/Settings/serviceCharges",
+  },
   {
     name: "Doctors",
     description: "Manage hospital doctors and their configurations",
@@ -26,11 +41,11 @@ const settingsModules = [
     href: "/Modules/Settings/doctors",
   },
   {
-    name: "Services",
-    description: "Manage hospital services and their configurations",
+    name: "Doctors Appointments",
+    description: "Manage doctors Appointments and their configurations",
     icon: Building2,
     color: "bg-blue-500",
-    href: "/Modules/Settings/services",
+    href: "/Modules/Settings/appointmentMaster",
   },
 ];
 

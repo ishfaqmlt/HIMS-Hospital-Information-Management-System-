@@ -45,7 +45,6 @@ export default function ServicesPage() {
   } = useForm({
     resolver: zodResolver(serviceSchema),
     defaultValues: {
-      Code: "",
       DepartmentId: "",
       ServiceName: "",
       DefaultCharges: 0,
@@ -86,14 +85,13 @@ export default function ServicesPage() {
 
   const openCreate = () => {
     setEditingId(null);
-    reset({ Code: "", DepartmentId: "", ServiceName: "", DefaultCharges: 0, isActive: true, printToken: false });
+    reset({ DepartmentId: "", ServiceName: "", DefaultCharges: 0, isActive: true, printToken: false });
     setIsDialogOpen(true);
   };
 
   const openEdit = (item) => {
     setEditingId(item.id);
     reset({
-      Code: item.Code || "",
       DepartmentId: item.DepartmentId || "",
       ServiceName: item.ServiceName || "",
       DefaultCharges: item.DefaultCharges || 0,
@@ -162,25 +160,19 @@ export default function ServicesPage() {
             <DialogTitle>{editingId ? "Edit Service" : "Add Service"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Code</Label>
-                <Input {...register("Code")} placeholder="e.g. 401" />
-              </div>
-              <div className="space-y-2">
-                <Label>Department *</Label>
-                <Select value={deptValue} onValueChange={(val) => setValue("DepartmentId", val)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>{d.DepartmentName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.DepartmentId && <p className="text-sm text-destructive">{errors.DepartmentId.message}</p>}
-              </div>
+            <div className="space-y-2">
+              <Label>Department *</Label>
+              <Select value={deptValue} onValueChange={(val) => setValue("DepartmentId", val)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>{d.DepartmentName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.DepartmentId && <p className="text-sm text-destructive">{errors.DepartmentId.message}</p>}
             </div>
 
             <div className="space-y-2">

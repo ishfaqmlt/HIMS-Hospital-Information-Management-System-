@@ -1,7 +1,7 @@
 import axios from "@/lib/axios";
 
 const serviceService = {
-  getAll: () => axios.get("/services"),
+  getAll: (params) => axios.get("/services", { params }),
   getById: (id) => axios.get(`/services/${id}`),
   create: (data) => axios.post("/services", data),
   update: (id, data) => axios.put(`/services/${id}`, data),

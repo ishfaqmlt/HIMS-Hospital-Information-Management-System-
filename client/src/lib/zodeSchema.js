@@ -193,3 +193,23 @@ export const hospitalProfileSchema = z.object({
   footer_text: z.string().optional(),
   terms_conditions: z.string().optional(),
 });
+
+export const serviceChargeSchema = z.object({
+  doctorId: z.string().min(1, "Doctor is required"),
+  ServiceId: z.string().min(1, "Service is required"),
+  departmentId: z.string().min(1, "Department is required"),
+  Charges: z.coerce.number().min(0, "Charges must be positive"),
+  isSynced: z.coerce.boolean(),
+});
+
+export const appointmentMasterSchema = z.object({
+  DoctorId: z.string().min(1, "Doctor is required"),
+  DayOfWeek: z.enum(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]),
+  StartTime: z.string().min(1, "Start time is required"),
+  EndTime: z.string().min(1, "End time is required"),
+  SlotTime: z.coerce.number().min(1, "Slot time must be at least 1 minute"),
+  BookingType: z.enum(["same day", "advance"]),
+  SilentSlots: z.coerce.number().min(0),
+  MaxBookings: z.coerce.number().min(0),
+  isSynced: z.coerce.boolean(),
+});

@@ -7,10 +7,15 @@ use Illuminate\Http\Request;
 
 class DepartmentController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $departments = Department::latest()->get();
-        return response()->json($departments);
+        $query = Department::latest();
+
+        if ($request->has('servingBy')) {
+            $query->where('ServingBy', $request->servingBy);
+        }
+
+        return response()->json($query->get());
     }
 
     public function store(Request $request)

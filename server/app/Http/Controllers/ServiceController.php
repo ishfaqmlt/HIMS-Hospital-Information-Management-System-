@@ -7,22 +7,31 @@ use Illuminate\Http\Request;
 
 class ServiceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $services = Service::with('department')->latest()->get();
-        return response()->json($services);
+        $query = Service::with('department');
+
+        if ($request->has('departmentId')) {
+            $query->where('DepartmentId', $request->departmentId);
+        }
+
+        return response()->json($query->latest()->get());
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'Code' => 'nullable|string|max:10',
             'DepartmentId' => 'required|exists:departments,id',
             'ServiceName' => 'required|string|max:50',
             'DefaultCharges' => 'required|numeric|min:0',
             'isActive' => 'boolean',
             'printToken' => 'boolean',
         ]);
+
+        $maxCode = Service::where('DepartmentId', $validated['DepartmentId'])
+            ->max('Code');
+
+        $validated['Code'] = $maxCode ? $maxCode + 1 : 1;
 
         $service = Service::create($validated);
 

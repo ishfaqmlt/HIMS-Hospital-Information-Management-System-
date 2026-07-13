@@ -1,7 +1,7 @@
 import axios from "@/lib/axios";
 
 const departmentService = {
-  getAll: () => axios.get("/departments"),
+  getAll: (params) => axios.get("/departments", { params }),
   getById: (id) => axios.get(`/departments/${id}`),
   create: (data) => axios.post("/departments", data),
   update: (id, data) => axios.put(`/departments/${id}`, data),
