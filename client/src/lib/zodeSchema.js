@@ -204,7 +204,7 @@ export const serviceChargeSchema = z.object({
 
 export const appointmentMasterSchema = z.object({
   DoctorId: z.string().min(1, "Doctor is required"),
-  DayOfWeek: z.enum(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]),
+  Days: z.array(z.enum(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])).min(1, "At least one day is required"),
   StartTime: z.string().min(1, "Start time is required"),
   EndTime: z.string().min(1, "End time is required"),
   SlotTime: z.coerce.number().min(1, "Slot time must be at least 1 minute"),

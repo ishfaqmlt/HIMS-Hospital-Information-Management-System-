@@ -22,9 +22,10 @@ class AppointmentMasterController extends Controller
     {
         $validated = $request->validate([
             'DoctorId' => 'required|exists:doctors,id',
-            'DayOfWeek' => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
+            'Days' => 'required|array|min:1',
+            'Days.*' => 'in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'StartTime' => 'required',
-            'EndTime' => 'required|after:StartTime',
+            'EndTime' => 'required',
             'SlotTime' => 'required|integer|min:1',
             'BookingType' => 'required|in:same day,advance',
             'SilentSlots' => 'integer|min:0',
@@ -32,9 +33,25 @@ class AppointmentMasterController extends Controller
             'isSynced' => 'boolean',
         ]);
 
-        $item = AppointmentMaster::create($validated);
+        $created = null;
+        foreach ($validated['Days'] as $day) {
+            $item = AppointmentMaster::create([
+                'DoctorId' => $validated['DoctorId'],
+                'DayOfWeek' => $day,
+                'StartTime' => $validated['StartTime'],
+                'EndTime' => $validated['EndTime'],
+                'SlotTime' => $validated['SlotTime'],
+                'BookingType' => $validated['BookingType'],
+                'SilentSlots' => $validated['SilentSlots'] ?? 0,
+                'MaxBookings' => $validated['MaxBookings'] ?? 0,
+                'isSynced' => $validated['isSynced'] ?? false,
+            ]);
+            if (!$created) {
+                $created = $item;
+            }
+        }
 
-        return response()->json($item->load('doctor'), 201);
+        return response()->json($created->load('doctor'), 201);
     }
 
     public function show(AppointmentMaster $appointmentMaster)
@@ -46,9 +63,10 @@ class AppointmentMasterController extends Controller
     {
         $validated = $request->validate([
             'DoctorId' => 'required|exists:doctors,id',
-            'DayOfWeek' => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
+            'Days' => 'required|array|min:1',
+            'Days.*' => 'in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'StartTime' => 'required',
-            'EndTime' => 'required|after:StartTime',
+            'EndTime' => 'required',
             'SlotTime' => 'required|integer|min:1',
             'BookingType' => 'required|in:same day,advance',
             'SilentSlots' => 'integer|min:0',
@@ -56,14 +74,38 @@ class AppointmentMasterController extends Controller
             'isSynced' => 'boolean',
         ]);
 
-        $appointmentMaster->update($validated);
+        AppointmentMaster::where('DoctorId', $appointmentMaster->DoctorId)
+            ->where('StartTime', $appointmentMaster->StartTime)
+            ->where('EndTime', $appointmentMaster->EndTime)
+            ->delete();
 
-        return response()->json($appointmentMaster->load('doctor'));
+        $created = null;
+        foreach ($validated['Days'] as $day) {
+            $item = AppointmentMaster::create([
+                'DoctorId' => $validated['DoctorId'],
+                'DayOfWeek' => $day,
+                'StartTime' => $validated['StartTime'],
+                'EndTime' => $validated['EndTime'],
+                'SlotTime' => $validated['SlotTime'],
+                'BookingType' => $validated['BookingType'],
+                'SilentSlots' => $validated['SilentSlots'] ?? 0,
+                'MaxBookings' => $validated['MaxBookings'] ?? 0,
+                'isSynced' => $validated['isSynced'] ?? false,
+            ]);
+            if (!$created) {
+                $created = $item;
+            }
+        }
+
+        return response()->json($created->load('doctor'));
     }
 
     public function destroy(AppointmentMaster $appointmentMaster)
     {
-        $appointmentMaster->delete();
+        AppointmentMaster::where('DoctorId', $appointmentMaster->DoctorId)
+            ->where('StartTime', $appointmentMaster->StartTime)
+            ->where('EndTime', $appointmentMaster->EndTime)
+            ->delete();
 
         return response()->json(['message' => 'Appointment schedule deleted']);
     }

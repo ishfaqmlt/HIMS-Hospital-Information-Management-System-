@@ -4,7 +4,7 @@ import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-export const getColumns = ({ onEdit, onDelete }) => [
+export const getColumns = ({ onEdit, onDelete , onOPDToken}) => [
   {
     accessorKey: "patientId",
     header: "Patient ID",
@@ -80,6 +80,14 @@ export const getColumns = ({ onEdit, onDelete }) => [
           >
             Edit
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOPDToken(patient.id)}
+          >
+            OPD Token
+          </Button>
+
           {/* <Button
             variant="destructive"
             size="sm"

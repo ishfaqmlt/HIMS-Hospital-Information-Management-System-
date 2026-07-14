@@ -8,10 +8,26 @@ use Illuminate\Support\Facades\DB;
 
 class PatientController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $patients = Patient::latest()->get();
-        return response()->json($patients);
+        $query = Patient::query();
+
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('patientId', 'like', "%{$search}%")
+                  ->orWhere('pName', 'like', "%{$search}%")
+                  ->orWhere('mobile', 'like', "%{$search}%")
+                  ->orWhere('cnic', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->has('today') && $request->today) {
+            $query->whereDate('created_at', now()->toDateString());
+        }
+
+        return response()->json($query->latest()->get());
     }
 
     public function store(Request $request)

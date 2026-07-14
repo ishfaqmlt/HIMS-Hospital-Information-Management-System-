@@ -48,11 +48,11 @@ export default function AppointmentsPage() {
     resolver: zodResolver(appointmentMasterSchema),
     defaultValues: {
       DoctorId: "",
-      DayOfWeek: "",
+      Days: [],
       StartTime: "",
       EndTime: "",
       SlotTime: 15,
-      BookingType: "Advance",
+      BookingType: "same day",
       SilentSlots: 0,
       MaxBookings: 0,
       isSynced: false,
@@ -60,7 +60,7 @@ export default function AppointmentsPage() {
   });
 
   const doctorValue = watch("DoctorId");
-  const dayValue = watch("DayOfWeek");
+  const daysValue = watch("Days");
   const bookingTypeValue = watch("BookingType");
 
   useEffect(() => { loadAll(); }, []);
@@ -86,11 +86,19 @@ export default function AppointmentsPage() {
     }
   };
 
+  const handleDayToggle = (day) => {
+    const current = daysValue || [];
+    const updated = current.includes(day)
+      ? current.filter((d) => d !== day)
+      : [...current, day];
+    setValue("Days", updated, { shouldValidate: true });
+  };
+
   const openCreate = () => {
     setEditingId(null);
     reset({
-      DoctorId: "", DayOfWeek: "", StartTime: "", EndTime: "",
-      SlotTime: 15, BookingType: "Advance", SilentSlots: 0, MaxBookings: 0, isSynced: false,
+      DoctorId: "", Days: [], StartTime: "", EndTime: "",
+      SlotTime: 15, BookingType: "same day", SilentSlots: 0, MaxBookings: 0, isSynced: false,
     });
     setIsDialogOpen(true);
   };
@@ -99,11 +107,11 @@ export default function AppointmentsPage() {
     setEditingId(item.Id);
     reset({
       DoctorId: item.DoctorId || "",
-      DayOfWeek: item.DayOfWeek || "",
+      Days: [item.DayOfWeek] || [],
       StartTime: item.StartTime || "",
       EndTime: item.EndTime || "",
       SlotTime: item.SlotTime || 15,
-      BookingType: item.BookingType || "Advance",
+      BookingType: item.BookingType || "same day",
       SilentSlots: item.SilentSlots || 0,
       MaxBookings: item.MaxBookings || 0,
       isSynced: item.isSynced ?? false,
@@ -161,7 +169,7 @@ export default function AppointmentsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : (
-        <DataTable columns={columns} data={schedules} />
+        <DataTable columns={columns} data={schedules} filterColumn="doctorName" />
       )}
 
       {isDialogOpen && (
@@ -187,18 +195,20 @@ export default function AppointmentsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Day of Week *</Label>
-                <Select value={dayValue} onValueChange={(val) => setValue("DayOfWeek", val)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select day" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {days.map((d) => (
-                      <SelectItem key={d} value={d}>{d}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.DayOfWeek && <p className="text-sm text-destructive">{errors.DayOfWeek.message}</p>}
+                <Label>Days *</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {days.map((day) => (
+                    <div key={day} className="flex items-center gap-2">
+                      <Checkbox
+                        id={day}
+                        checked={(daysValue || []).includes(day)}
+                        onCheckedChange={() => handleDayToggle(day)}
+                      />
+                      <Label htmlFor={day} className="cursor-pointer text-sm">{day.slice(0, 3)}</Label>
+                    </div>
+                  ))}
+                </div>
+                {errors.Days && <p className="text-sm text-destructive">{errors.Days.message}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

@@ -6,7 +6,8 @@ import { Pencil, Trash2 } from "lucide-react";
 
 export const getColumns = ({ onEdit, onDelete }) => [
   {
-    accessorKey: "doctor.Name",
+    id: "doctorName",
+    accessorFn: (row) => row.doctor?.Name || "",
     header: "Doctor",
     cell: ({ row }) => row.original.doctor?.Name || "-",
   },

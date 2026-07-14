@@ -12,6 +12,7 @@ use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceChargeController;
 use App\Http\Controllers\AppointmentMasterController;
+use App\Http\Controllers\PatientAppointmentController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -58,4 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Appointment Master
     Route::apiResource('appointment-master', AppointmentMasterController::class);
+
+    // Patient Appointments
+    Route::apiResource('patient-appointments', PatientAppointmentController::class);
 });
