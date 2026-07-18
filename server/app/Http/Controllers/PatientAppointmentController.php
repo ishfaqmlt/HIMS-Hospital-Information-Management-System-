@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\PatientAppointment;
+use App\Models\AppointmentMaster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class PatientAppointmentController extends Controller
 {
@@ -12,36 +14,58 @@ class PatientAppointmentController extends Controller
     {
         $query = PatientAppointment::with(['doctor', 'patient']);
 
-        if ($request->has('DoctorId')) {
+        if ($request->has('DoctorId') && $request->DoctorId) {
             $query->where('DoctorId', $request->DoctorId);
         }
 
-        if ($request->has('patientId')) {
+        if ($request->has('patientId') && $request->patientId) {
             $query->where('patientId', $request->patientId);
         }
 
-        if ($request->has('status')) {
+        if ($request->has('status') && $request->status && $request->status !== 'All') {
             $query->where('Status', $request->status);
         }
 
-        if ($request->has('today') && $request->today) {
-            $query->whereDate('Appointmentat', now()->toDateString());
-        }
-
-        if ($request->has('search') && $request->search) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('patient', function ($q2) use ($search) {
-                    $q2->where('pName', 'like', "%{$search}%")
-                       ->orWhere('patientId', 'like', "%{$search}%")
-                       ->orWhere('mobile', 'like', "%{$search}%");
-                })
-                ->orWhere('TokenNo', 'like', "%{$search}%")
-                ->orWhere('Remarks', 'like', "%{$search}%");
-            });
+        if ($request->has('date') && $request->date) {
+            $query->whereDate('Appointmentat', $request->date);
         }
 
         return response()->json($query->latest('Appointmentat')->get());
+    }
+
+    public function getSlots(Request $request)
+    {
+        $request->validate([
+            'DoctorId' => 'required|exists:doctors,id',
+            'date' => 'required|date',
+        ]);
+
+        $dayOfWeek = Carbon::parse($request->date)->format('l');
+
+        $schedule = AppointmentMaster::where('DoctorId', $request->DoctorId)
+            ->where('DayOfWeek', $dayOfWeek)
+            ->first();
+
+        if (!$schedule) {
+            return response()->json([
+                'schedule' => null,
+                'bookedCount' => 0,
+                'maxBookings' => 0,
+                'availableSlots' => 0,
+            ]);
+        }
+
+        $bookedCount = PatientAppointment::where('DoctorId', $request->DoctorId)
+            ->whereDate('Appointmentat', $request->date)
+            ->whereNotIn('Status', ['Cancelled'])
+            ->count();
+
+        return response()->json([
+            'schedule' => $schedule,
+            'bookedCount' => $bookedCount,
+            'maxBookings' => $schedule->MaxBookings,
+            'availableSlots' => max(0, $schedule->MaxBookings - $bookedCount),
+        ]);
     }
 
     public function store(Request $request)

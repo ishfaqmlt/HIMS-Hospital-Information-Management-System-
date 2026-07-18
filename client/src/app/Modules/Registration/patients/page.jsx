@@ -23,7 +23,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { patientSchema } from "@/lib/zodeSchema";
 import patientService from "@/services/patient.service";
-import { Loader2, Plus, Search, CalendarDays } from "lucide-react";
+import AddPatientDialog from "@/components/patients/AddPatientDialog";
+import { Loader2, Plus, Search, CalendarDays, UserPlus } from "lucide-react";
 
 export default function PatientsPage() {
   const [loading, setLoading] = useState(false);
@@ -31,7 +32,13 @@ export default function PatientsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [message, setMessage] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPatientDialogOpen, setIsPatientDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+
+  const [mobileSearch, setMobileSearch] = useState("");
+  const [mobileResults, setMobileResults] = useState([]);
+  const [mobileSearched, setMobileSearched] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
   const {
     register,
@@ -152,18 +159,12 @@ export default function PatientsPage() {
     setValue("dob", dobStr);
   };
 
-  const openCreate = () => {
-    setEditingId(null);
-    reset({
-      pName: "", gName: "", gender: "", dob: "",
-      year: 0, month: 0, day: 0, address: "", cnic: "",
-      mobile: "", email: "", allergy: "", isActive: true,
-    });
-    setIsDialogOpen(true);
-  };
-
   const openEdit = async (patient) => {
     await setEditingId(patient.id);
+    setMobileSearch("");
+    setMobileResults([]);
+    setMobileSearched(false);
+    setShowForm(true);
     let yr = 0, mo = 0, dy = 0;
     if (patient.dob) {
       const dob = new Date(patient.dob);
@@ -189,6 +190,59 @@ export default function PatientsPage() {
       isActive: patient.isActive ?? true,
     });
     setIsDialogOpen(true);
+  };
+
+  const handleMobileSearch = async () => {
+    if (!mobileSearch.trim()) {
+      setMessage({ type: "error", text: "Please enter a mobile number" });
+      return;
+    }
+    try {
+      const res = await patientService.getAll({ search: mobileSearch });
+      setMobileResults(res.data);
+      setMobileSearched(true);
+    } catch (error) {
+      setMessage({ type: "error", text: "Search failed" });
+    }
+  };
+
+  const selectExistingPatient = (patient) => {
+    setEditingId(patient.id);
+    setShowForm(true);
+    let yr = 0, mo = 0, dy = 0;
+    if (patient.dob) {
+      const dob = new Date(patient.dob);
+      const today = new Date();
+      yr = today.getFullYear() - dob.getFullYear();
+      mo = today.getMonth() - dob.getMonth();
+      dy = today.getDate() - dob.getDate();
+      if (dy < 0) { mo--; dy += new Date(today.getFullYear(), today.getMonth(), 0).getDate(); }
+      if (mo < 0) { yr--; mo += 12; }
+    }
+
+    reset({
+      pName: patient.pName || "",
+      gName: patient.gName || "",
+      gender: patient.gender || "",
+      dob: patient.dob ? patient.dob.split("T")[0] : "",
+      year: yr, month: mo, day: dy,
+      address: patient.address || "",
+      cnic: patient.cnic || "",
+      mobile: patient.mobile || "",
+      email: patient.email || "",
+      allergy: patient.allergy || "",
+      isActive: patient.isActive ?? true,
+    });
+  };
+
+  const addNewWithMobile = () => {
+    setEditingId(null);
+    setShowForm(true);
+    reset({
+      pName: "", gName: "", gender: "", dob: "",
+      year: 0, month: 0, day: 0, address: "", cnic: "",
+      mobile: mobileSearch, email: "", allergy: "", isActive: true,
+    });
   };
 
   const onSubmit = async (data) => {
@@ -246,20 +300,17 @@ export default function PatientsPage() {
           <Button variant="ghost" onClick={resetPatients} disabled={loading}>
             Reset
           </Button>
-
         </div>
       </div>
 
       <div className="flex items-center justify-between">
         <div>
-          {/* <h1 className="text-2xl font-bold text-foreground">Patients</h1>
-          <p className="text-muted-foreground mt-1">Manage patient records</p> */}
+          <h1 className="text-2xl font-bold text-foreground">Patients</h1>
+          <p className="text-muted-foreground mt-1">Manage patient records</p>
         </div>
-        
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4 mr-2" />Add New Patient
+        <Button onClick={() => setIsPatientDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />Add Patient
         </Button>
-        
       </div>
 
       {message && (
@@ -276,100 +327,11 @@ export default function PatientsPage() {
         <DataTable columns={columns} data={patients} filterColumn="pName" />
       )}
 
-      {isDialogOpen && (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingId ? "Edit Patient" : "Add Patient"}</DialogTitle>
-            </DialogHeader>
-
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="pName">Patient Name *</Label>
-                  <Input id="pName" {...register("pName")} placeholder="Patient name" />
-                  {errors.pName && <p className="text-sm text-destructive">{errors.pName.message}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="gName">Guardian Name</Label>
-                  <Input id="gName" {...register("gName")} placeholder="Guardian name" />
-                  {errors.gName && <p className="text-sm text-destructive">{errors.gName.message}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Gender</Label>
-                  <Select value={genderValue} onValueChange={(val) => setValue("gender", val)}>
-                    <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.gender && <p className="text-sm text-destructive">{errors.gender.message}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="dob">Date of Birth</Label>
-                  <Input id="dob" type="date" {...register("dob")} />
-                  {errors.dob && <p className="text-sm text-destructive">{errors.dob.message}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Year(s)</Label>
-                  <Input type="number" min="0" value={yearValue} onChange={(e) => handleAgeChange("year", e.target.value)} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Month(s)</Label>
-                  <Input type="number" min="0" max="11" value={monthValue} onChange={(e) => handleAgeChange("month", e.target.value)} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Day(s)</Label>
-                  <Input type="number" min="0" max="31" value={dayValue} onChange={(e) => handleAgeChange("day", e.target.value)} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="mobile">Mobile</Label>
-                  <Input id="mobile" {...register("mobile")} placeholder="Mobile number" />
-                  {errors.mobile && <p className="text-sm text-destructive">{errors.mobile.message}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="cnic">CNIC</Label>
-                  <Input id="cnic" {...register("cnic")} placeholder="CNIC number" />
-                  {errors.cnic && <p className="text-sm text-destructive">{errors.cnic.message}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" {...register("email")} placeholder="Email" />
-                  {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="allergy">Allergy</Label>
-                  <Input id="allergy" {...register("allergy")} placeholder="Allergies" />
-                  {errors.allergy && <p className="text-sm text-destructive">{errors.allergy.message}</p>}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input id="address" {...register("address")} placeholder="Address" />
-                {errors.address && <p className="text-sm text-destructive">{errors.address.message}</p>}
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                <Button type="submit">{editingId ? "Update" : "Create"}</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
+      <AddPatientDialog
+        open={isPatientDialogOpen}
+        onOpenChange={setIsPatientDialogOpen}
+        onPatientAdded={() => {}}
+      />
     </div>
   );
 }

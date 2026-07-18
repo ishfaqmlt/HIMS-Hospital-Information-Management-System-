@@ -213,3 +213,84 @@ export const appointmentMasterSchema = z.object({
   MaxBookings: z.coerce.number().min(0),
   isSynced: z.coerce.boolean(),
 });
+
+export const opdVisitSchema = z.object({
+  patientId: z.string().min(1, "Patient is required"),
+  DoctorId: z.string().min(1, "Doctor is required"),
+  DepartmentId: z.string().optional(),
+  VisitDate: z.string().min(1, "Visit date is required"),
+  VisitNo: z.string().min(1, "Visit number is required").max(20),
+  VisitType: z.enum(["OPD", "Followup", "Emergency"]),
+  ConsultationFee: z.coerce.number().min(0, "Fee must be positive"),
+  ChiefComplaint: z.string().optional(),
+  Diagnosis: z.string().optional(),
+  Notes: z.string().optional(),
+  Status: z.enum(["Waiting", "In Progress", "Completed", "Cancelled"]),
+  isPrescriptionGiven: z.coerce.boolean(),
+});
+
+export const ipdAdmissionSchema = z.object({
+  patientId: z.string().min(1, "Patient is required"),
+  DoctorId: z.string().min(1, "Doctor is required"),
+  DepartmentId: z.string().optional(),
+  AdmissionNo: z.string().min(1, "Admission number is required").max(20),
+  AdmissionDate: z.string().min(1, "Admission date is required"),
+  DischargeDate: z.string().optional(),
+  RoomNo: z.string().optional(),
+  BedNo: z.string().optional(),
+  AdmissionType: z.enum(["Elective", "Emergency", "Transfer"]),
+  Status: z.enum(["Admitted", "Discharged", "Transferred", "Cancelled"]),
+  ChiefComplaint: z.string().optional(),
+  Diagnosis: z.string().optional(),
+  TreatmentPlan: z.string().optional(),
+  DischargeSummary: z.string().optional(),
+  TotalCharges: z.coerce.number().min(0, "Charges must be positive"),
+  TotalPaid: z.coerce.number().min(0, "Paid amount must be positive"),
+});
+
+export const emergencyCaseSchema = z.object({
+  patientId: z.string().min(1, "Patient is required"),
+  DoctorId: z.string().optional(),
+  DepartmentId: z.string().optional(),
+  CaseNo: z.string().min(1, "Case number is required").max(20),
+  ArrivalDate: z.string().min(1, "Arrival date is required"),
+  DischargeDate: z.string().optional(),
+  Priority: z.enum(["Critical", "Urgent", "Standard"]),
+  Status: z.enum(["Active", "Discharged", "Transferred", "Deceased", "Cancelled"]),
+  ChiefComplaint: z.string().optional(),
+  Diagnosis: z.string().optional(),
+  Treatment: z.string().optional(),
+  Notes: z.string().optional(),
+  TotalCharges: z.coerce.number().min(0, "Charges must be positive"),
+  TotalPaid: z.coerce.number().min(0, "Paid amount must be positive"),
+});
+
+export const billingSchema = z.object({
+  patientId: z.string().min(1, "Patient is required"),
+  InvoiceNo: z.string().min(1, "Invoice number is required").max(20),
+  InvoiceDate: z.string().min(1, "Invoice date is required"),
+  InvoiceType: z.enum(["OPD", "IPD", "Emergency", "Laboratory", "Pharmacy", "Radiology", "Other"]),
+  SubTotal: z.coerce.number().min(0, "Sub total must be positive"),
+  Discount: z.coerce.number().min(0, "Discount must be positive"),
+  Tax: z.coerce.number().min(0, "Tax must be positive"),
+  TotalAmount: z.coerce.number().min(0, "Total must be positive"),
+  PaidAmount: z.coerce.number().min(0, "Paid amount must be positive"),
+  PaymentStatus: z.enum(["Pending", "Partial", "Paid", "Cancelled"]),
+  PaymentMethod: z.enum(["Cash", "Card", "BankTransfer", "Insurance", "Other"]),
+  Notes: z.string().optional(),
+});
+
+export const pharmacySchema = z.object({
+  patientId: z.string().min(1, "Patient is required"),
+  InvoiceNo: z.string().min(1, "Invoice number is required").max(20),
+  InvoiceDate: z.string().min(1, "Invoice date is required"),
+  DoctorId: z.string().optional(),
+  SubTotal: z.coerce.number().min(0, "Sub total must be positive"),
+  Discount: z.coerce.number().min(0, "Discount must be positive"),
+  Tax: z.coerce.number().min(0, "Tax must be positive"),
+  TotalAmount: z.coerce.number().min(0, "Total must be positive"),
+  PaidAmount: z.coerce.number().min(0, "Paid amount must be positive"),
+  PaymentStatus: z.enum(["Pending", "Partial", "Paid", "Cancelled"]),
+  PaymentMethod: z.enum(["Cash", "Card", "BankTransfer", "Insurance", "Other"]),
+  Notes: z.string().optional(),
+});

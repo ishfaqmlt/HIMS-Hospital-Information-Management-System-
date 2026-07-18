@@ -14,7 +14,13 @@ class DatabaseSeeder extends Seeder
             DepartmentSeeder::class,
             DoctorSeeder::class,
             ServiceSeeder::class,
-            
+            OpdVisitSeeder::class,
+            IpdAdmissionSeeder::class,
+            EmergencyCaseSeeder::class,
+            BillingSeeder::class,
+            PharmacyItemSeeder::class,
+            LabTestSeeder::class,
+            RadiologyScanSeeder::class,
         ]);
     }
 }

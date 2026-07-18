@@ -7,10 +7,15 @@ use Illuminate\Http\Request;
 
 class DoctorController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $doctors = Doctor::latest()->get();
-        return response()->json($doctors);
+        $query = Doctor::query();
+
+        if ($request->has('opd') && $request->opd) {
+            $query->where('Opd', true);
+        }
+
+        return response()->json($query->latest()->get());
     }
 
     public function store(Request $request)

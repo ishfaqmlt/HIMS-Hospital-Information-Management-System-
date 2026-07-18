@@ -13,6 +13,13 @@ use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceChargeController;
 use App\Http\Controllers\AppointmentMasterController;
 use App\Http\Controllers\PatientAppointmentController;
+use App\Http\Controllers\OpdVisitController;
+use App\Http\Controllers\IpdAdmissionController;
+use App\Http\Controllers\EmergencyCaseController;
+use App\Http\Controllers\BillingController;
+use App\Http\Controllers\PharmacyItemController;
+use App\Http\Controllers\LabTestController;
+use App\Http\Controllers\RadiologyScanController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -61,5 +68,27 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('appointment-master', AppointmentMasterController::class);
 
     // Patient Appointments
+    Route::get('/patient-appointments/slots', [PatientAppointmentController::class, 'getSlots']);
     Route::apiResource('patient-appointments', PatientAppointmentController::class);
+
+    // OPD Visits
+    Route::apiResource('opd-visits', OpdVisitController::class);
+
+    // IPD Admissions
+    Route::apiResource('ipd-admissions', IpdAdmissionController::class);
+
+    // Emergency Cases
+    Route::apiResource('emergency-cases', EmergencyCaseController::class);
+
+    // Billings
+    Route::apiResource('billings', BillingController::class);
+
+    // Pharmacy Items
+    Route::apiResource('pharmacy-items', PharmacyItemController::class);
+
+    // Lab Tests
+    Route::apiResource('lab-tests', LabTestController::class);
+
+    // Radiology Scans
+    Route::apiResource('radiology-scans', RadiologyScanController::class);
 });
