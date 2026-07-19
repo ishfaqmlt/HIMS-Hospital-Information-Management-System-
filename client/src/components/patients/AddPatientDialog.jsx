@@ -238,7 +238,9 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, p
               <div className="space-y-2">
                 <Label>Gender</Label>
                 <Select value={genderValue} onValueChange={(val) => setValue("gender", val)}>
-                  <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Male">Male</SelectItem>
                     <SelectItem value="Female">Female</SelectItem>
