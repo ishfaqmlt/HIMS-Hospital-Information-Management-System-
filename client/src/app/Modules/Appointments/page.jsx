@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -439,6 +440,11 @@ export default function AppointmentsPage() {
                     ) : (
                       <p className="text-center text-muted-foreground py-4">No patients found</p>
                     )}
+                    <Link href="/Modules/Registration/patients" target="_blank">
+                      <Button variant="outline" className="w-full">
+                        <UserPlus className="h-4 w-4 mr-2" />Add New Patient
+                      </Button>
+                    </Link>
                   </div>
                 )}
               </div>
