@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +24,7 @@ import doctorService from "@/services/doctor.service";
 import patientAppointmentService from "@/services/patientAppointmentService";
 import appointmentMasterService from "@/services/appointmentMasterService";
 import patientService from "@/services/patient.service";
-import { Loader2, RefreshCw, AlertCircle, Search, UserPlus } from "lucide-react";
+import { Loader2, RefreshCw, AlertCircle, Search, UserPlus, ArrowLeft } from "lucide-react";
 
 const statusOptions = ["All", "Pending", "Booked", "Cancelled", "Completed"];
 
@@ -54,6 +53,14 @@ export default function AppointmentsPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [searched, setSearched] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
+
+  const [showAddPatientForm, setShowAddPatientForm] = useState(false);
+  const [newPatient, setNewPatient] = useState({
+    pName: "",
+    mobile: "",
+    cnic: "",
+    gender: "",
+  });
 
   const {
     register,
@@ -171,6 +178,8 @@ export default function AppointmentsPage() {
     setSearchResults([]);
     setSearched(false);
     setSelectedPatient(null);
+    setShowAddPatientForm(false);
+    setNewPatient({ pName: "", mobile: "", cnic: "", gender: "" });
     reset({
       Appointmentat: `${selectedDate}T${new Date().toTimeString().slice(0, 5)}`,
       TokenNo: tokenNo,
@@ -197,6 +206,31 @@ export default function AppointmentsPage() {
 
   const selectExistingPatient = (patient) => {
     setSelectedPatient(patient);
+  };
+
+  const handleCreatePatient = async () => {
+    if (!newPatient.pName.trim()) {
+      setMessage({ type: "error", text: "Patient name is required" });
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await patientService.create({
+        pName: newPatient.pName,
+        mobile: newPatient.mobile,
+        cnic: newPatient.cnic,
+        gender: newPatient.gender,
+      });
+      setSelectedPatient(res.data);
+      setShowAddPatientForm(false);
+      setNewPatient({ pName: "", mobile: "", cnic: "", gender: "" });
+      setMessage({ type: "success", text: "Patient created successfully" });
+      loadPatients();
+    } catch (error) {
+      setMessage({ type: "error", text: error.response?.data?.message || "Failed to create patient" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getSearchPlaceholder = () => {
@@ -386,66 +420,125 @@ export default function AppointmentsPage() {
 
             {!selectedPatient ? (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Search By</Label>
-                  <Select value={searchType} onValueChange={setSearchType}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mobile">Mobile Number</SelectItem>
-                      <SelectItem value="patientId">Patient ID</SelectItem>
-                      <SelectItem value="cnic">CNIC</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex gap-2">
-                  <Input
-                    placeholder={getSearchPlaceholder()}
-                    value={searchValue}
-                    onChange={(e) => setSearchValue(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handlePatientSearch())}
-                  />
-                  <Button onClick={handlePatientSearch}>
-                    <Search className="h-4 w-4 mr-2" />Search
-                  </Button>
-                </div>
-
-                {searched && (
-                  <div className="space-y-3">
-                    {searchResults.length > 0 ? (
-                      <>
-                        <p className="text-sm text-muted-foreground">
-                          {searchResults.length} patient(s) found. Select or add new:
-                        </p>
-                        <div className="border rounded-lg divide-y max-h-60 overflow-y-auto">
-                          {searchResults.map((p) => (
-                            <div
-                              key={p.id}
-                              className="flex items-center justify-between p-3 hover:bg-muted cursor-pointer"
-                              onClick={() => selectExistingPatient(p)}
-                            >
-                              <div>
-                                <p className="font-medium">{p.pName}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {p.patientId} | {p.mobile} | {p.cnic || "No CNIC"}
-                                </p>
-                              </div>
-                              <Button size="sm" variant="outline">Select</Button>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-center text-muted-foreground py-4">No patients found</p>
-                    )}
-                    <Link href="/Modules/Registration/patients" target="_blank">
-                      <Button variant="outline" className="w-full">
-                        <UserPlus className="h-4 w-4 mr-2" />Add New Patient
+                {showAddPatientForm ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddPatientForm(false)}>
+                        <ArrowLeft className="h-4 w-4" />
                       </Button>
-                    </Link>
+                      <h3 className="font-medium">Add New Patient</h3>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Patient Name *</Label>
+                      <Input
+                        placeholder="Enter patient name"
+                        value={newPatient.pName}
+                        onChange={(e) => setNewPatient({ ...newPatient, pName: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Mobile</Label>
+                        <Input
+                          placeholder="Mobile number"
+                          value={newPatient.mobile}
+                          onChange={(e) => setNewPatient({ ...newPatient, mobile: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>CNIC</Label>
+                        <Input
+                          placeholder="CNIC number"
+                          value={newPatient.cnic}
+                          onChange={(e) => setNewPatient({ ...newPatient, cnic: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Gender</Label>
+                      <Select value={newPatient.gender} onValueChange={(val) => setNewPatient({ ...newPatient, gender: val })}>
+                        <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Male">Male</SelectItem>
+                          <SelectItem value="Female">Female</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={() => setShowAddPatientForm(false)}>Cancel</Button>
+                      <Button type="button" onClick={handleCreatePatient} disabled={loading}>
+                        {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                        Create Patient
+                      </Button>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Search By</Label>
+                      <Select value={searchType} onValueChange={setSearchType}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mobile">Mobile Number</SelectItem>
+                          <SelectItem value="patientId">Patient ID</SelectItem>
+                          <SelectItem value="cnic">CNIC</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder={getSearchPlaceholder()}
+                        value={searchValue}
+                        onChange={(e) => setSearchValue(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handlePatientSearch())}
+                      />
+                      <Button onClick={handlePatientSearch}>
+                        <Search className="h-4 w-4 mr-2" />Search
+                      </Button>
+                    </div>
+
+                    {searched && (
+                      <div className="space-y-3">
+                        {searchResults.length > 0 ? (
+                          <>
+                            <p className="text-sm text-muted-foreground">
+                              {searchResults.length} patient(s) found. Select or add new:
+                            </p>
+                            <div className="border rounded-lg divide-y max-h-60 overflow-y-auto">
+                              {searchResults.map((p) => (
+                                <div
+                                  key={p.id}
+                                  className="flex items-center justify-between p-3 hover:bg-muted cursor-pointer"
+                                  onClick={() => selectExistingPatient(p)}
+                                >
+                                  <div>
+                                    <p className="font-medium">{p.pName}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {p.patientId} | {p.mobile} | {p.cnic || "No CNIC"}
+                                    </p>
+                                  </div>
+                                  <Button size="sm" variant="outline">Select</Button>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-center text-muted-foreground py-4">No patients found</p>
+                        )}
+                        <Button variant="outline" className="w-full" onClick={() => setShowAddPatientForm(true)}>
+                          <UserPlus className="h-4 w-4 mr-2" />Add New Patient
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             ) : (
