@@ -26,9 +26,11 @@ import { Loader2, Search, UserPlus } from "lucide-react";
 export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, prefillMobile = "", skipSearch = false }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [patientIdSearch, setPatientIdSearch] = useState("");
+  const [cnicSearch, setCnicSearch] = useState("");
   const [mobileSearch, setMobileSearch] = useState(prefillMobile);
-  const [mobileResults, setMobileResults] = useState([]);
-  const [mobileSearched, setMobileSearched] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searched, setSearched] = useState(false);
   const [showForm, setShowForm] = useState(skipSearch || !!prefillMobile);
 
   const {
@@ -80,17 +82,20 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, p
     setValue("dob", dobStr);
   };
 
-  const handleMobileSearch = async () => {
-    if (!mobileSearch.trim()) {
-      setMessage({ type: "error", text: "Please enter a mobile number" });
+  const handleSearch = async (searchValue) => {
+    if (!searchValue.trim()) {
+      setMessage({ type: "error", text: "Please enter a search value" });
       return;
     }
     try {
-      const res = await patientService.getAll({ search: mobileSearch });
-      setMobileResults(res.data);
-      setMobileSearched(true);
+      setLoading(true);
+      const res = await patientService.getAll({ search: searchValue });
+      setSearchResults(res.data);
+      setSearched(true);
     } catch (error) {
       setMessage({ type: "error", text: "Search failed" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -109,17 +114,17 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, p
       isActive: patient.isActive ?? true,
     });
     setShowForm(true);
-    setMobileSearched(false);
+    setSearched(false);
   };
 
-  const addNewWithMobile = () => {
+  const addNewPatient = () => {
     reset({
       pName: "", gName: "", gender: "", dob: "",
       year: 0, month: 0, day: 0, address: "", cnic: "",
       mobile: mobileSearch, email: "", allergy: "", isActive: true,
     });
     setShowForm(true);
-    setMobileSearched(false);
+    setSearched(false);
   };
 
   const onSubmit = async (data) => {
@@ -146,9 +151,11 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, p
 
   const handleClose = () => {
     reset();
+    setPatientIdSearch("");
+    setCnicSearch("");
     setMobileSearch(prefillMobile);
-    setMobileResults([]);
-    setMobileSearched(false);
+    setSearchResults([]);
+    setSearched(false);
     setShowForm(skipSearch || !!prefillMobile);
     setMessage(null);
     onOpenChange(false);
@@ -169,27 +176,60 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, p
 
         {!showForm ? (
           <div className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Search patient by mobile number"
-                value={mobileSearch}
-                onChange={(e) => setMobileSearch(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleMobileSearch())}
-              />
-              <Button onClick={handleMobileSearch} disabled={loading}>
-                <Search className="h-4 w-4 mr-2" />Search
-              </Button>
+            <div className="space-y-2">
+              <Label>Search by Patient ID</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter Patient ID (e.g., pid-18-0726)"
+                  value={patientIdSearch}
+                  onChange={(e) => setPatientIdSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleSearch(patientIdSearch))}
+                />
+                <Button onClick={() => handleSearch(patientIdSearch)} disabled={loading}>
+                  <Search className="h-4 w-4 mr-2" />Search
+                </Button>
+              </div>
             </div>
 
-            {mobileSearched && (
+            <div className="space-y-2">
+              <Label>Search by CNIC</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter CNIC number"
+                  value={cnicSearch}
+                  onChange={(e) => setCnicSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleSearch(cnicSearch))}
+                />
+                <Button onClick={() => handleSearch(cnicSearch)} disabled={loading}>
+                  <Search className="h-4 w-4 mr-2" />Search
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Search by Mobile Number</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter mobile number"
+                  value={mobileSearch}
+                  onChange={(e) => setMobileSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleSearch(mobileSearch))}
+                />
+                <Button onClick={() => handleSearch(mobileSearch)} disabled={loading}>
+                  <Search className="h-4 w-4 mr-2" />Search
+                </Button>
+              </div>
+            </div>
+
+            {searched && (
               <div className="space-y-3">
-                {mobileResults.length > 0 ? (
+                {searchResults.length > 0 ? (
                   <>
                     <p className="text-sm text-muted-foreground">
-                      {mobileResults.length} patient(s) found. Select to edit or add new:
+                      {searchResults.length} patient(s) found. Select to edit or add new:
                     </p>
                     <div className="border rounded-lg divide-y max-h-60 overflow-y-auto">
-                      {mobileResults.map((p) => (
+                      {searchResults.map((p) => (
                         <div
                           key={p.id}
                           className="flex items-center justify-between p-3 hover:bg-muted cursor-pointer"
@@ -205,18 +245,13 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, p
                         </div>
                       ))}
                     </div>
-                    <Button variant="outline" className="w-full" onClick={addNewWithMobile}>
-                      <UserPlus className="h-4 w-4 mr-2" />Add New Patient with Mobile {mobileSearch}
-                    </Button>
                   </>
                 ) : (
-                  <div className="text-center py-4">
-                    <p className="text-muted-foreground mb-3">No patients found with this mobile number</p>
-                    <Button onClick={addNewWithMobile}>
-                      <UserPlus className="h-4 w-4 mr-2" />Add New Patient with Mobile {mobileSearch}
-                    </Button>
-                  </div>
+                  <p className="text-center text-muted-foreground py-4">No patients found</p>
                 )}
+                <Button variant="outline" className="w-full" onClick={addNewPatient}>
+                  <UserPlus className="h-4 w-4 mr-2" />Add New Patient
+                </Button>
               </div>
             )}
           </div>
@@ -238,9 +273,7 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, p
               <div className="space-y-2">
                 <Label>Gender</Label>
                 <Select value={genderValue} onValueChange={(val) => setValue("gender", val)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Male">Male</SelectItem>
                     <SelectItem value="Female">Female</SelectItem>
@@ -303,7 +336,7 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, p
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => { setShowForm(false); setMobileSearched(false); }}>
+              <Button type="button" variant="ghost" onClick={() => { setShowForm(false); setSearched(false); }}>
                 Back
               </Button>
               <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
