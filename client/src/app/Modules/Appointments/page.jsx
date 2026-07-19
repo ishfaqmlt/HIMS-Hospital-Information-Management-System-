@@ -50,9 +50,10 @@ export default function AppointmentsPage() {
   const [isPatientDialogOpen, setIsPatientDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
 
-  const [mobileSearch, setMobileSearch] = useState("");
-  const [mobileResults, setMobileResults] = useState([]);
-  const [mobileSearched, setMobileSearched] = useState(false);
+  const [searchType, setSearchType] = useState("mobile");
+  const [searchValue, setSearchValue] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searched, setSearched] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
 
   const {
@@ -166,9 +167,10 @@ export default function AppointmentsPage() {
 
   const openCreate = (tokenNo) => {
     setSelectedSlot(tokenNo);
-    setMobileSearch("");
-    setMobileResults([]);
-    setMobileSearched(false);
+    setSearchType("mobile");
+    setSearchValue("");
+    setSearchResults([]);
+    setSearched(false);
     setSelectedPatient(null);
     reset({
       Appointmentat: `${selectedDate}T${new Date().toTimeString().slice(0, 5)}`,
@@ -179,15 +181,16 @@ export default function AppointmentsPage() {
     setIsDialogOpen(true);
   };
 
-  const handleMobileSearch = async () => {
-    if (!mobileSearch.trim()) {
-      setMessage({ type: "error", text: "Please enter a mobile number" });
+  const handlePatientSearch = async () => {
+    if (!searchValue.trim()) {
+      const searchTypeLabels = { mobile: "mobile number", patientId: "patient ID", cnic: "CNIC" };
+      setMessage({ type: "error", text: `Please enter a ${searchTypeLabels[searchType]}` });
       return;
     }
     try {
-      const res = await patientService.getAll({ search: mobileSearch });
-      setMobileResults(res.data);
-      setMobileSearched(true);
+      const res = await patientService.getAll({ search: searchValue });
+      setSearchResults(res.data);
+      setSearched(true);
     } catch (error) {
       setMessage({ type: "error", text: "Search failed" });
     }
@@ -200,6 +203,15 @@ export default function AppointmentsPage() {
   const handlePatientAdded = (newPatient) => {
     setSelectedPatient(newPatient);
     loadPatients();
+  };
+
+  const getSearchPlaceholder = () => {
+    switch (searchType) {
+      case "patientId": return "Enter Patient ID (e.g., pid-18-0726)";
+      case "cnic": return "Enter CNIC number";
+      case "mobile":
+      default: return "Enter mobile number";
+    }
   };
 
   const onSubmit = async (data) => {
@@ -376,27 +388,39 @@ export default function AppointmentsPage() {
 
             {!selectedPatient ? (
               <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Search By</Label>
+                  <Select value={searchType} onValueChange={setSearchType}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mobile">Mobile Number</SelectItem>
+                      <SelectItem value="patientId">Patient ID</SelectItem>
+                      <SelectItem value="cnic">CNIC</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Search patient by mobile number"
-                    value={mobileSearch}
-                    onChange={(e) => setMobileSearch(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleMobileSearch())}
+                    placeholder={getSearchPlaceholder()}
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handlePatientSearch())}
                   />
-                  <Button onClick={handleMobileSearch}>
+                  <Button onClick={handlePatientSearch}>
                     <Search className="h-4 w-4 mr-2" />Search
                   </Button>
                 </div>
 
-                {mobileSearched && (
+                {searched && (
                   <div className="space-y-3">
-                    {mobileResults.length > 0 ? (
+                    {searchResults.length > 0 ? (
                       <>
                         <p className="text-sm text-muted-foreground">
-                          {mobileResults.length} patient(s) found. Select or add new:
+                          {searchResults.length} patient(s) found. Select or add new:
                         </p>
                         <div className="border rounded-lg divide-y max-h-60 overflow-y-auto">
-                          {mobileResults.map((p) => (
+                          {searchResults.map((p) => (
                             <div
                               key={p.id}
                               className="flex items-center justify-between p-3 hover:bg-muted cursor-pointer"
@@ -414,7 +438,7 @@ export default function AppointmentsPage() {
                         </div>
                       </>
                     ) : (
-                      <p className="text-center text-muted-foreground py-4">No patients found with this mobile number</p>
+                      <p className="text-center text-muted-foreground py-4">No patients found</p>
                     )}
                     <Button variant="outline" className="w-full" onClick={() => setIsPatientDialogOpen(true)}>
                       <UserPlus className="h-4 w-4 mr-2" />Add New Patient
@@ -422,7 +446,7 @@ export default function AppointmentsPage() {
                   </div>
                 )}
 
-                {!mobileSearched && (
+                {!searched && (
                   <Button variant="outline" className="w-full" onClick={() => setIsPatientDialogOpen(true)}>
                     <UserPlus className="h-4 w-4 mr-2" />Add New Patient
                   </Button>
@@ -478,7 +502,7 @@ export default function AppointmentsPage() {
         open={isPatientDialogOpen}
         onOpenChange={setIsPatientDialogOpen}
         onPatientAdded={handlePatientAdded}
-        prefillMobile={mobileSearch}
+        prefillMobile={searchType === "mobile" ? searchValue : ""}
       />
     </div>
   );
