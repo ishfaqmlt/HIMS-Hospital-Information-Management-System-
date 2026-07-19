@@ -24,7 +24,6 @@ import doctorService from "@/services/doctor.service";
 import patientAppointmentService from "@/services/patientAppointmentService";
 import appointmentMasterService from "@/services/appointmentMasterService";
 import patientService from "@/services/patient.service";
-import AddPatientDialog from "@/components/patients/AddPatientDialog";
 import { Loader2, RefreshCw, AlertCircle, Search, UserPlus } from "lucide-react";
 
 const statusOptions = ["All", "Pending", "Booked", "Cancelled", "Completed"];
@@ -47,7 +46,6 @@ export default function AppointmentsPage() {
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [message, setMessage] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isPatientDialogOpen, setIsPatientDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
 
   const [searchType, setSearchType] = useState("mobile");
@@ -55,7 +53,6 @@ export default function AppointmentsPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [searched, setSearched] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [skipPatientSearch, setSkipPatientSearch] = useState(false);
 
   const {
     register,
@@ -173,7 +170,6 @@ export default function AppointmentsPage() {
     setSearchResults([]);
     setSearched(false);
     setSelectedPatient(null);
-    setSkipPatientSearch(false);
     reset({
       Appointmentat: `${selectedDate}T${new Date().toTimeString().slice(0, 5)}`,
       TokenNo: tokenNo,
@@ -200,11 +196,6 @@ export default function AppointmentsPage() {
 
   const selectExistingPatient = (patient) => {
     setSelectedPatient(patient);
-  };
-
-  const handlePatientAdded = (newPatient) => {
-    setSelectedPatient(newPatient);
-    loadPatients();
   };
 
   const getSearchPlaceholder = () => {
@@ -448,17 +439,8 @@ export default function AppointmentsPage() {
                     ) : (
                       <p className="text-center text-muted-foreground py-4">No patients found</p>
                     )}
-                    <Button variant="outline" className="w-full" onClick={() => { setSkipPatientSearch(true); setIsPatientDialogOpen(true); }}>
-                      <UserPlus className="h-4 w-4 mr-2" />Add New Patient
-                    </Button>
                   </div>
                 )}
-
-                {/* {!searched && (
-                  <Button variant="outline" className="w-full" onClick={() => { setSkipPatientSearch(false); setIsPatientDialogOpen(true); }}>
-                    <UserPlus className="h-4 w-4 mr-2" />Add New Patient
-                  </Button>
-                )} */}
               </div>
             ) : (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -506,13 +488,6 @@ export default function AppointmentsPage() {
         </Dialog>
       )}
 
-      <AddPatientDialog
-        open={isPatientDialogOpen}
-        onOpenChange={setIsPatientDialogOpen}
-        onPatientAdded={handlePatientAdded}
-        prefillMobile={searchType === "mobile" ? searchValue : ""}
-        skipSearch={skipPatientSearch}
-      />
     </div>
   );
 }
