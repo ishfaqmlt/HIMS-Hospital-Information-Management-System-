@@ -49,6 +49,7 @@ export default function AppointmentsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPatientDialogOpen, setIsPatientDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [currentSchedule, setCurrentSchedule] = useState(null);
 
   const [searchType, setSearchType] = useState("mobile");
   const [searchValue, setSearchValue] = useState("");
@@ -121,6 +122,7 @@ export default function AppointmentsPage() {
     try {
       setLoading(true);
       setSlots([]);
+      setCurrentSchedule(null);
 
       const dayOfWeek = new Date(selectedDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "long" });
 
@@ -136,6 +138,8 @@ export default function AppointmentsPage() {
         return;
       }
 
+      setCurrentSchedule(schedule);
+
       const aptsRes = await patientAppointmentService.getAll({
         DoctorId: selectedDoctor,
         date: selectedDate,
@@ -147,14 +151,20 @@ export default function AppointmentsPage() {
       }
 
       const maxBookings = schedule.MaxBookings || 0;
+      const startTime = schedule.StartTime;
+      const slotTime = schedule.SlotTime || 10;
       const slotsList = [];
 
       for (let i = 1; i <= maxBookings; i++) {
         const apt = appointments.find((a) => a.TokenNo === i);
+        
+        const expectedTime = calculateExpectedTime(startTime, slotTime, i);
+        
         slotsList.push({
           tokenNo: i,
           appointment: apt || null,
           status: apt ? apt.Status : "Empty",
+          expectedTime: expectedTime,
         });
       }
 
@@ -164,6 +174,14 @@ export default function AppointmentsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateExpectedTime = (startTime, slotTimeMinutes, tokenNo) => {
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const totalMinutes = hours * 60 + minutes + (tokenNo - 1) * slotTimeMinutes;
+    const expectedHours = Math.floor(totalMinutes / 60) % 24;
+    const expectedMinutes = totalMinutes % 60;
+    return `${String(expectedHours).padStart(2, '0')}:${String(expectedMinutes).padStart(2, '0')}`;
   };
 
   const openCreate = (tokenNo) => {
@@ -341,12 +359,14 @@ export default function AppointmentsPage() {
             >
               <CardContent className="p-2 text-center">
                 <p className="text-xs font-bold mb-1">#{slot.tokenNo}</p>
+                <p className="text-[10px] text-muted-foreground mb-1">{slot.expectedTime}</p>
                 {slot.appointment ? (
                   <>
                     <p className="text-xs font-medium truncate">{slot.appointment.patient?.pName}</p>
                     <Badge variant="outline" className={`text-[10px] mt-1 ${statusColors[slot.status]}`}>
                       {slot.status}
                     </Badge>
+                   
                     <div className="flex gap-1 mt-1 justify-center">
                       {slot.status === "Pending" && (
                         <>
