@@ -23,13 +23,13 @@ import { patientSchema } from "@/lib/zodeSchema";
 import patientService from "@/services/patient.service";
 import { Loader2, Search, UserPlus } from "lucide-react";
 
-export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, prefillMobile = "" }) {
+export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, prefillMobile = "", skipSearch = false }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [mobileSearch, setMobileSearch] = useState(prefillMobile);
   const [mobileResults, setMobileResults] = useState([]);
   const [mobileSearched, setMobileSearched] = useState(false);
-  const [showForm, setShowForm] = useState(!!prefillMobile);
+  const [showForm, setShowForm] = useState(skipSearch || !!prefillMobile);
 
   const {
     register,
@@ -149,7 +149,7 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, p
     setMobileSearch(prefillMobile);
     setMobileResults([]);
     setMobileSearched(false);
-    setShowForm(!!prefillMobile);
+    setShowForm(skipSearch || !!prefillMobile);
     setMessage(null);
     onOpenChange(false);
   };

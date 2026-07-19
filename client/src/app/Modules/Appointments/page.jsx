@@ -55,6 +55,7 @@ export default function AppointmentsPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [searched, setSearched] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [skipPatientSearch, setSkipPatientSearch] = useState(false);
 
   const {
     register,
@@ -172,6 +173,7 @@ export default function AppointmentsPage() {
     setSearchResults([]);
     setSearched(false);
     setSelectedPatient(null);
+    setSkipPatientSearch(false);
     reset({
       Appointmentat: `${selectedDate}T${new Date().toTimeString().slice(0, 5)}`,
       TokenNo: tokenNo,
@@ -277,10 +279,14 @@ export default function AppointmentsPage() {
         <div className="space-y-2">
           <Label>Doctor *</Label>
           <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
-            <SelectTrigger><SelectValue placeholder="Select doctor" /></SelectTrigger>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select doctor" />
+            </SelectTrigger>
             <SelectContent>
               {doctors.map((d) => (
-                <SelectItem key={d.id} value={d.id}>{d.Name}</SelectItem>
+                <SelectItem key={d.id} value={d.id}>
+                  {d.Name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -299,7 +305,7 @@ export default function AppointmentsPage() {
         <div className="space-y-2">
           <Label>Status Filter</Label>
           <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               {statusOptions.map((s) => (
                 <SelectItem key={s} value={s}>{s}</SelectItem>
@@ -371,11 +377,11 @@ export default function AppointmentsPage() {
         </div>
       ) : selectedDoctor && selectedDate ? (
         <div className="text-center py-12 text-muted-foreground">
-          Click "Load Appointments" to view slots
+          Click Load Appointments to view slots
         </div>
       ) : (
         <div className="text-center py-12 text-muted-foreground">
-          Select a doctor and date, then click "Load Appointments"
+          Select a doctor and date, then click Load Appointments
         </div>
       )}
 
@@ -391,7 +397,9 @@ export default function AppointmentsPage() {
                 <div className="space-y-2">
                   <Label>Search By</Label>
                   <Select value={searchType} onValueChange={setSearchType}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="mobile">Mobile Number</SelectItem>
                       <SelectItem value="patientId">Patient ID</SelectItem>
@@ -440,17 +448,17 @@ export default function AppointmentsPage() {
                     ) : (
                       <p className="text-center text-muted-foreground py-4">No patients found</p>
                     )}
-                    <Button variant="outline" className="w-full" onClick={() => setIsPatientDialogOpen(true)}>
+                    <Button variant="outline" className="w-full" onClick={() => { setSkipPatientSearch(true); setIsPatientDialogOpen(true); }}>
                       <UserPlus className="h-4 w-4 mr-2" />Add New Patient
                     </Button>
                   </div>
                 )}
 
-                {!searched && (
-                  <Button variant="outline" className="w-full" onClick={() => setIsPatientDialogOpen(true)}>
+                {/* {!searched && (
+                  <Button variant="outline" className="w-full" onClick={() => { setSkipPatientSearch(false); setIsPatientDialogOpen(true); }}>
                     <UserPlus className="h-4 w-4 mr-2" />Add New Patient
                   </Button>
-                )}
+                )} */}
               </div>
             ) : (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -503,6 +511,7 @@ export default function AppointmentsPage() {
         onOpenChange={setIsPatientDialogOpen}
         onPatientAdded={handlePatientAdded}
         prefillMobile={searchType === "mobile" ? searchValue : ""}
+        skipSearch={skipPatientSearch}
       />
     </div>
   );
