@@ -56,7 +56,6 @@ export default function AppointmentsPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [searched, setSearched] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [skipPatientSearch, setSkipPatientSearch] = useState(false);
 
   const {
     register,
@@ -191,7 +190,6 @@ export default function AppointmentsPage() {
     setSearchResults([]);
     setSearched(false);
     setSelectedPatient(null);
-    setSkipPatientSearch(false);
     reset({
       Appointmentat: `${selectedDate}T${new Date().toTimeString().slice(0, 5)}`,
       TokenNo: tokenNo,
@@ -468,7 +466,7 @@ export default function AppointmentsPage() {
                     ) : (
                       <p className="text-center text-muted-foreground py-4">No patients found</p>
                     )}
-                    <Button variant="outline" className="w-full" onClick={() => { setSkipPatientSearch(true); setIsPatientDialogOpen(true); }}>
+                    <Button variant="outline" className="w-full" onClick={() => setIsPatientDialogOpen(true)}>
                       <UserPlus className="h-4 w-4 mr-2" />Add New Patient
                     </Button>
                   </div>
@@ -525,7 +523,6 @@ export default function AppointmentsPage() {
         onOpenChange={setIsPatientDialogOpen}
         onPatientAdded={handlePatientAdded}
         prefillMobile={searchType === "mobile" ? searchValue : ""}
-        skipSearch={skipPatientSearch}
       />
     </div>
   );
