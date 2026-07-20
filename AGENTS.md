@@ -140,10 +140,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 <Input placeholder="Enter value" />
 
-// Select
+// Select — always use className="w-full" on SelectTrigger
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 <Select>
-  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+  <SelectTrigger className="w-full"><SelectValue placeholder="Select..." /></SelectTrigger>
   <SelectContent>
     <SelectItem value="option1">Option 1</SelectItem>
   </SelectContent>

@@ -51,8 +51,9 @@ export default function AppointmentsPage() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [currentSchedule, setCurrentSchedule] = useState(null);
 
-  const [searchType, setSearchType] = useState("mobile");
-  const [searchValue, setSearchValue] = useState("");
+  const [patientIdSearch, setPatientIdSearch] = useState("");
+  const [mobileSearch, setMobileSearch] = useState("");
+  const [cnicSearch, setCnicSearch] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searched, setSearched] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -185,8 +186,9 @@ export default function AppointmentsPage() {
 
   const openCreate = (tokenNo) => {
     setSelectedSlot(tokenNo);
-    setSearchType("mobile");
-    setSearchValue("");
+    setPatientIdSearch("");
+    setMobileSearch("");
+    setCnicSearch("");
     setSearchResults([]);
     setSearched(false);
     setSelectedPatient(null);
@@ -199,14 +201,41 @@ export default function AppointmentsPage() {
     setIsDialogOpen(true);
   };
 
-  const handlePatientSearch = async () => {
-    if (!searchValue.trim()) {
-      const searchTypeLabels = { mobile: "mobile number", patientId: "patient ID", cnic: "CNIC" };
-      setMessage({ type: "error", text: `Please enter a ${searchTypeLabels[searchType]}` });
+  const handleSearchByPatientId = async () => {
+    if (!patientIdSearch.trim()) {
+      setMessage({ type: "error", text: "Please enter a Patient ID" });
       return;
     }
     try {
-      const res = await patientService.getAll({ search: searchValue });
+      const res = await patientService.getAll({ patientId: patientIdSearch });
+      setSearchResults(res.data);
+      setSearched(true);
+    } catch (error) {
+      setMessage({ type: "error", text: "Search failed" });
+    }
+  };
+
+  const handleSearchByMobile = async () => {
+    if (!mobileSearch.trim()) {
+      setMessage({ type: "error", text: "Please enter a Mobile number" });
+      return;
+    }
+    try {
+      const res = await patientService.getAll({ mobile: mobileSearch });
+      setSearchResults(res.data);
+      setSearched(true);
+    } catch (error) {
+      setMessage({ type: "error", text: "Search failed" });
+    }
+  };
+
+  const handleSearchByCnic = async () => {
+    if (!cnicSearch.trim()) {
+      setMessage({ type: "error", text: "Please enter a CNIC" });
+      return;
+    }
+    try {
+      const res = await patientService.getAll({ cnic: cnicSearch });
       setSearchResults(res.data);
       setSearched(true);
     } catch (error) {
@@ -221,15 +250,6 @@ export default function AppointmentsPage() {
   const handlePatientAdded = (newPatient) => {
     setSelectedPatient(newPatient);
     loadPatients();
-  };
-
-  const getSearchPlaceholder = () => {
-    switch (searchType) {
-      case "patientId": return "Enter Patient ID (e.g., pid-18-0726)";
-      case "cnic": return "Enter CNIC number";
-      case "mobile":
-      default: return "Enter mobile number";
-    }
   };
 
   const onSubmit = async (data) => {
@@ -358,6 +378,7 @@ export default function AppointmentsPage() {
               <CardContent className="p-2 text-center">
                 <p className="text-xs font-bold mb-1">#{slot.tokenNo}</p>
                 <p className="text-[10px] text-muted-foreground mb-1">{slot.expectedTime}</p>
+                                
                 {slot.appointment ? (
                   <>
                     <p className="text-xs font-medium truncate">{slot.appointment.patient?.pName}</p>
@@ -367,7 +388,9 @@ export default function AppointmentsPage() {
                    
                     <div className="flex gap-1 mt-1 justify-center">
                       {slot.status === "Pending" && (
+                        
                         <>
+                           
                           <Button size="sm" variant="outline" className="h-5 w-5 p-0 text-[10px]"
                             onClick={(e) => { e.stopPropagation(); handleStatusChange(slot.appointment.Id, "Booked"); }}>
                             B
@@ -412,30 +435,42 @@ export default function AppointmentsPage() {
 
             {!selectedPatient ? (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Search By</Label>
-                  <Select value={searchType} onValueChange={setSearchType}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mobile">Mobile Number</SelectItem>
-                      <SelectItem value="patientId">Patient ID</SelectItem>
-                      <SelectItem value="cnic">CNIC</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Patient ID"
+                      value={patientIdSearch}
+                      onChange={(e) => setPatientIdSearch(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleSearchByPatientId())}
+                    />
+                    <Button onClick={handleSearchByPatientId} variant="outline">
+                      <Search className="h-4 w-4" />
+                    </Button>
+                  </div>
 
-                <div className="flex gap-2">
-                  <Input
-                    placeholder={getSearchPlaceholder()}
-                    value={searchValue}
-                    onChange={(e) => setSearchValue(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handlePatientSearch())}
-                  />
-                  <Button onClick={handlePatientSearch}>
-                    <Search className="h-4 w-4 mr-2" />Search
-                  </Button>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Mobile Number"
+                      value={mobileSearch}
+                      onChange={(e) => setMobileSearch(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleSearchByMobile())}
+                    />
+                    <Button onClick={handleSearchByMobile} variant="outline">
+                      <Search className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="CNIC"
+                      value={cnicSearch}
+                      onChange={(e) => setCnicSearch(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleSearchByCnic())}
+                    />
+                    <Button onClick={handleSearchByCnic} variant="outline">
+                      <Search className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 {searched && (
@@ -491,7 +526,7 @@ export default function AppointmentsPage() {
                   <div className="space-y-2">
                     <Label>Status</Label>
                     <Select value={watch("Status")} onValueChange={(val) => setValue("Status", val)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Pending">Pending</SelectItem>
                         <SelectItem value="Booked">Booked</SelectItem>
@@ -522,7 +557,8 @@ export default function AppointmentsPage() {
         open={isPatientDialogOpen}
         onOpenChange={setIsPatientDialogOpen}
         onPatientAdded={handlePatientAdded}
-        prefillMobile={searchType === "mobile" ? searchValue : ""}
+        prefillMobile={mobileSearch}
+        prefillCnic={cnicSearch}
       />
     </div>
   );
