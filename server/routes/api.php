@@ -21,6 +21,7 @@ use App\Http\Controllers\PharmacyItemController;
 use App\Http\Controllers\LabTestController;
 use App\Http\Controllers\RadiologyScanController;
 use App\Http\Controllers\InsuranceCompanyController;
+use App\Http\Controllers\InsurancePlanController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -95,4 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Insurance Companies
     Route::apiResource('insurance-companies', InsuranceCompanyController::class);
+
+    // Insurance Plans
+    Route::apiResource('insurance-plans', InsurancePlanController::class);
 });

@@ -54,6 +54,13 @@ const settingsModules = [
     color: "bg-green-500",
     href: "/Modules/Settings/insuranceCompanies",
   },
+  {
+    name: "Insurance Plans",
+    description: "Manage insurance plans and coverage details",
+    icon: Shield,
+    color: "bg-emerald-500",
+    href: "/Modules/Settings/insurancePlans",
+  },
 ];
 
 export default function SettingsPage() {

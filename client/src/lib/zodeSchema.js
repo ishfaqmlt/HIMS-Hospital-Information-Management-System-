@@ -307,3 +307,12 @@ export const insuranceCompanySchema = z.object({
   discount: z.coerce.number().min(0).max(100).optional().nullable(),
   isActive: z.boolean().default(true),
 });
+
+export const insurancePlanSchema = z.object({
+  InsuranceCompanyId: z.string().min(1, "Insurance company is required"),
+  planName: z.string().min(1, "Plan name is required").max(255),
+  coverageDetails: z.string().optional().or(z.literal("")),
+  CoveragePercent: z.coerce.number().min(0, "Must be at least 0").max(100, "Cannot exceed 100").default(100),
+  AnnualLimit: z.coerce.number().min(0, "Must be positive").optional().nullable(),
+  isActive: z.boolean().default(true),
+});

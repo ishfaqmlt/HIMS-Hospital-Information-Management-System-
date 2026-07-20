@@ -70,6 +70,18 @@ class InsuranceCompanySeeder extends Seeder
                 'discount' => 8.00,
                 'isActive' => false,
             ],
+            [
+                'name' => 'Punjab Life insurance',
+                'phone' => '021-111-555556',
+                'contactPerson' => 'Hassan Raza',
+                'mobile' => '0304-3337890',
+                'email' => 'info@punjablife.com',
+                'address' => 'Punjab Life Building, Lahore',
+                'isCredit' => true,
+                'validityHours' => 48,
+                'discount' => 20.00,
+                'isActive' => true,
+            ],
         ];
 
         foreach ($companies as $company) {

@@ -17,12 +17,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insuranceCompanySchema } from "@/lib/zodeSchema";
 import insuranceCompanyService from "@/services/insuranceCompanyService";
-import { Loader2, Plus, Search } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 
 export default function InsuranceCompaniesPage() {
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [message, setMessage] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -63,24 +62,16 @@ export default function InsuranceCompaniesPage() {
     fetchCompanies();
   }, []);
 
-  const fetchCompanies = async (params = {}) => {
+  const fetchCompanies = async () => {
     try {
       setLoading(true);
-      const res = await insuranceCompanyService.getAll(params);
+      const res = await insuranceCompanyService.getAll();
       setCompanies(res.data);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSearch = () => {
-    if (!searchTerm.trim()) {
-      fetchCompanies();
-      return;
-    }
-    fetchCompanies({ search: searchTerm });
   };
 
   const openCreate = () => {
@@ -155,22 +146,6 @@ export default function InsuranceCompaniesPage() {
           {message.text}
         </div>
       )}
-
-      <div className="flex gap-2">
-        <Input
-          placeholder="Search by name, contact, phone, mobile, or email"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          className="max-w-md"
-        />
-        <Button variant="outline" onClick={handleSearch}>
-          <Search className="h-4 w-4 mr-2" />Search
-        </Button>
-        <Button variant="ghost" onClick={() => { setSearchTerm(""); fetchCompanies(); }}>
-          Reset
-        </Button>
-      </div>
 
       {loading ? (
         <div className="flex items-center justify-center min-h-[400px]">
