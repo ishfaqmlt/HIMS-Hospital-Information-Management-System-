@@ -20,6 +20,7 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\PharmacyItemController;
 use App\Http\Controllers\LabTestController;
 use App\Http\Controllers\RadiologyScanController;
+use App\Http\Controllers\InsuranceCompanyController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -91,4 +92,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Radiology Scans
     Route::apiResource('radiology-scans', RadiologyScanController::class);
+
+    // Insurance Companies
+    Route::apiResource('insurance-companies', InsuranceCompanyController::class);
 });

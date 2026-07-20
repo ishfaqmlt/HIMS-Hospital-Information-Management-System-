@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Building2, Settings } from "lucide-react";
+import { Building2, Settings, Shield } from "lucide-react";
 
 const settingsModules = [
   {
@@ -46,6 +46,13 @@ const settingsModules = [
     icon: Building2,
     color: "bg-blue-500",
     href: "/Modules/Settings/appointmentMaster",
+  },
+  {
+    name: "Insurance Companies",
+    description: "Manage insurance companies and their policies",
+    icon: Shield,
+    color: "bg-green-500",
+    href: "/Modules/Settings/insuranceCompanies",
   },
 ];
 

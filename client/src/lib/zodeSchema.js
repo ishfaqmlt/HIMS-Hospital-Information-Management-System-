@@ -294,3 +294,16 @@ export const pharmacySchema = z.object({
   PaymentMethod: z.enum(["Cash", "Card", "BankTransfer", "Insurance", "Other"]),
   Notes: z.string().optional(),
 });
+
+export const insuranceCompanySchema = z.object({
+  name: z.string().min(1, "Company name is required").max(255),
+  phone: z.string().max(20).optional().or(z.literal("")),
+  contactPerson: z.string().max(100).optional().or(z.literal("")),
+  mobile: z.string().max(20).optional().or(z.literal("")),
+  email: z.string().email("Invalid email").max(50).optional().or(z.literal("")),
+  address: z.string().max(255).optional().or(z.literal("")),
+  isCredit: z.boolean().default(false),
+  validityHours: z.coerce.number().min(0).default(48),
+  discount: z.coerce.number().min(0).max(100).optional().nullable(),
+  isActive: z.boolean().default(true),
+});
