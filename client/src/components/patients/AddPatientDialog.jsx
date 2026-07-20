@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,9 +23,11 @@ import { patientSchema } from "@/lib/zodeSchema";
 import patientService from "@/services/patient.service";
 import { Loader2 } from "lucide-react";
 
-export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, prefillMobile = "" }) {
+export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, editingPatient = null, prefillMobile = "", prefillCnic = "" }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+
+  const isEditing = !!editingPatient;
 
   const {
     register,
@@ -46,7 +48,7 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, p
       day: 0,
       address: "",
       cnic: "",
-      mobile: prefillMobile,
+      mobile: "",
       email: "",
       allergy: "",
       isActive: true,
@@ -58,6 +60,53 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, p
   const yearValue = watch("year");
   const monthValue = watch("month");
   const dayValue = watch("day");
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (editingPatient) {
+      let yr = 0, mo = 0, dy = 0;
+      if (editingPatient.dob) {
+        const dob = new Date(editingPatient.dob);
+        const today = new Date();
+        yr = today.getFullYear() - dob.getFullYear();
+        mo = today.getMonth() - dob.getMonth();
+        dy = today.getDate() - dob.getDate();
+        if (dy < 0) { mo--; dy += new Date(today.getFullYear(), today.getMonth(), 0).getDate(); }
+        if (mo < 0) { yr--; mo += 12; }
+      }
+      reset({
+        pName: editingPatient.pName || "",
+        gName: editingPatient.gName || "",
+        gender: editingPatient.gender || "",
+        dob: editingPatient.dob ? editingPatient.dob.split("T")[0] : "",
+        year: yr, month: mo, day: dy,
+        address: editingPatient.address || "",
+        cnic: editingPatient.cnic || "",
+        mobile: editingPatient.mobile || "",
+        email: editingPatient.email || "",
+        allergy: editingPatient.allergy || "",
+        isActive: editingPatient.isActive ?? true,
+      });
+    } else {
+      reset({
+        pName: "",
+        gName: "",
+        gender: "",
+        dob: "",
+        year: 0,
+        month: 0,
+        day: 0,
+        address: "",
+        cnic: prefillCnic,
+        mobile: prefillMobile,
+        email: "",
+        allergy: "",
+        isActive: true,
+      });
+    }
+    setMessage(null);
+  }, [open, editingPatient, prefillMobile, prefillCnic, reset]);
 
   const handleAgeChange = (field, value) => {
     const numValue = parseInt(value) || 0;
@@ -80,10 +129,17 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, p
     try {
       setLoading(true);
       const { year, month, day, ...submitData } = data;
-      const res = await patientService.create(submitData);
-      setMessage({ type: "success", text: "Patient created successfully" });
+
+      if (isEditing) {
+        await patientService.update(editingPatient.id, submitData);
+        setMessage({ type: "success", text: "Patient updated successfully" });
+      } else {
+        await patientService.create(submitData);
+        setMessage({ type: "success", text: "Patient created successfully" });
+      }
+
       if (onPatientAdded) {
-        onPatientAdded(res.data);
+        onPatientAdded();
       }
       setTimeout(() => {
         handleClose();
@@ -108,7 +164,7 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, p
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Patient</DialogTitle>
+          <DialogTitle>{isEditing ? "Edit Patient" : "Add New Patient"}</DialogTitle>
         </DialogHeader>
 
         {message && (
@@ -200,7 +256,7 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, p
             <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Create Patient
+              {isEditing ? "Update Patient" : "Create Patient"}
             </Button>
           </div>
         </form>

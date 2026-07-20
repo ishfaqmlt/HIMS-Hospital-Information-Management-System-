@@ -23,6 +23,18 @@ class PatientController extends Controller
             });
         }
 
+        if ($request->has('patientId') && $request->patientId) {
+            $query->where('patientId', 'like', "%{$request->patientId}%");
+        }
+
+        if ($request->has('cnic') && $request->cnic) {
+            $query->where('cnic', 'like', "%{$request->cnic}%");
+        }
+
+        if ($request->has('mobile') && $request->mobile) {
+            $query->where('mobile', 'like', "%{$request->mobile}%");
+        }
+
         if ($request->has('today') && $request->today) {
             $query->whereDate('created_at', now()->toDateString());
         }
