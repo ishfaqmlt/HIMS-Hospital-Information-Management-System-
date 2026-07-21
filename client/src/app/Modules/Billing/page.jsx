@@ -25,6 +25,9 @@ import PatientDetailsCard from "@/components/patients/PatientDetailsCard";
 import patientTypeService from "@/services/patientTypeService";
 import patientService from "@/services/patient.service";
 import patientVisitService from "@/services/patientVisitService";
+import doctorService from "@/services/doctor.service";
+import departmentService from "@/services/department.service";
+import serviceService from "@/services/serviceService";
 
 export default function BillingPage() {
   const [loading, setLoading] = useState(false);
@@ -89,11 +92,8 @@ export default function BillingPage() {
 
   const loadDoctors = async () => {
     try {
-      const res = await fetch("/api/doctors", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      const data = await res.json();
-      setDoctors(data);
+      const res = await doctorService.getAll();
+      setDoctors(res.data);
     } catch (error) {
       console.error(error);
     }
@@ -101,11 +101,8 @@ export default function BillingPage() {
 
   const loadDepartments = async () => {
     try {
-      const res = await fetch("/api/departments", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      const data = await res.json();
-      setDepartments(data);
+      const res = await departmentService.getAll();
+      setDepartments(res.data);
     } catch (error) {
       console.error(error);
     }
@@ -113,11 +110,8 @@ export default function BillingPage() {
 
   const loadServices = async () => {
     try {
-      const res = await fetch("/api/services", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      const data = await res.json();
-      setServices(data);
+      const res = await serviceService.getAll();
+      setServices(res.data);
     } catch (error) {
       console.error(error);
     }
