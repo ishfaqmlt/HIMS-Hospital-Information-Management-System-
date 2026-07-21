@@ -16,7 +16,7 @@ class PatientType extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'visitType',
+        'patientType',
         'isSynced',
     ];
 

@@ -8,9 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('visit_types', function (Blueprint $table) {
+        Schema::create('patient_types', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->enum('visitType', ['OPD', 'IPD']);
+            $table->enum('patientType', ['General', 'IPD','Emergency','Insurance','Telemedicine','Home Visit']);
             $table->boolean('isSynced')->default(false);
             $table->timestamps();
         });
@@ -18,6 +18,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('visit_types');
+        Schema::dropIfExists('patient_types');
     }
 };

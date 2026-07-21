@@ -11,9 +11,8 @@ return new class extends Migration
         Schema::create('patient_visits', function (Blueprint $table) {
             $table->string('mrn', 50)->primary();
             $table->foreignUuid('patientId')->constrained('patients', 'patientId')->onDelete('cascade');
-            $table->foreignUuid('visittypeId')->constrained('visit_types')->onDelete('cascade');
+            $table->foreignUuid('patientTypeId')->constrained('patient_types')->onDelete('cascade');
             $table->foreignUuid('InsuranceCompanyId')->nullable()->constrained('insurance_companies');
-            $table->foreignUuid('employeeId')->nullable()->constrained('doctors');
             $table->foreignUuid('doctorId')->nullable()->constrained('doctors');
             $table->foreignId('UserId')->constrained('users');
             $table->boolean('isSynced')->default(false);
