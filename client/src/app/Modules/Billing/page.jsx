@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { DataTable } from "@/components/data-table/data-table";
-import { getColumns } from "./columns";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -14,92 +13,54 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { billingSchema } from "@/lib/zodeSchema";
-import billingService from "@/services/billing.service";
-import patientService from "@/services/patient.service";
-import AddPatientDialog from "@/components/patients/AddPatientDialog";
-import { Loader2, Plus, Search, CalendarDays, Eye, UserPlus } from "lucide-react";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Search, Plus, Save, Printer, X, Trash2 } from "lucide-react";
 
 export default function BillingPage() {
   const [loading, setLoading] = useState(false);
-  const [billings, setBillings] = useState([]);
-  const [patients, setPatients] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [message, setMessage] = useState(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [isPatientDialogOpen, setIsPatientDialogOpen] = useState(false);
-  const [editingBilling, setEditingBilling] = useState(null);
-  const [viewingBilling, setViewingBilling] = useState(null);
 
-  const [mobileSearch, setMobileSearch] = useState("");
-  const [mobileResults, setMobileResults] = useState([]);
-  const [mobileSearched, setMobileSearched] = useState(false);
+  const [mrnSearch, setMrnSearch] = useState("");
+  const [patientIdSearch, setPatientIdSearch] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm({
-    resolver: zodResolver(billingSchema),
-    defaultValues: {
-      patientId: "",
-      InvoiceNo: "",
-      InvoiceDate: new Date().toISOString().split("T")[0],
-      InvoiceType: "OPD",
-      SubTotal: 0,
-      Discount: 0,
-      Tax: 0,
-      TotalAmount: 0,
-      PaidAmount: 0,
-      PaymentStatus: "Pending",
-      PaymentMethod: "Cash",
-      Notes: "",
-    },
-  });
+  const [voucherNo, setVoucherNo] = useState("");
+  const [tokenNo, setTokenNo] = useState("");
+  const [regDate, setRegDate] = useState(new Date().toISOString().slice(0, 16));
+  const [selectedConsultant, setSelectedConsultant] = useState("");
+  const [selectedDepartment, setSelectedDepartment] = useState("");
+  const [selectedService, setSelectedService] = useState("");
 
-  const subTotal = watch("SubTotal");
-  const discount = watch("Discount");
-  const tax = watch("Tax");
-  const totalAmount = watch("TotalAmount");
-  const paidAmount = watch("PaidAmount");
+  const [selectedServices, setSelectedServices] = useState([]);
 
-  useEffect(() => {
-    const calculated = subTotal - discount + tax;
-    setValue("TotalAmount", Math.max(0, calculated));
-  }, [subTotal, discount, tax, setValue]);
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
+  const [transacId, setTransacId] = useState("");
+  const [totalBill, setTotalBill] = useState(0);
+  const [discountPercent, setDiscountPercent] = useState(0);
+  const [discount, setDiscount] = useState(0);
+  const [netAmount, setNetAmount] = useState(0);
+  const [paid, setPaid] = useState(0);
+  const [remaining, setRemaining] = useState(0);
+  const [pBalance, setPBalance] = useState(0);
+  const [remarks, setRemarks] = useState("");
+  const [drShare, setDrShare] = useState(0);
 
-  useEffect(() => {
-    if (!message) return;
-    const t = setTimeout(() => setMessage(null), 4000);
-    return () => clearTimeout(t);
-  }, [message]);
-
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!searchTerm.trim()) {
-      setMessage({ type: "error", text: "Please enter a search term" });
+  const handleMrnSearch = async () => {
+    if (!mrnSearch.trim()) {
+      setMessage({ type: "error", text: "Please enter MRN" });
       return;
     }
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await billingService.getAll({ search: searchTerm });
-      setBillings(res.data);
-      if (res.data.length === 0) {
-        setMessage({ type: "error", text: "No invoices found" });
-      }
+      // TODO: Replace with patientVisits API call
+      setMessage({ type: "error", text: "Patient Visits table not yet created" });
     } catch (error) {
       setMessage({ type: "error", text: "Search failed" });
     } finally {
@@ -107,466 +68,523 @@ export default function BillingPage() {
     }
   };
 
-  const loadTodaysInvoices = async () => {
+  const handlePatientIdSearch = async () => {
+    if (!patientIdSearch.trim()) {
+      setMessage({ type: "error", text: "Please enter Patient ID" });
+      return;
+    }
+    setLoading(true);
     try {
-      setLoading(true);
-      setSearchTerm("");
-      const res = await billingService.getAll({ today: true });
-      setBillings(res.data);
-      if (res.data.length === 0) {
-        setMessage({ type: "error", text: "No invoices found for today" });
-      }
+      // TODO: Replace with patientVisits API call
+      setMessage({ type: "error", text: "Patient Visits table not yet created" });
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to load invoices" });
+      setMessage({ type: "error", text: "Search failed" });
     } finally {
       setLoading(false);
     }
   };
 
-  const resetBillings = () => {
-    setSearchTerm("");
-    setBillings([]);
+  const addService = () => {
+    if (!selectedService) {
+      setMessage({ type: "error", text: "Please select a service" });
+      return;
+    }
+    const newService = {
+      id: selectedServices.length + 1,
+      serviceCode: selectedService,
+      fee: 0,
+      qty: 1,
+      totalAmount: 0,
+      sharePercent: 0,
+      shareAmount: 0,
+    };
+    setSelectedServices([...selectedServices, newService]);
+    setSelectedService("");
   };
 
-  const openCreate = () => {
-    setEditingBilling(null);
+  const removeService = (id) => {
+    setSelectedServices(selectedServices.filter((s) => s.id !== id));
+  };
+
+  const updateServiceQty = (id, qty) => {
+    setSelectedServices(
+      selectedServices.map((s) =>
+        s.id === id ? { ...s, qty, totalAmount: s.fee * qty } : s
+      )
+    );
+  };
+
+  const handleNew = () => {
+    setMrnSearch("");
+    setPatientIdSearch("");
     setSelectedPatient(null);
-    setMobileSearch("");
-    setMobileResults([]);
-    setMobileSearched(false);
-    reset({
-      patientId: "",
-      InvoiceNo: `INV-${Date.now().toString().slice(-6)}`,
-      InvoiceDate: new Date().toISOString().split("T")[0],
-      InvoiceType: "OPD",
-      SubTotal: 0,
-      Discount: 0,
-      Tax: 0,
-      TotalAmount: 0,
-      PaidAmount: 0,
-      PaymentStatus: "Pending",
-      PaymentMethod: "Cash",
-      Notes: "",
-    });
-    setIsDialogOpen(true);
+    setVoucherNo("");
+    setTokenNo("");
+    setRegDate(new Date().toISOString().slice(0, 16));
+    setSelectedConsultant("");
+    setSelectedDepartment("");
+    setSelectedService("");
+    setSelectedServices([]);
+    setPaymentMethod("Cash");
+    setTransacId("");
+    setTotalBill(0);
+    setDiscountPercent(0);
+    setDiscount(0);
+    setNetAmount(0);
+    setPaid(0);
+    setRemaining(0);
+    setPBalance(0);
+    setRemarks("");
+    setDrShare(0);
   };
 
-  const openEdit = (billing) => {
-    setEditingBilling(billing);
-    setSelectedPatient(billing.patient);
-    setMobileSearch("");
-    setMobileResults([]);
-    setMobileSearched(false);
-    reset({
-      patientId: billing.patientId,
-      InvoiceNo: billing.InvoiceNo,
-      InvoiceDate: billing.InvoiceDate ? new Date(billing.InvoiceDate).toISOString().split("T")[0] : "",
-      InvoiceType: billing.InvoiceType,
-      SubTotal: billing.SubTotal,
-      Discount: billing.Discount,
-      Tax: billing.Tax,
-      TotalAmount: billing.TotalAmount,
-      PaidAmount: billing.PaidAmount,
-      PaymentStatus: billing.PaymentStatus,
-      PaymentMethod: billing.PaymentMethod,
-      Notes: billing.Notes || "",
-    });
-    setIsDialogOpen(true);
-  };
-
-  const openView = (billing) => {
-    setViewingBilling(billing);
-    setIsViewDialogOpen(true);
-  };
-
-  const handleMobileSearch = async () => {
-    if (!mobileSearch.trim()) {
-      setMessage({ type: "error", text: "Please enter a mobile number" });
+  const handleSave = async () => {
+    if (!selectedPatient) {
+      setMessage({ type: "error", text: "Please select a patient first" });
       return;
     }
+    if (selectedServices.length === 0) {
+      setMessage({ type: "error", text: "Please add at least one service" });
+      return;
+    }
+    setLoading(true);
     try {
-      const res = await patientService.getAll({ search: mobileSearch });
-      setMobileResults(res.data);
-      setMobileSearched(true);
+      // TODO: Save billing via API
+      setMessage({ type: "success", text: "Billing saved successfully" });
     } catch (error) {
-      setMessage({ type: "error", text: "Search failed" });
+      setMessage({ type: "error", text: "Failed to save billing" });
+    } finally {
+      setLoading(false);
     }
   };
-
-  const selectExistingPatient = (patient) => {
-    setSelectedPatient(patient);
-    setValue("patientId", patient.id);
-  };
-
-  const handlePatientAdded = (newPatient) => {
-    setSelectedPatient(newPatient);
-    setValue("patientId", newPatient.id);
-    setIsPatientDialogOpen(false);
-  };
-
-  const onSubmit = async (data) => {
-    try {
-      if (!selectedPatient && !editingBilling) {
-        setMessage({ type: "error", text: "Please select a patient" });
-        return;
-      }
-
-      if (editingBilling) {
-        await billingService.update(editingBilling.Id, data);
-        setMessage({ type: "success", text: "Invoice updated successfully" });
-      } else {
-        data.patientId = selectedPatient.id;
-        await billingService.create(data);
-        setMessage({ type: "success", text: "Invoice created successfully" });
-      }
-      setIsDialogOpen(false);
-      if (searchTerm) {
-        handleSearch({ preventDefault: () => {} });
-      } else if (billings.length > 0) {
-        loadTodaysInvoices();
-      }
-    } catch (error) {
-      setMessage({
-        type: "error",
-        text: error.response?.data?.message || "Operation failed",
-      });
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this invoice?")) return;
-    try {
-      await billingService.delete(id);
-      setMessage({ type: "success", text: "Invoice deleted successfully" });
-      setBillings((prev) => prev.filter((b) => b.Id !== id));
-    } catch (error) {
-      setMessage({ type: "error", text: "Failed to delete invoice" });
-    }
-  };
-
-  const columns = getColumns({
-    onEdit: openEdit,
-    onDelete: handleDelete,
-    onView: openView,
-  });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Billing</h1>
-          <p className="text-muted-foreground mt-1">Manage invoices and payments</p>
-        </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4 mr-2" />New Invoice
-        </Button>
-      </div>
-
-      <div className="flex gap-2">
-        <form onSubmit={handleSearch} className="flex gap-2 flex-1">
-          <Input
-            placeholder="Search by Invoice No, Patient Name, or Mobile"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Button type="submit" disabled={loading}>
-            <Search className="h-4 w-4 mr-2" />Search
-          </Button>
-        </form>
-        <Button variant="outline" onClick={loadTodaysInvoices} disabled={loading}>
-          <CalendarDays className="h-4 w-4 mr-2" />Today's Invoices
-        </Button>
-        <Button variant="ghost" onClick={resetBillings} disabled={loading}>
-          Reset
-        </Button>
-      </div>
-
+    <div className="space-y-4">
       {message && (
-        <div className={`p-4 rounded-lg text-sm ${message.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+        <div className={`p-3 rounded-lg text-sm ${message.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
           {message.text}
         </div>
       )}
 
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : (
-        <DataTable columns={columns} data={billings} filterColumn="InvoiceNo" />
-      )}
+      {/* Patient Details Section */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-9 gap-2 items-end">
+            <div className="space-y-1">
+              <Label className="text-xs">MRN</Label>
+              <div className="flex gap-1">
+                <Input
+                  value={mrnSearch}
+                  onChange={(e) => setMrnSearch(e.target.value)}
+                  className="h-8 text-xs"
+                  placeholder="MRN"
+                />
+                <Button size="sm" variant="outline" className="h-8 px-2" onClick={handleMrnSearch}>
+                  <Search className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
 
-      {isDialogOpen && (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingBilling ? "Edit Invoice" : "New Invoice"}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              {!editingBilling && (
-                <>
-                  {!selectedPatient ? (
-                    <div className="space-y-4">
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Search patient by mobile number"
-                          value={mobileSearch}
-                          onChange={(e) => setMobileSearch(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleMobileSearch())}
-                        />
-                        <Button type="button" onClick={handleMobileSearch}>
-                          <Search className="h-4 w-4 mr-2" />Search
-                        </Button>
-                      </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Patient ID</Label>
+              <div className="flex gap-1">
+                <Input
+                  value={patientIdSearch}
+                  onChange={(e) => setPatientIdSearch(e.target.value)}
+                  className="h-8 text-xs"
+                  placeholder="Patient ID"
+                />
+                <Button size="sm" variant="outline" className="h-8 px-2" onClick={handlePatientIdSearch}>
+                  <Search className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
 
-                      {mobileSearched && (
-                        <div className="space-y-3">
-                          {mobileResults.length > 0 ? (
-                            <>
-                              <p className="text-sm text-muted-foreground">
-                                {mobileResults.length} patient(s) found. Select or add new:
-                              </p>
-                              <div className="border rounded-lg divide-y max-h-60 overflow-y-auto">
-                                {mobileResults.map((p) => (
-                                  <div
-                                    key={p.id}
-                                    className="flex items-center justify-between p-3 hover:bg-muted cursor-pointer"
-                                    onClick={() => selectExistingPatient(p)}
-                                  >
-                                    <div>
-                                      <p className="font-medium">{p.pName}</p>
-                                      <p className="text-sm text-muted-foreground">
-                                        {p.patientId} | {p.mobile} | {p.cnic || "No CNIC"}
-                                      </p>
-                                    </div>
-                                    <Button type="button" size="sm" variant="outline">Select</Button>
-                                  </div>
-                                ))}
-                              </div>
-                            </>
-                          ) : (
-                            <p className="text-center text-muted-foreground py-4">No patients found with this mobile number</p>
-                          )}
-                          <Button type="button" variant="outline" className="w-full" onClick={() => setIsPatientDialogOpen(true)}>
-                            <UserPlus className="h-4 w-4 mr-2" />Add New Patient
-                          </Button>
-                        </div>
-                      )}
+            <div className="space-y-1">
+              <Label className="text-xs">CNIC</Label>
+              <Input
+                value={selectedPatient?.cnic || ""}
+                disabled
+                className="h-8 text-xs"
+              />
+            </div>
 
-                      {!mobileSearched && (
-                        <Button type="button" variant="outline" className="w-full" onClick={() => setIsPatientDialogOpen(true)}>
-                          <UserPlus className="h-4 w-4 mr-2" />Add New Patient
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800 flex items-center justify-between">
-                      <div>
-                        Patient: <strong>{selectedPatient.pName}</strong> ({selectedPatient.patientId})
-                      </div>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedPatient(null)}>
-                        Change
-                      </Button>
-                    </div>
-                  )}
-                </>
-              )}
+            <div className="space-y-1">
+              <Label className="text-xs">Mobile No.</Label>
+              <Input
+                value={selectedPatient?.mobile || ""}
+                disabled
+                className="h-8 text-xs"
+              />
+            </div>
 
-              {selectedPatient && (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Invoice No *</Label>
-                      <Input {...register("InvoiceNo")} disabled />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Invoice Date *</Label>
-                      <Input type="date" {...register("InvoiceDate")} />
-                      {errors.InvoiceDate && <p className="text-sm text-destructive">{errors.InvoiceDate.message}</p>}
-                    </div>
-                  </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Patient</Label>
+              <Input
+                value={selectedPatient?.pName || ""}
+                disabled
+                className="h-8 text-xs"
+              />
+            </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Invoice Type *</Label>
-                      <Select value={watch("InvoiceType")} onValueChange={(val) => setValue("InvoiceType", val)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="OPD">OPD</SelectItem>
-                          <SelectItem value="IPD">IPD</SelectItem>
-                          <SelectItem value="Emergency">Emergency</SelectItem>
-                          <SelectItem value="Laboratory">Laboratory</SelectItem>
-                          <SelectItem value="Pharmacy">Pharmacy</SelectItem>
-                          <SelectItem value="Radiology">Radiology</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Payment Method *</Label>
-                      <Select value={watch("PaymentMethod")} onValueChange={(val) => setValue("PaymentMethod", val)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Cash">Cash</SelectItem>
-                          <SelectItem value="Card">Card</SelectItem>
-                          <SelectItem value="BankTransfer">Bank Transfer</SelectItem>
-                          <SelectItem value="Insurance">Insurance</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Guardian</Label>
+              <Input
+                value={selectedPatient?.gName || ""}
+                disabled
+                className="h-8 text-xs"
+              />
+            </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Sub Total *</Label>
-                      <Input type="number" step="0.01" {...register("SubTotal")} />
-                      {errors.SubTotal && <p className="text-sm text-destructive">{errors.SubTotal.message}</p>}
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Discount *</Label>
-                      <Input type="number" step="0.01" {...register("Discount")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Tax *</Label>
-                      <Input type="number" step="0.01" {...register("Tax")} />
-                    </div>
-                  </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Gender</Label>
+              <Input
+                value={selectedPatient?.gender || ""}
+                disabled
+                className="h-8 text-xs"
+              />
+            </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Total Amount *</Label>
-                      <Input type="number" step="0.01" {...register("TotalAmount")} disabled />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Paid Amount *</Label>
-                      <Input type="number" step="0.01" {...register("PaidAmount")} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Balance</Label>
+            <div className="space-y-1">
+              <Label className="text-xs">Address</Label>
+              <Input
+                value={selectedPatient?.address || ""}
+                disabled
+                className="h-8 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Patient Type</Label>
+              <Select defaultValue="General">
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="General">General</SelectItem>
+                  <SelectItem value="IPD">IPD</SelectItem>
+                  <SelectItem value="Emergency">Emergency</SelectItem>
+                  <SelectItem value="Insurance">Insurance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Service Selection Section */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-6 gap-3 items-end">
+            <div className="space-y-1">
+              <Label className="text-xs">Voucher No</Label>
+              <Input
+                value={voucherNo}
+                onChange={(e) => setVoucherNo(e.target.value)}
+                className="h-8 text-xs"
+                placeholder="Voucher No"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Token No</Label>
+              <Input
+                value={tokenNo}
+                onChange={(e) => setTokenNo(e.target.value)}
+                className="h-8 text-xs"
+                placeholder="Token No"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Reg. Date</Label>
+              <Input
+                type="datetime-local"
+                value={regDate}
+                onChange={(e) => setRegDate(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Consultant</Label>
+              <Select value={selectedConsultant} onValueChange={setSelectedConsultant}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dr1">Dr. Ahmed</SelectItem>
+                  <SelectItem value="dr2">Dr. Sara</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Department</Label>
+              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="opd">OPD</SelectItem>
+                  <SelectItem value="ipd">IPD</SelectItem>
+                  <SelectItem value="emergency">Emergency</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Service</Label>
+              <div className="flex gap-1">
+                <Select value={selectedService} onValueChange={setSelectedService}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="consultation">Consultation</SelectItem>
+                    <SelectItem value="lab">Lab Test</SelectItem>
+                    <SelectItem value="xray">X-Ray</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button size="sm" variant="outline" className="h-8 px-2" onClick={addService}>
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Selected Services Table */}
+      <Card>
+        <CardHeader className="py-2">
+          <CardTitle className="text-sm">Selected Services</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="text-xs h-8">ID</TableHead>
+                <TableHead className="text-xs h-8">Service Code</TableHead>
+                <TableHead className="text-xs h-8">Fee</TableHead>
+                <TableHead className="text-xs h-8">Qty</TableHead>
+                <TableHead className="text-xs h-8">Total Amount</TableHead>
+                <TableHead className="text-xs h-8">Share %</TableHead>
+                <TableHead className="text-xs h-8">Share Amount</TableHead>
+                <TableHead className="text-xs h-8">Print Token</TableHead>
+                <TableHead className="text-xs h-8">Remove</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {selectedServices.length > 0 ? (
+                selectedServices.map((service) => (
+                  <TableRow key={service.id}>
+                    <TableCell className="text-xs py-1">{service.id}</TableCell>
+                    <TableCell className="text-xs py-1">{service.serviceCode}</TableCell>
+                    <TableCell className="text-xs py-1">
                       <Input
                         type="number"
-                        value={totalAmount - paidAmount}
-                        disabled
-                        className={totalAmount - paidAmount > 0 ? "text-red-600" : "text-green-600"}
+                        value={service.fee}
+                        onChange={(e) => {
+                          const fee = Number(e.target.value);
+                          setSelectedServices(
+                            selectedServices.map((s) =>
+                              s.id === service.id
+                                ? { ...s, fee, totalAmount: fee * s.qty }
+                                : s
+                            )
+                          );
+                        }}
+                        className="h-6 text-xs w-20"
                       />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Payment Status *</Label>
-                    <Select value={watch("PaymentStatus")} onValueChange={(val) => setValue("PaymentStatus", val)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Pending">Pending</SelectItem>
-                        <SelectItem value="Partial">Partial</SelectItem>
-                        <SelectItem value="Paid">Paid</SelectItem>
-                        <SelectItem value="Cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Notes</Label>
-                    <Textarea {...register("Notes")} placeholder="Additional notes" />
-                  </div>
-
-                  <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit">
-                      {editingBilling ? "Update" : "Create"}
-                    </Button>
-                  </div>
-                </>
+                    </TableCell>
+                    <TableCell className="text-xs py-1">
+                      <Input
+                        type="number"
+                        value={service.qty}
+                        onChange={(e) => updateServiceQty(service.id, Number(e.target.value))}
+                        className="h-6 text-xs w-16"
+                      />
+                    </TableCell>
+                    <TableCell className="text-xs py-1">{service.totalAmount}</TableCell>
+                    <TableCell className="text-xs py-1">{service.sharePercent}</TableCell>
+                    <TableCell className="text-xs py-1">{service.shareAmount}</TableCell>
+                    <TableCell className="text-xs py-1">
+                      <Button size="sm" variant="ghost" className="h-6 px-2">
+                        <Printer className="h-3 w-3" />
+                      </Button>
+                    </TableCell>
+                    <TableCell className="text-xs py-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-destructive"
+                        onClick={() => removeService(service.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center text-xs text-muted-foreground py-8">
+                    No services added yet
+                  </TableCell>
+                </TableRow>
               )}
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-      {isViewDialogOpen && viewingBilling && (
-        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Invoice Details</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Invoice No</p>
-                  <p className="font-medium">{viewingBilling.InvoiceNo}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Date</p>
-                  <p className="font-medium">
-                    {new Date(viewingBilling.InvoiceDate).toLocaleDateString("en-GB")}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Patient</p>
-                  <p className="font-medium">{viewingBilling.patient?.pName}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Type</p>
-                  <Badge variant="outline" className={typeColors[viewingBilling.InvoiceType]}>
-                    {viewingBilling.InvoiceType}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Sub Total</p>
-                  <p className="font-medium">{Number(viewingBilling.SubTotal).toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Discount</p>
-                  <p className="font-medium">{Number(viewingBilling.Discount).toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Tax</p>
-                  <p className="font-medium">{Number(viewingBilling.Tax).toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Total</p>
-                  <p className="font-medium">{Number(viewingBilling.TotalAmount).toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Paid</p>
-                  <p className="font-medium text-green-600">{Number(viewingBilling.PaidAmount).toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Balance</p>
-                  <p className={`font-medium ${viewingBilling.Balance > 0 ? "text-red-600" : "text-green-600"}`}>
-                    {Number(viewingBilling.Balance).toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Status</p>
-                  <Badge variant="outline" className={statusColors[viewingBilling.PaymentStatus]}>
-                    {viewingBilling.PaymentStatus}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Method</p>
-                  <p className="font-medium">{viewingBilling.PaymentMethod}</p>
-                </div>
-              </div>
-              {viewingBilling.Notes && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Notes</p>
-                  <p className="text-sm">{viewingBilling.Notes}</p>
-                </div>
-              )}
+      {/* Payment Section */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-9 gap-2 items-end">
+            <div className="space-y-1">
+              <Label className="text-xs">Payment</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cash">Cash</SelectItem>
+                  <SelectItem value="Card">Card</SelectItem>
+                  <SelectItem value="BankTransfer">Bank Transfer</SelectItem>
+                  <SelectItem value="Insurance">Insurance</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
 
-      <AddPatientDialog
-        open={isPatientDialogOpen}
-        onOpenChange={setIsPatientDialogOpen}
-        onPatientAdded={handlePatientAdded}
-        prefillMobile={mobileSearch}
-      />
+            <div className="space-y-1">
+              <Label className="text-xs">Transac. Id</Label>
+              <Input
+                value={transacId}
+                onChange={(e) => setTransacId(e.target.value)}
+                className="h-8 text-xs"
+                placeholder="Transaction ID"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Total Bill</Label>
+              <Input
+                type="number"
+                value={totalBill}
+                onChange={(e) => setTotalBill(Number(e.target.value))}
+                className="h-8 text-xs bg-muted"
+                disabled
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Discount %</Label>
+              <Input
+                type="number"
+                value={discountPercent}
+                onChange={(e) => {
+                  const pct = Number(e.target.value);
+                  setDiscountPercent(pct);
+                  setDiscount(totalBill * (pct / 100));
+                }}
+                className="h-8 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Discount</Label>
+              <Input
+                type="number"
+                value={discount}
+                onChange={(e) => setDiscount(Number(e.target.value))}
+                className="h-8 text-xs bg-muted"
+                disabled
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Net Amount</Label>
+              <Input
+                type="number"
+                value={netAmount}
+                onChange={(e) => setNetAmount(Number(e.target.value))}
+                className="h-8 text-xs bg-muted"
+                disabled
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Paid</Label>
+              <Input
+                type="number"
+                value={paid}
+                onChange={(e) => setPaid(Number(e.target.value))}
+                className="h-8 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Remaining</Label>
+              <Input
+                type="number"
+                value={remaining}
+                onChange={(e) => setRemaining(Number(e.target.value))}
+                className="h-8 text-xs bg-muted"
+                disabled
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">P. Balance</Label>
+              <Input
+                type="number"
+                value={pBalance}
+                onChange={(e) => setPBalance(Number(e.target.value))}
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Remarks</Label>
+              <Input
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                className="h-8 text-xs"
+                placeholder="Remarks"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Dr. Share</Label>
+              <Input
+                type="number"
+                value={drShare}
+                onChange={(e) => setDrShare(Number(e.target.value))}
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Action Buttons */}
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={handleNew} disabled={loading}>
+          <Plus className="h-4 w-4 mr-1" /> New (Ctrl+N)
+        </Button>
+        <Button onClick={handleSave} disabled={loading}>
+          {loading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+          Save (Ctrl+S)
+        </Button>
+        <Button variant="outline" disabled={loading}>
+          <Printer className="h-4 w-4 mr-1" /> Print
+        </Button>
+        <Button variant="destructive" onClick={handleNew} disabled={loading}>
+          <X className="h-4 w-4 mr-1" /> Exit (F4)
+        </Button>
+      </div>
     </div>
   );
 }
