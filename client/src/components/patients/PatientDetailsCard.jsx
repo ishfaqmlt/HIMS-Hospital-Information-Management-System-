@@ -22,8 +22,9 @@ export default function PatientDetailsCard({
   onPatientIdSearchChange,
   onPatientIdSearch,
   selectedPatient = null,
-  patientType = "General",
+  patientType = "",
   onPatientTypeChange,
+  patientTypes = [],
 }) {
   return (
     <Card>
@@ -117,13 +118,12 @@ export default function PatientDetailsCard({
             <Label className="text-xs">Patient Type</Label>
             <Select value={patientType} onValueChange={onPatientTypeChange}>
               <SelectTrigger className="w-full h-8 text-xs">
-                <SelectValue />
+                <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="General">General</SelectItem>
-                <SelectItem value="IPD">IPD</SelectItem>
-                <SelectItem value="Emergency">Emergency</SelectItem>
-                <SelectItem value="Insurance">Insurance</SelectItem>
+                {patientTypes.map((pt) => (
+                  <SelectItem key={pt.id} value={pt.id}>{pt.visitType}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

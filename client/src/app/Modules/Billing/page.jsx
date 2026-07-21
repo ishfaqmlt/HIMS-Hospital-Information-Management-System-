@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,17 +22,25 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Search, Plus, Save, Printer, X, Trash2 } from "lucide-react";
 import PatientDetailsCard from "@/components/patients/PatientDetailsCard";
+import patientTypeService from "@/services/patientTypeService";
+import patientService from "@/services/patient.service";
+import patientVisitService from "@/services/patientVisitService";
 
 export default function BillingPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
+  const [patientTypes, setPatientTypes] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [services, setServices] = useState([]);
+
   const [mrnSearch, setMrnSearch] = useState("");
   const [patientIdSearch, setPatientIdSearch] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [existingMrn, setExistingMrn] = useState(null);
 
-  const [patientType, setPatientType] = useState("General");
-
+  const [patientType, setPatientType] = useState("");
   const [voucherNo, setVoucherNo] = useState("");
   const [tokenNo, setTokenNo] = useState("");
   const [regDate, setRegDate] = useState(new Date().toISOString().slice(0, 16));
@@ -54,6 +62,67 @@ export default function BillingPage() {
   const [remarks, setRemarks] = useState("");
   const [drShare, setDrShare] = useState(0);
 
+  useEffect(() => {
+    loadPatientTypes();
+    loadDoctors();
+    loadDepartments();
+    loadServices();
+  }, []);
+
+  useEffect(() => {
+    if (!message) return;
+    const t = setTimeout(() => setMessage(null), 4000);
+    return () => clearTimeout(t);
+  }, [message]);
+
+  const loadPatientTypes = async () => {
+    try {
+      const res = await patientTypeService.getAll();
+      setPatientTypes(res.data);
+      if (res.data.length > 0) {
+        setPatientType(res.data[0].id);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const loadDoctors = async () => {
+    try {
+      const res = await fetch("/api/doctors", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json();
+      setDoctors(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const loadDepartments = async () => {
+    try {
+      const res = await fetch("/api/departments", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json();
+      setDepartments(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const loadServices = async () => {
+    try {
+      const res = await fetch("/api/services", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json();
+      setServices(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const handleMrnSearch = async () => {
     if (!mrnSearch.trim()) {
       setMessage({ type: "error", text: "Please enter MRN" });
@@ -61,10 +130,16 @@ export default function BillingPage() {
     }
     setLoading(true);
     try {
-      // TODO: Replace with patientVisits API call
-      setMessage({ type: "error", text: "Patient Visits table not yet created" });
+      const res = await patientVisitService.getByMrn(mrnSearch);
+      if (res.data) {
+        setExistingMrn(res.data.mrn);
+        setSelectedPatient(res.data.patient);
+        setPatientIdSearch(res.data.patientId);
+        setPatientType(res.data.patientTypeId || "");
+        setSelectedConsultant(res.data.doctorId || "");
+      }
     } catch (error) {
-      setMessage({ type: "error", text: "Search failed" });
+      setMessage({ type: "error", text: "MRN not found" });
     } finally {
       setLoading(false);
     }
@@ -77,8 +152,13 @@ export default function BillingPage() {
     }
     setLoading(true);
     try {
-      // TODO: Replace with patientVisits API call
-      setMessage({ type: "error", text: "Patient Visits table not yet created" });
+      const res = await patientService.getAll({ patientId: patientIdSearch });
+      if (res.data.length > 0) {
+        setSelectedPatient(res.data[0]);
+        setExistingMrn(null);
+      } else {
+        setMessage({ type: "error", text: "Patient not found" });
+      }
     } catch (error) {
       setMessage({ type: "error", text: "Search failed" });
     } finally {
@@ -91,36 +171,58 @@ export default function BillingPage() {
       setMessage({ type: "error", text: "Please select a service" });
       return;
     }
+    const serviceObj = services.find((s) => s.id === selectedService);
     const newService = {
       id: selectedServices.length + 1,
-      serviceCode: selectedService,
-      fee: 0,
+      serviceId: selectedService,
+      serviceCode: serviceObj?.ServiceCode || selectedService,
+      fee: serviceObj?.Fee || 0,
       qty: 1,
-      totalAmount: 0,
+      totalAmount: serviceObj?.Fee || 0,
       sharePercent: 0,
       shareAmount: 0,
     };
     setSelectedServices([...selectedServices, newService]);
     setSelectedService("");
+    updateTotals([...selectedServices, newService]);
   };
 
   const removeService = (id) => {
-    setSelectedServices(selectedServices.filter((s) => s.id !== id));
+    const updated = selectedServices.filter((s) => s.id !== id);
+    setSelectedServices(updated);
+    updateTotals(updated);
   };
 
   const updateServiceQty = (id, qty) => {
-    setSelectedServices(
-      selectedServices.map((s) =>
-        s.id === id ? { ...s, qty, totalAmount: s.fee * qty } : s
-      )
+    const updated = selectedServices.map((s) =>
+      s.id === id ? { ...s, qty, totalAmount: s.fee * qty } : s
     );
+    setSelectedServices(updated);
+    updateTotals(updated);
+  };
+
+  const updateServiceFee = (id, fee) => {
+    const updated = selectedServices.map((s) =>
+      s.id === id ? { ...s, fee, totalAmount: fee * s.qty } : s
+    );
+    setSelectedServices(updated);
+    updateTotals(updated);
+  };
+
+  const updateTotals = (serviceList) => {
+    const subtotal = serviceList.reduce((sum, s) => sum + s.totalAmount, 0);
+    setTotalBill(subtotal);
+    const disc = subtotal * (discountPercent / 100);
+    setDiscount(disc);
+    setNetAmount(subtotal - disc);
   };
 
   const handleNew = () => {
     setMrnSearch("");
     setPatientIdSearch("");
     setSelectedPatient(null);
-    setPatientType("General");
+    setExistingMrn(null);
+    setPatientType(patientTypes.length > 0 ? patientTypes[0].id : "");
     setVoucherNo("");
     setTokenNo("");
     setRegDate(new Date().toISOString().slice(0, 16));
@@ -143,19 +245,29 @@ export default function BillingPage() {
 
   const handleSave = async () => {
     if (!selectedPatient) {
-      setMessage({ type: "error", text: "Please select a patient first" });
+      setMessage({ type: "error", text: "Please search and select a patient first" });
       return;
     }
-    if (selectedServices.length === 0) {
-      setMessage({ type: "error", text: "Please add at least one service" });
-      return;
-    }
+
     setLoading(true);
     try {
-      // TODO: Save billing via API
-      setMessage({ type: "success", text: "Billing saved successfully" });
+      let mrnToUse = existingMrn;
+
+      if (!mrnToUse) {
+        const visitRes = await patientVisitService.create({
+          patientId: selectedPatient.patientId,
+          patientTypeId: patientType,
+          InsuranceCompanyId: null,
+          doctorId: selectedConsultant || null,
+          UserId: 1,
+        });
+        mrnToUse = visitRes.data.mrn;
+        setExistingMrn(mrnToUse);
+      }
+
+      setMessage({ type: "success", text: `Visit saved with MRN: ${mrnToUse}` });
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to save billing" });
+      setMessage({ type: "error", text: error.response?.data?.message || "Failed to save" });
     } finally {
       setLoading(false);
     }
@@ -180,6 +292,7 @@ export default function BillingPage() {
         selectedPatient={selectedPatient}
         patientType={patientType}
         onPatientTypeChange={setPatientType}
+        patientTypes={patientTypes}
       />
 
       {/* Service Selection Section */}
@@ -219,12 +332,13 @@ export default function BillingPage() {
             <div className="space-y-1">
               <Label className="text-xs">Consultant</Label>
               <Select value={selectedConsultant} onValueChange={setSelectedConsultant}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-8 text-xs">
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="dr1">Dr. Ahmed</SelectItem>
-                  <SelectItem value="dr2">Dr. Sara</SelectItem>
+                  {doctors.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>{d.Name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -232,13 +346,13 @@ export default function BillingPage() {
             <div className="space-y-1">
               <Label className="text-xs">Department</Label>
               <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-8 text-xs">
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="opd">OPD</SelectItem>
-                  <SelectItem value="ipd">IPD</SelectItem>
-                  <SelectItem value="emergency">Emergency</SelectItem>
+                  {departments.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>{d.Name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -247,13 +361,13 @@ export default function BillingPage() {
               <Label className="text-xs">Service</Label>
               <div className="flex gap-1">
                 <Select value={selectedService} onValueChange={setSelectedService}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full h-8 text-xs">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="consultation">Consultation</SelectItem>
-                    <SelectItem value="lab">Lab Test</SelectItem>
-                    <SelectItem value="xray">X-Ray</SelectItem>
+                    {services.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.ServiceName}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Button size="sm" variant="outline" className="h-8 px-2" onClick={addService}>
@@ -267,7 +381,7 @@ export default function BillingPage() {
 
       {/* Selected Services Table */}
       <Card>
-        <CardHeader className="">
+        <CardHeader className="py-2">
           <CardTitle className="text-lg font-semibold">Selected Services</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -295,16 +409,7 @@ export default function BillingPage() {
                       <Input
                         type="number"
                         value={service.fee}
-                        onChange={(e) => {
-                          const fee = Number(e.target.value);
-                          setSelectedServices(
-                            selectedServices.map((s) =>
-                              s.id === service.id
-                                ? { ...s, fee, totalAmount: fee * s.qty }
-                                : s
-                            )
-                          );
-                        }}
+                        onChange={(e) => updateServiceFee(service.id, Number(e.target.value))}
                         className="h-6 text-xs w-20"
                       />
                     </TableCell>
@@ -355,7 +460,7 @@ export default function BillingPage() {
             <div className="space-y-1">
               <Label className="text-xs">Payment</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -382,7 +487,6 @@ export default function BillingPage() {
               <Input
                 type="number"
                 value={totalBill}
-                onChange={(e) => setTotalBill(Number(e.target.value))}
                 className="h-8 text-xs bg-muted"
                 disabled
               />
@@ -396,7 +500,9 @@ export default function BillingPage() {
                 onChange={(e) => {
                   const pct = Number(e.target.value);
                   setDiscountPercent(pct);
-                  setDiscount(totalBill * (pct / 100));
+                  const disc = totalBill * (pct / 100);
+                  setDiscount(disc);
+                  setNetAmount(totalBill - disc);
                 }}
                 className="h-8 text-xs"
               />
@@ -407,7 +513,6 @@ export default function BillingPage() {
               <Input
                 type="number"
                 value={discount}
-                onChange={(e) => setDiscount(Number(e.target.value))}
                 className="h-8 text-xs bg-muted"
                 disabled
               />
@@ -418,7 +523,6 @@ export default function BillingPage() {
               <Input
                 type="number"
                 value={netAmount}
-                onChange={(e) => setNetAmount(Number(e.target.value))}
                 className="h-8 text-xs bg-muted"
                 disabled
               />
@@ -429,7 +533,11 @@ export default function BillingPage() {
               <Input
                 type="number"
                 value={paid}
-                onChange={(e) => setPaid(Number(e.target.value))}
+                onChange={(e) => {
+                  const p = Number(e.target.value);
+                  setPaid(p);
+                  setRemaining(netAmount - p);
+                }}
                 className="h-8 text-xs"
               />
             </div>
@@ -439,7 +547,6 @@ export default function BillingPage() {
               <Input
                 type="number"
                 value={remaining}
-                onChange={(e) => setRemaining(Number(e.target.value))}
                 className="h-8 text-xs bg-muted"
                 disabled
               />

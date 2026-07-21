@@ -9,7 +9,7 @@ class VisitTypeSeeder extends Seeder
 {
     public function run(): void
     {
-        $visitTypes = ['OPD', 'IPD'];
+        $visitTypes = ['General', 'IPD','Emergency','Insurance','Telemedicine','Home Visit'];
 
         foreach ($visitTypes as $type) {
             VisitType::firstOrCreate(['visitType' => $type]);

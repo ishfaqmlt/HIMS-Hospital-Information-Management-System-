@@ -16,9 +16,8 @@ class PatientVisit extends Model
     protected $fillable = [
         'mrn',
         'patientId',
-        'visittypeId',
+        'patientTypeId',
         'InsuranceCompanyId',
-        'employeeId',
         'doctorId',
         'UserId',
         'isSynced',
@@ -33,9 +32,9 @@ class PatientVisit extends Model
         return $this->belongsTo(Patient::class, 'patientId', 'patientId');
     }
 
-    public function visitType()
+    public function patientType()
     {
-        return $this->belongsTo(VisitType::class, 'visittypeId');
+        return $this->belongsTo(PatientType::class, 'patientTypeId');
     }
 
     public function insuranceCompany()
@@ -46,11 +45,6 @@ class PatientVisit extends Model
     public function doctor()
     {
         return $this->belongsTo(Doctor::class, 'doctorId');
-    }
-
-    public function employee()
-    {
-        return $this->belongsTo(Doctor::class, 'employeeId');
     }
 
     public function user()

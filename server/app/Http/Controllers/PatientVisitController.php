@@ -9,7 +9,7 @@ class PatientVisitController extends Controller
 {
     public function index(Request $request)
     {
-        $query = PatientVisit::with(['patient', 'visitType', 'insuranceCompany', 'doctor', 'user']);
+        $query = PatientVisit::with(['patient', 'patientType', 'insuranceCompany', 'doctor', 'user']);
 
         if ($request->has('search') && $request->search) {
             $search = $request->search;
@@ -27,8 +27,8 @@ class PatientVisitController extends Controller
             $query->where('patientId', $request->patientId);
         }
 
-        if ($request->has('visittypeId') && $request->visittypeId) {
-            $query->where('visittypeId', $request->visittypeId);
+        if ($request->has('patientTypeId') && $request->patientTypeId) {
+            $query->where('patientTypeId', $request->patientTypeId);
         }
 
         if ($request->has('doctorId') && $request->doctorId) {
@@ -46,9 +46,8 @@ class PatientVisitController extends Controller
     {
         $validated = $request->validate([
             'patientId' => 'required|string|exists:patients,patientId',
-            'visittypeId' => 'required|string|exists:visit_types,id',
+            'patientTypeId' => 'required|string|exists:patient_types,id',
             'InsuranceCompanyId' => 'nullable|string|exists:insurance_companies,id',
-            'employeeId' => 'nullable|string|exists:doctors,id',
             'doctorId' => 'nullable|string|exists:doctors,id',
             'UserId' => 'required|integer|exists:users,id',
         ]);
@@ -57,28 +56,27 @@ class PatientVisitController extends Controller
 
         $visit = PatientVisit::create($validated);
 
-        return response()->json($visit->load(['patient', 'visitType', 'insuranceCompany', 'doctor', 'user']), 201);
+        return response()->json($visit->load(['patient', 'patientType', 'insuranceCompany', 'doctor', 'user']), 201);
     }
 
     public function show(PatientVisit $patientVisit)
     {
-        return response()->json($patientVisit->load(['patient', 'visitType', 'insuranceCompany', 'doctor', 'user']));
+        return response()->json($patientVisit->load(['patient', 'patientType', 'insuranceCompany', 'doctor', 'user']));
     }
 
     public function update(Request $request, PatientVisit $patientVisit)
     {
         $validated = $request->validate([
             'patientId' => 'required|string|exists:patients,patientId',
-            'visittypeId' => 'required|string|exists:visit_types,id',
+            'patientTypeId' => 'required|string|exists:patient_types,id',
             'InsuranceCompanyId' => 'nullable|string|exists:insurance_companies,id',
-            'employeeId' => 'nullable|string|exists:doctors,id',
             'doctorId' => 'nullable|string|exists:doctors,id',
             'UserId' => 'required|integer|exists:users,id',
         ]);
 
         $patientVisit->update($validated);
 
-        return response()->json($patientVisit->load(['patient', 'visitType', 'insuranceCompany', 'doctor', 'user']));
+        return response()->json($patientVisit->load(['patient', 'patientType', 'insuranceCompany', 'doctor', 'user']));
     }
 
     public function destroy(PatientVisit $patientVisit)
@@ -89,7 +87,7 @@ class PatientVisitController extends Controller
 
     public function getByMrn($mrn)
     {
-        $visit = PatientVisit::with(['patient', 'visitType', 'insuranceCompany', 'doctor', 'user'])
+        $visit = PatientVisit::with(['patient', 'patientType', 'insuranceCompany', 'doctor', 'user'])
             ->where('mrn', $mrn)
             ->first();
 
@@ -102,7 +100,7 @@ class PatientVisitController extends Controller
 
     public function getByPatientId($patientId)
     {
-        $visits = PatientVisit::with(['patient', 'visitType', 'insuranceCompany', 'doctor', 'user'])
+        $visits = PatientVisit::with(['patient', 'patientType', 'insuranceCompany', 'doctor', 'user'])
             ->where('patientId', $patientId)
             ->latest()
             ->get();
