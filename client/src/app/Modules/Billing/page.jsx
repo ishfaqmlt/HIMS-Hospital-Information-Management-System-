@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -22,6 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Search, Plus, Save, Printer, X, Trash2 } from "lucide-react";
+import PatientDetailsCard from "@/components/patients/PatientDetailsCard";
 
 export default function BillingPage() {
   const [loading, setLoading] = useState(false);
@@ -30,6 +30,8 @@ export default function BillingPage() {
   const [mrnSearch, setMrnSearch] = useState("");
   const [patientIdSearch, setPatientIdSearch] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
+
+  const [patientType, setPatientType] = useState("General");
 
   const [voucherNo, setVoucherNo] = useState("");
   const [tokenNo, setTokenNo] = useState("");
@@ -118,6 +120,7 @@ export default function BillingPage() {
     setMrnSearch("");
     setPatientIdSearch("");
     setSelectedPatient(null);
+    setPatientType("General");
     setVoucherNo("");
     setTokenNo("");
     setRegDate(new Date().toISOString().slice(0, 16));
@@ -167,110 +170,17 @@ export default function BillingPage() {
       )}
 
       {/* Patient Details Section */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-9 gap-2 items-end">
-            <div className="space-y-1">
-              <Label className="text-xs">MRN</Label>
-              <div className="flex gap-1">
-                <Input
-                  value={mrnSearch}
-                  onChange={(e) => setMrnSearch(e.target.value)}
-                  className="h-8 text-xs"
-                  placeholder="MRN"
-                />
-                <Button size="sm" variant="outline" className="h-8 px-2" onClick={handleMrnSearch}>
-                  <Search className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Patient ID</Label>
-              <div className="flex gap-1">
-                <Input
-                  value={patientIdSearch}
-                  onChange={(e) => setPatientIdSearch(e.target.value)}
-                  className="h-8 text-xs"
-                  placeholder="Patient ID"
-                />
-                <Button size="sm" variant="outline" className="h-8 px-2" onClick={handlePatientIdSearch}>
-                  <Search className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">CNIC</Label>
-              <Input
-                value={selectedPatient?.cnic || ""}
-                disabled
-                className="h-8 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Mobile No.</Label>
-              <Input
-                value={selectedPatient?.mobile || ""}
-                disabled
-                className="h-8 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Patient</Label>
-              <Input
-                value={selectedPatient?.pName || ""}
-                disabled
-                className="h-8 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Guardian</Label>
-              <Input
-                value={selectedPatient?.gName || ""}
-                disabled
-                className="h-8 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Gender</Label>
-              <Input
-                value={selectedPatient?.gender || ""}
-                disabled
-                className="h-8 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Address</Label>
-              <Input
-                value={selectedPatient?.address || ""}
-                disabled
-                className="h-8 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Patient Type</Label>
-              <Select defaultValue="General">
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="General">General</SelectItem>
-                  <SelectItem value="IPD">IPD</SelectItem>
-                  <SelectItem value="Emergency">Emergency</SelectItem>
-                  <SelectItem value="Insurance">Insurance</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <PatientDetailsCard
+        mrnSearch={mrnSearch}
+        onMrnSearchChange={setMrnSearch}
+        onMrnSearch={handleMrnSearch}
+        patientIdSearch={patientIdSearch}
+        onPatientIdSearchChange={setPatientIdSearch}
+        onPatientIdSearch={handlePatientIdSearch}
+        selectedPatient={selectedPatient}
+        patientType={patientType}
+        onPatientTypeChange={setPatientType}
+      />
 
       {/* Service Selection Section */}
       <Card>
@@ -309,7 +219,7 @@ export default function BillingPage() {
             <div className="space-y-1">
               <Label className="text-xs">Consultant</Label>
               <Select value={selectedConsultant} onValueChange={setSelectedConsultant}>
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
@@ -322,7 +232,7 @@ export default function BillingPage() {
             <div className="space-y-1">
               <Label className="text-xs">Department</Label>
               <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
@@ -337,7 +247,7 @@ export default function BillingPage() {
               <Label className="text-xs">Service</Label>
               <div className="flex gap-1">
                 <Select value={selectedService} onValueChange={setSelectedService}>
-                  <SelectTrigger className="h-8 text-xs">
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
@@ -357,8 +267,8 @@ export default function BillingPage() {
 
       {/* Selected Services Table */}
       <Card>
-        <CardHeader className="py-2">
-          <CardTitle className="text-sm">Selected Services</CardTitle>
+        <CardHeader className="">
+          <CardTitle className="text-lg font-semibold">Selected Services</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -445,7 +355,7 @@ export default function BillingPage() {
             <div className="space-y-1">
               <Label className="text-xs">Payment</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
