@@ -22,6 +22,7 @@ use App\Http\Controllers\LabTestController;
 use App\Http\Controllers\RadiologyScanController;
 use App\Http\Controllers\InsuranceCompanyController;
 use App\Http\Controllers\InsurancePlanController;
+use App\Http\Controllers\PatientVisitController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -99,4 +100,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Insurance Plans
     Route::apiResource('insurance-plans', InsurancePlanController::class);
+
+    // Patient Visits
+    Route::get('/patient-visits/by-mrn/{mrn}', [PatientVisitController::class, 'getByMrn']);
+    Route::get('/patient-visits/by-patient/{patientId}', [PatientVisitController::class, 'getByPatientId']);
+    Route::apiResource('patient-visits', PatientVisitController::class);
 });
