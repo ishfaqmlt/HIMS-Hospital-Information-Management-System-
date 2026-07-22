@@ -6,35 +6,35 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('billings', function (Blueprint $table) {
             $table->uuid('Id')->primary();
-            $table->foreignUuid('patientId')->constrained('patients')->cascadeOnDelete();
-            $table->string('InvoiceNo', 20);
+            $table->string('InvoiceNo', 20)->unique();
             $table->dateTime('InvoiceDate');
-            $table->enum('InvoiceType', ['OPD', 'IPD', 'Emergency', 'Laboratory', 'Pharmacy', 'Radiology', 'Other'])->default('OPD');
+            $table->foreignUuid('patientId')->constrained('patients', 'patientId')->onDelete('cascade');
+            $table->foreignUuid('patientTypeId')->constrained('patient_types')->onDelete('cascade');
+            $table->uuid('InsuranceCompanyId')->nullable()->index();
+            $table->foreignUuid('DepartmentId')->nullable()->constrained('departments')->onDelete('set null');
+            $table->foreignUuid('DoctorId')->nullable()->constrained('doctors')->onDelete('set null');
             $table->decimal('SubTotal', 12, 2)->default(0);
             $table->decimal('Discount', 12, 2)->default(0);
-            $table->decimal('Tax', 12, 2)->default(0);
             $table->decimal('TotalAmount', 12, 2)->default(0);
-            $table->decimal('PaidAmount', 12, 2)->default(0);
-            $table->decimal('Balance', 12, 2)->default(0);
             $table->enum('PaymentStatus', ['Pending', 'Partial', 'Paid', 'Cancelled'])->default('Pending');
-            $table->enum('PaymentMethod', ['Cash', 'Card', 'BankTransfer', 'Insurance', 'Other'])->default('Cash');
+            $table->integer('printedCount')->default(0);
+            $table->enum('BillType', ['Normal', 'Return'])->default('Normal');
+            $table->uuid('ReturnBillingId')->nullable()->index();
+            $table->boolean('isEditLocked')->default(false);
             $table->text('Notes')->nullable();
-            $table->unsignedBigInteger('CreatedBy');
+            $table->foreignId('postedBy')->nullable()->constrained('users')->onDelete('set null');
+            $table->dateTime('postedAt')->nullable();
+            $table->foreignId('createdBy')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('updatedBy')->nullable()->constrained('users')->onDelete('set null');
             $table->boolean('isSynced')->default(false);
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('billings');

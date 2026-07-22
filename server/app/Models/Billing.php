@@ -13,20 +13,26 @@ class Billing extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'patientId',
         'InvoiceNo',
         'InvoiceDate',
-        'InvoiceType',
+        'patientId',
+        'patientTypeId',
+        'InsuranceCompanyId',
+        'DepartmentId',
+        'DoctorId',
         'SubTotal',
         'Discount',
-        'Tax',
         'TotalAmount',
-        'PaidAmount',
-        'Balance',
         'PaymentStatus',
-        'PaymentMethod',
+        'printedCount',
+        'BillType',
+        'ReturnBillingId',
+        'isEditLocked',
         'Notes',
-        'CreatedBy',
+        'postedBy',
+        'postedAt',
+        'createdBy',
+        'updatedBy',
         'isSynced',
     ];
 
@@ -34,12 +40,11 @@ class Billing extends Model
         'InvoiceDate' => 'datetime',
         'SubTotal' => 'decimal:2',
         'Discount' => 'decimal:2',
-        'Tax' => 'decimal:2',
         'TotalAmount' => 'decimal:2',
-        'PaidAmount' => 'decimal:2',
-        'Balance' => 'decimal:2',
-        'CreatedBy' => 'integer',
+        'printedCount' => 'integer',
+        'isEditLocked' => 'boolean',
         'isSynced' => 'boolean',
+        'postedAt' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -48,11 +53,56 @@ class Billing extends Model
             if (empty($model->Id)) {
                 $model->Id = Str::uuid();
             }
+            if (empty($model->InvoiceNo)) {
+                $model->InvoiceNo = self::generateInvoiceNo();
+            }
         });
+    }
+
+    public static function generateInvoiceNo(): string
+    {
+        $now = now();
+        $year = $now->format('y');
+        $month = $now->format('m');
+        $prefix = "INV-{$year}-{$month}";
+
+        $count = Billing::where('InvoiceNo', 'like', "{$prefix}-%")->count() + 1;
+
+        return $prefix . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
     }
 
     public function patient()
     {
-        return $this->belongsTo(Patient::class, 'patientId');
+        return $this->belongsTo(Patient::class, 'patientId', 'patientId');
+    }
+
+    public function patientType()
+    {
+        return $this->belongsTo(PatientType::class, 'patientTypeId');
+    }
+
+    public function insuranceCompany()
+    {
+        return $this->belongsTo(InsuranceCompany::class, 'InsuranceCompanyId');
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'DepartmentId');
+    }
+
+    public function doctor()
+    {
+        return $this->belongsTo(Doctor::class, 'DoctorId');
+    }
+
+    public function postedByUser()
+    {
+        return $this->belongsTo(User::class, 'postedBy');
+    }
+
+    public function createdByUser()
+    {
+        return $this->belongsTo(User::class, 'createdBy');
     }
 }
