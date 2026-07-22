@@ -16,7 +16,7 @@ class PatientTypeController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'visitType' => 'required|string',
+            'patientType' => 'required|string',
         ]);
 
         $patientType = PatientType::create($validated);
@@ -32,7 +32,7 @@ class PatientTypeController extends Controller
     public function update(Request $request, PatientType $patientType)
     {
         $validated = $request->validate([
-            'visitType' => 'required|string',
+            'patientType' => 'required|string',
         ]);
 
         $patientType->update($validated);

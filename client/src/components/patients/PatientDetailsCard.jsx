@@ -122,7 +122,7 @@ export default function PatientDetailsCard({
               </SelectTrigger>
               <SelectContent>
                 {patientTypes.map((pt) => (
-                  <SelectItem key={pt.id} value={pt.id}>{pt.visitType}</SelectItem>
+                  <SelectItem key={pt.id} value={pt.id}>{pt.patientType}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
