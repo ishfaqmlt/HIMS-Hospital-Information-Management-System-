@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('patient_appointments', function (Blueprint $table) {
             $table->uuid('Id')->primary();
             $table->foreignUuid('DoctorId')->constrained('doctors')->cascadeOnDelete();
-            $table->foreignUuid('patientId')->constrained('patients')->cascadeOnDelete();
+            $table->foreignUuid('patientId')->constrained('patients', 'patientId')->cascadeOnDelete();
             $table->dateTime('Appointmentat');
             $table->integer('TokenNo')->default(1);
             $table->enum('Status', ['Pending', 'Booked', 'Cancelled', 'Completed']);

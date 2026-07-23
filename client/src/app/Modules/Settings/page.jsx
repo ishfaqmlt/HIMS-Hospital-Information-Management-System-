@@ -61,6 +61,13 @@ const settingsModules = [
     color: "bg-emerald-500",
     href: "/Modules/Settings/insurancePlans",
   },
+  {
+    name: "Doctor Share Master",
+    description: "Manage doctor and hospital share percentages per service",
+    icon: Settings,
+    color: "bg-violet-500",
+    href: "/Modules/Settings/doctorShareMaster",
+  },
 ];
 
 export default function SettingsPage() {

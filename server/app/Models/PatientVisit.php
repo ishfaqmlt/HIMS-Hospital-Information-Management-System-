@@ -54,12 +54,12 @@ class PatientVisit extends Model
 
     public static function generateMrn(): string
     {
-        $today = now();
-        $datePart = $today->format('dmY');
+        $now = now();
+        $prefix = 'mrn-' . $now->format('my');
 
-        $count = PatientVisit::whereDate('created_at', $today->toDateString())->count() + 1;
+        $count = PatientVisit::where('mrn', 'like', "{$prefix}-%")->count() + 1;
 
-        return 'MRN-' . str_pad($count, 2, '0', STR_PAD_LEFT) . '-' . $datePart;
+        return $prefix . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
     }
 
     protected static function booted(): void

@@ -23,6 +23,9 @@ use App\Http\Controllers\RadiologyScanController;
 use App\Http\Controllers\InsuranceCompanyController;
 use App\Http\Controllers\InsurancePlanController;
 use App\Http\Controllers\PatientVisitController;
+use App\Http\Controllers\BillingDetailController;
+use App\Http\Controllers\PatientPaymentController;
+use App\Http\Controllers\DoctorShareMasterController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -105,4 +108,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/patient-visits/by-mrn/{mrn}', [PatientVisitController::class, 'getByMrn']);
     Route::get('/patient-visits/by-patient/{patientId}', [PatientVisitController::class, 'getByPatientId']);
     Route::apiResource('patient-visits', PatientVisitController::class);
+
+    // Billing Details
+    Route::apiResource('billing-details', BillingDetailController::class);
+
+    // Patient Payments
+    Route::apiResource('patient-payments', PatientPaymentController::class);
+
+    // Doctor Share Master
+    Route::post('/doctor-share-master/bulk', [DoctorShareMasterController::class, 'bulkStore']);
+    Route::delete('/doctor-share-master/bulk', [DoctorShareMasterController::class, 'bulkDestroy']);
+    Route::apiResource('doctor-share-master', DoctorShareMasterController::class);
 });

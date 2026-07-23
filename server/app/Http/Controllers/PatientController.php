@@ -98,12 +98,11 @@ class PatientController extends Controller
 
     private function generatePatientId(): string
     {
-        $today = now();
-        $datePart = $today->format('dmy'); // e.g., 090726
+        $now = now();
+        $prefix = 'pid-' . $now->format('my');
 
-        // Get today's count (including this new record)
-        $count = Patient::whereDate('created_at', $today->toDateString())->count() + 1;
+        $count = Patient::where('patientId', 'like', "{$prefix}-%")->count() + 1;
 
-        return 'pid-' . str_pad($count, 2, '0', STR_PAD_LEFT) . '-' . $datePart;
+        return $prefix . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
     }
 }

@@ -20,7 +20,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Search, Plus, Save, Printer, X, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Loader2, Plus, Save, Printer, X, Trash2, UserPlus } from "lucide-react";
 import PatientDetailsCard from "@/components/patients/PatientDetailsCard";
 import patientTypeService from "@/services/patientTypeService";
 import patientService from "@/services/patient.service";
@@ -28,6 +34,7 @@ import patientVisitService from "@/services/patientVisitService";
 import doctorService from "@/services/doctor.service";
 import departmentService from "@/services/department.service";
 import serviceService from "@/services/serviceService";
+import AddPatientDialog from "@/components/patients/AddPatientDialog";
 
 export default function BillingPage() {
   const [loading, setLoading] = useState(false);
@@ -40,8 +47,12 @@ export default function BillingPage() {
 
   const [mrnSearch, setMrnSearch] = useState("");
   const [patientIdSearch, setPatientIdSearch] = useState("");
+  const [mobileSearch, setMobileSearch] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [existingMrn, setExistingMrn] = useState(null);
+  const [isPatientDialogOpen, setIsPatientDialogOpen] = useState(false);
+  const [mobileSearchResults, setMobileSearchResults] = useState([]);
+  const [isMobileSelectDialogOpen, setIsMobileSelectDialogOpen] = useState(false);
 
   const [patientType, setPatientType] = useState("");
   const [voucherNo, setVoucherNo] = useState("");
@@ -66,13 +77,6 @@ export default function BillingPage() {
   const [drShare, setDrShare] = useState(0);
 
   useEffect(() => {
-    loadPatientTypes();
-    loadDoctors();
-    loadDepartments();
-    loadServices();
-  }, []);
-
-  useEffect(() => {
     if (!message) return;
     const t = setTimeout(() => setMessage(null), 4000);
     return () => clearTimeout(t);
@@ -83,7 +87,8 @@ export default function BillingPage() {
       const res = await patientTypeService.getAll();
       setPatientTypes(res.data);
       if (res.data.length > 0) {
-        setPatientType(res.data[0].id);
+        const generalType = res.data.find((pt) => pt.patientType === "General");
+        setPatientType(generalType ? generalType.id : res.data[0].id);
       }
     } catch (error) {
       console.error(error);
@@ -124,7 +129,7 @@ export default function BillingPage() {
     }
     setLoading(true);
     try {
-      const res = await patientVisitService.getByMrn(mrnSearch);
+      const res = await patientVisitService.getByMrn("mrn-" + mrnSearch);
       if (res.data) {
         setExistingMrn(res.data.mrn);
         setSelectedPatient(res.data.patient);
@@ -132,7 +137,7 @@ export default function BillingPage() {
         setPatientType(res.data.patientTypeId || "");
         setSelectedConsultant(res.data.doctorId || "");
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "MRN not found" });
     } finally {
       setLoading(false);
@@ -146,18 +151,56 @@ export default function BillingPage() {
     }
     setLoading(true);
     try {
-      const res = await patientService.getAll({ patientId: patientIdSearch });
+      const res = await patientService.getAll({ patientId: "pid-" + patientIdSearch });
       if (res.data.length > 0) {
         setSelectedPatient(res.data[0]);
         setExistingMrn(null);
       } else {
         setMessage({ type: "error", text: "Patient not found" });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Search failed" });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleMobileSearch = async () => {
+    if (!mobileSearch.trim()) {
+      setMessage({ type: "error", text: "Please enter a mobile number" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await patientService.getAll({ mobile: mobileSearch });
+      if (res.data.length === 1) {
+        setSelectedPatient(res.data[0]);
+        setExistingMrn(null);
+      } else if (res.data.length > 1) {
+        setMobileSearchResults(res.data);
+        setIsMobileSelectDialogOpen(true);
+      } else {
+        setMessage({ type: "error", text: "No patient found for this mobile number" });
+        setIsPatientDialogOpen(true);
+      }
+    } catch {
+      setMessage({ type: "error", text: "Search failed" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectMobilePatient = (patient) => {
+    setSelectedPatient(patient);
+    setExistingMrn(null);
+    setIsMobileSelectDialogOpen(false);
+    setMobileSearchResults([]);
+  };
+
+  const handlePatientAdded = (newPatient) => {
+    setSelectedPatient(newPatient);
+    setMobileSearch(newPatient.mobile || "");
+    setIsPatientDialogOpen(false);
   };
 
   const addService = () => {
@@ -169,10 +212,10 @@ export default function BillingPage() {
     const newService = {
       id: selectedServices.length + 1,
       serviceId: selectedService,
-      serviceCode: serviceObj?.ServiceCode || selectedService,
-      fee: serviceObj?.Fee || 0,
+      serviceCode: serviceObj?.Code || "",
+      fee: serviceObj?.DefaultCharges || 0,
       qty: 1,
-      totalAmount: serviceObj?.Fee || 0,
+      totalAmount: serviceObj?.DefaultCharges || 0,
       sharePercent: 0,
       shareAmount: 0,
     };
@@ -214,9 +257,11 @@ export default function BillingPage() {
   const handleNew = () => {
     setMrnSearch("");
     setPatientIdSearch("");
+    setMobileSearch("");
     setSelectedPatient(null);
     setExistingMrn(null);
-    setPatientType(patientTypes.length > 0 ? patientTypes[0].id : "");
+    const generalType = patientTypes.find((pt) => pt.patientType === "General");
+    setPatientType(generalType ? generalType.id : (patientTypes.length > 0 ? patientTypes[0].id : ""));
     setVoucherNo("");
     setTokenNo("");
     setRegDate(new Date().toISOString().slice(0, 16));
@@ -267,6 +312,18 @@ export default function BillingPage() {
     }
   };
 
+  useEffect(() => {
+    const init = async () => {
+      await Promise.all([
+        loadPatientTypes(),
+        loadDoctors(),
+        loadDepartments(),
+        loadServices(),
+      ]);
+    };
+    init();
+  }, []);
+
   return (
     <div className="space-y-4">
       {message && (
@@ -283,6 +340,9 @@ export default function BillingPage() {
         patientIdSearch={patientIdSearch}
         onPatientIdSearchChange={setPatientIdSearch}
         onPatientIdSearch={handlePatientIdSearch}
+        mobileSearch={mobileSearch}
+        onMobileSearchChange={setMobileSearch}
+        onMobileSearch={handleMobileSearch}
         selectedPatient={selectedPatient}
         patientType={patientType}
         onPatientTypeChange={setPatientType}
@@ -339,13 +399,13 @@ export default function BillingPage() {
 
             <div className="space-y-1">
               <Label className="text-xs">Department</Label>
-              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+              <Select value={selectedDepartment} onValueChange={(val) => { setSelectedDepartment(val); setSelectedService(""); }}>
                 <SelectTrigger className="w-full h-8 text-xs">
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
                   {departments.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>{d.Name}</SelectItem>
+                    <SelectItem key={d.id} value={d.id}>{d.DepartmentName}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -359,9 +419,11 @@ export default function BillingPage() {
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    {services.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.ServiceName}</SelectItem>
-                    ))}
+                    {services
+                      .filter((s) => !selectedDepartment || s.DepartmentId === selectedDepartment)
+                      .map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.ServiceName}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 <Button size="sm" variant="outline" className="h-8 px-2" onClick={addService}>
@@ -596,6 +658,53 @@ export default function BillingPage() {
           <X className="h-4 w-4 mr-1" /> Exit (F4)
         </Button>
       </div>
+
+      {/* Mobile Patient Select Dialog */}
+      <Dialog open={isMobileSelectDialogOpen} onOpenChange={setIsMobileSelectDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Patient</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {mobileSearchResults.length} patients found with this mobile number. Select one:
+            </p>
+            <div className="border rounded-lg divide-y max-h-[300px] overflow-y-auto">
+              {mobileSearchResults.map((patient) => (
+                <div
+                  key={patient.id}
+                  className="flex items-center justify-between p-3 hover:bg-muted cursor-pointer"
+                  onClick={() => handleSelectMobilePatient(patient)}
+                >
+                  <div>
+                    <p className="font-medium">{patient.pName}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {patient.patientId} | {patient.gender || "N/A"} | {patient.cnic || "No CNIC"}
+                    </p>
+                  </div>
+                  <Button size="sm" variant="outline">Select</Button>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => {
+                setIsMobileSelectDialogOpen(false);
+                setIsPatientDialogOpen(true);
+              }}>
+                <UserPlus className="h-4 w-4 mr-1" /> Add New Patient
+              </Button>
+              <Button variant="outline" onClick={() => setIsMobileSelectDialogOpen(false)}>Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AddPatientDialog
+        open={isPatientDialogOpen}
+        onOpenChange={setIsPatientDialogOpen}
+        onPatientAdded={handlePatientAdded}
+        prefillMobile={mobileSearch}
+      />
     </div>
   );
 }

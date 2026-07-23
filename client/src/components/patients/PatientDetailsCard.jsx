@@ -21,6 +21,9 @@ export default function PatientDetailsCard({
   patientIdSearch = "",
   onPatientIdSearchChange,
   onPatientIdSearch,
+  mobileSearch = "",
+  onMobileSearchChange,
+  onMobileSearch,
   selectedPatient = null,
   patientType = "",
   onPatientTypeChange,
@@ -33,13 +36,24 @@ export default function PatientDetailsCard({
           <div className="space-y-1">
             <Label className="text-xs">MRN</Label>
             <div className="flex gap-1">
-              <Input
-                value={mrnSearch}
-                onChange={(e) => onMrnSearchChange(e.target.value)}
-                className="h-8 text-xs"
-                placeholder="MRN"
-              />
-              <Button size="sm" variant="outline" className="h-8 px-2" onClick={onMrnSearch}>
+              <div className="flex items-center h-8 px-2 text-xs bg-muted border border-input rounded-md text-muted-foreground shrink-0">
+                mrn-
+              </div>
+              {selectedPatient ? (
+                <Input
+                  value={mrnSearch || ""}
+                  disabled
+                  className="h-8 text-xs"
+                />
+              ) : (
+                <Input
+                  value={mrnSearch}
+                  onChange={(e) => onMrnSearchChange(e.target.value)}
+                  className="h-8 text-xs"
+                  placeholder="0726-001"
+                />
+              )}
+              <Button size="sm" variant="outline" className="h-8 px-2" onClick={onMrnSearch} disabled={!!selectedPatient}>
                 <Search className="h-3 w-3" />
               </Button>
             </div>
@@ -48,13 +62,24 @@ export default function PatientDetailsCard({
           <div className="space-y-1">
             <Label className="text-xs">Patient ID</Label>
             <div className="flex gap-1">
-              <Input
-                value={patientIdSearch}
-                onChange={(e) => onPatientIdSearchChange(e.target.value)}
-                className="h-8 text-xs"
-                placeholder="Patient ID"
-              />
-              <Button size="sm" variant="outline" className="h-8 px-2" onClick={onPatientIdSearch}>
+              <div className="flex items-center h-8 px-2 text-xs bg-muted border border-input rounded-md text-muted-foreground shrink-0">
+                pid-
+              </div>
+              {selectedPatient ? (
+                <Input
+                  value={selectedPatient.patientId?.replace("pid-", "") || ""}
+                  disabled
+                  className="h-8 text-xs"
+                />
+              ) : (
+                <Input
+                  value={patientIdSearch}
+                  onChange={(e) => onPatientIdSearchChange(e.target.value)}
+                  className="h-8 text-xs"
+                  placeholder="0726-001"
+                />
+              )}
+              <Button size="sm" variant="outline" className="h-8 px-2" onClick={onPatientIdSearch} disabled={!!selectedPatient}>
                 <Search className="h-3 w-3" />
               </Button>
             </div>
@@ -71,11 +96,25 @@ export default function PatientDetailsCard({
 
           <div className="space-y-1">
             <Label className="text-xs">Mobile No.</Label>
-            <Input
-              value={selectedPatient?.mobile || ""}
-              disabled
-              className="h-8 text-xs"
-            />
+            <div className="flex gap-1">
+              {selectedPatient ? (
+                <Input
+                  value={selectedPatient.mobile || ""}
+                  disabled
+                  className="h-8 text-xs"
+                />
+              ) : (
+                <Input
+                  value={mobileSearch}
+                  onChange={(e) => onMobileSearchChange(e.target.value)}
+                  className="h-8 text-xs"
+                  placeholder="Mobile"
+                />
+              )}
+              <Button size="sm" variant="outline" className="h-8 px-2" onClick={onMobileSearch} disabled={!!selectedPatient}>
+                <Search className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-1">

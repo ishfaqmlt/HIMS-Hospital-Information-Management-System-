@@ -10,22 +10,18 @@ class BillingController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Billing::with(['patient', 'patientType', 'insuranceCompany', 'department', 'doctor']);
+        $query = Billing::with(['patientVisit', 'patientType', 'insuranceCompany', 'department', 'doctor']);
 
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('InvoiceNo', 'like', "%{$search}%")
-                  ->orWhereHas('patient', function ($q2) use ($search) {
-                      $q2->where('pName', 'like', "%{$search}%")
-                         ->orWhere('patientId', 'like', "%{$search}%")
-                         ->orWhere('mobile', 'like', "%{$search}%");
-                  });
+                  ->orWhere('mrn', 'like', "%{$search}%");
             });
         }
 
-        if ($request->has('patientId') && $request->patientId) {
-            $query->where('patientId', $request->patientId);
+        if ($request->has('mrn') && $request->mrn) {
+            $query->where('mrn', $request->mrn);
         }
 
         if ($request->has('patientTypeId') && $request->patientTypeId) {
@@ -50,7 +46,7 @@ class BillingController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'patientId' => 'required|string|exists:patients,patientId',
+            'mrn' => 'required|string|exists:patient_visits,mrn',
             'patientTypeId' => 'required|string|exists:patient_types,id',
             'InsuranceCompanyId' => 'nullable|string|exists:insurance_companies,id',
             'DepartmentId' => 'nullable|string|exists:departments,id',
@@ -69,18 +65,18 @@ class BillingController extends Controller
 
         $billing = Billing::create($validated);
 
-        return response()->json($billing->load(['patient', 'patientType', 'insuranceCompany', 'department', 'doctor']), 201);
+        return response()->json($billing->load(['patientVisit', 'patientType', 'insuranceCompany', 'department', 'doctor']), 201);
     }
 
     public function show(Billing $billing)
     {
-        return response()->json($billing->load(['patient', 'patientType', 'insuranceCompany', 'department', 'doctor', 'postedByUser', 'createdByUser']));
+        return response()->json($billing->load(['patientVisit', 'patientType', 'insuranceCompany', 'department', 'doctor', 'postedByUser', 'createdByUser']));
     }
 
     public function update(Request $request, Billing $billing)
     {
         $validated = $request->validate([
-            'patientId' => 'required|string|exists:patients,patientId',
+            'mrn' => 'required|string|exists:patient_visits,mrn',
             'patientTypeId' => 'required|string|exists:patient_types,id',
             'InsuranceCompanyId' => 'nullable|string|exists:insurance_companies,id',
             'DepartmentId' => 'nullable|string|exists:departments,id',
@@ -98,7 +94,7 @@ class BillingController extends Controller
 
         $billing->update($validated);
 
-        return response()->json($billing->load(['patient', 'patientType', 'insuranceCompany', 'department', 'doctor']));
+        return response()->json($billing->load(['patientVisit', 'patientType', 'insuranceCompany', 'department', 'doctor']));
     }
 
     public function destroy(Billing $billing)

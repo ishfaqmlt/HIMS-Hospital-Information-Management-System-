@@ -4,50 +4,50 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Billing;
-use App\Models\Patient;
+use App\Models\PatientVisit;
+use App\Models\PatientType;
+use App\Models\InsuranceCompany;
+use App\Models\Department;
+use App\Models\Doctor;
 use Illuminate\Support\Facades\DB;
 
 class BillingSeeder extends Seeder
 {
     public function run(): void
     {
-        $patients = Patient::all();
-
-        if ($patients->isEmpty()) {
+        $visits = PatientVisit::all();
+        if ($visits->isEmpty()) {
             return;
         }
 
-        $invoiceTypes = ['OPD', 'IPD', 'Emergency', 'Laboratory', 'Pharmacy', 'Radiology', 'Other'];
-        $paymentStatuses = ['Pending', 'Partial', 'Paid', 'Cancelled'];
-        $paymentMethods = ['Cash', 'Card', 'BankTransfer', 'Insurance', 'Other'];
+        $patientTypes = PatientType::all();
+        $insuranceCompanies = InsuranceCompany::all();
+        $departments = Department::all();
+        $doctors = Doctor::all();
 
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         Billing::truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         for ($i = 0; $i < 20; $i++) {
-            $patient = $patients->random();
+            $visit = $visits->random();
             $subTotal = rand(1000, 50000);
             $discount = rand(0, $subTotal * 0.1);
-            $tax = ($subTotal - $discount) * 0.1;
-            $totalAmount = $subTotal - $discount + $tax;
-            $paidAmount = rand(0, $totalAmount);
+            $totalAmount = $subTotal - $discount;
 
             Billing::create([
-                'patientId' => $patient->id,
-                'InvoiceNo' => 'INV-' . str_pad($i + 1, 6, '0', STR_PAD_LEFT),
+                'mrn' => $visit->mrn,
+                'patientTypeId' => $visit->patientTypeId,
+                'InsuranceCompanyId' => $visit->InsuranceCompanyId,
+                'DepartmentId' => $visit->DepartmentId,
+                'DoctorId' => $visit->DoctorId,
                 'InvoiceDate' => now()->subDays(rand(0, 30)),
-                'InvoiceType' => $invoiceTypes[array_rand($invoiceTypes)],
                 'SubTotal' => $subTotal,
-                'Discount' => $discount,
-                'Tax' => round($tax, 2),
+                'Discount' => round($discount, 2),
                 'TotalAmount' => round($totalAmount, 2),
-                'PaidAmount' => round($paidAmount, 2),
-                'Balance' => round($totalAmount - $paidAmount, 2),
-                'PaymentStatus' => $paidAmount >= $totalAmount ? 'Paid' : ($paidAmount > 0 ? 'Partial' : 'Pending'),
-                'PaymentMethod' => $paymentMethods[array_rand($paymentMethods)],
+                'PaymentStatus' => ['Pending', 'Partial', 'Paid', 'Cancelled'][array_rand(['Pending', 'Partial', 'Paid', 'Cancelled'])],
+                'BillType' => 'Normal',
                 'Notes' => 'Auto-generated billing record',
-                'CreatedBy' => 1,
             ]);
         }
 

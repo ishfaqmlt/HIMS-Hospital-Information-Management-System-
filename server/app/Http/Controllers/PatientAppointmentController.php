@@ -72,7 +72,7 @@ class PatientAppointmentController extends Controller
     {
         $validated = $request->validate([
             'DoctorId' => 'required|exists:doctors,id',
-            'patientId' => 'required|exists:patients,id',
+            'patientId' => 'required|exists:patients,patientId',
             'Appointmentat' => 'required|date',
             'TokenNo' => 'required|integer|min:1',
             'Status' => 'required|in:Pending,Booked,Cancelled,Completed',
@@ -97,7 +97,7 @@ class PatientAppointmentController extends Controller
     {
         $validated = $request->validate([
             'DoctorId' => 'required|exists:doctors,id',
-            'patientId' => 'required|exists:patients,id',
+            'patientId' => 'required|exists:patients,patientId',
             'Appointmentat' => 'required|date',
             'TokenNo' => 'required|integer|min:1',
             'Status' => 'required|in:Pending,Booked,Cancelled,Completed',

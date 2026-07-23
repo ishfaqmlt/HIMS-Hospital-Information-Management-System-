@@ -12,7 +12,7 @@ return new class extends Migration
             $table->uuid('Id')->primary();
             $table->string('InvoiceNo', 20)->unique();
             $table->dateTime('InvoiceDate');
-            $table->foreignUuid('patientId')->constrained('patients', 'patientId')->onDelete('cascade');
+            $table->string('mrn', 50)->constrained('patient_visits', 'mrn')->onDelete('cascade');
             $table->foreignUuid('patientTypeId')->constrained('patient_types')->onDelete('cascade');
             $table->uuid('InsuranceCompanyId')->nullable()->index();
             $table->foreignUuid('DepartmentId')->nullable()->constrained('departments')->onDelete('set null');

@@ -15,7 +15,7 @@ class Billing extends Model
     protected $fillable = [
         'InvoiceNo',
         'InvoiceDate',
-        'patientId',
+        'mrn',
         'patientTypeId',
         'InsuranceCompanyId',
         'DepartmentId',
@@ -62,18 +62,16 @@ class Billing extends Model
     public static function generateInvoiceNo(): string
     {
         $now = now();
-        $year = $now->format('y');
-        $month = $now->format('m');
-        $prefix = "INV-{$year}-{$month}";
+        $prefix = 'INV-' . $now->format('my');
 
         $count = Billing::where('InvoiceNo', 'like', "{$prefix}-%")->count() + 1;
 
         return $prefix . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
     }
 
-    public function patient()
+    public function patientVisit()
     {
-        return $this->belongsTo(Patient::class, 'patientId', 'patientId');
+        return $this->belongsTo(PatientVisit::class, 'mrn');
     }
 
     public function patientType()

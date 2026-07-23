@@ -129,17 +129,18 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, e
     try {
       setLoading(true);
       const { year, month, day, ...submitData } = data;
+      let response;
 
       if (isEditing) {
         await patientService.update(editingPatient.id, submitData);
         setMessage({ type: "success", text: "Patient updated successfully" });
       } else {
-        await patientService.create(submitData);
+        response = await patientService.create(submitData);
         setMessage({ type: "success", text: "Patient created successfully" });
       }
 
       if (onPatientAdded) {
-        onPatientAdded();
+        onPatientAdded(isEditing ? editingPatient : response.data);
       }
       setTimeout(() => {
         handleClose();

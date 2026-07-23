@@ -266,18 +266,37 @@ export const emergencyCaseSchema = z.object({
 });
 
 export const billingSchema = z.object({
-  patientId: z.string().min(1, "Patient is required"),
-  InvoiceNo: z.string().min(1, "Invoice number is required").max(20),
+  mrn: z.string().min(1, "Patient visit (MRN) is required"),
+  patientTypeId: z.string().min(1, "Patient type is required"),
+  InsuranceCompanyId: z.string().optional().nullable(),
+  DepartmentId: z.string().optional().nullable(),
+  DoctorId: z.string().optional().nullable(),
   InvoiceDate: z.string().min(1, "Invoice date is required"),
-  InvoiceType: z.enum(["OPD", "IPD", "Emergency", "Laboratory", "Pharmacy", "Radiology", "Other"]),
   SubTotal: z.coerce.number().min(0, "Sub total must be positive"),
   Discount: z.coerce.number().min(0, "Discount must be positive"),
-  Tax: z.coerce.number().min(0, "Tax must be positive"),
   TotalAmount: z.coerce.number().min(0, "Total must be positive"),
-  PaidAmount: z.coerce.number().min(0, "Paid amount must be positive"),
   PaymentStatus: z.enum(["Pending", "Partial", "Paid", "Cancelled"]),
-  PaymentMethod: z.enum(["Cash", "Card", "BankTransfer", "Insurance", "Other"]),
+  BillType: z.enum(["Normal", "Return"]),
   Notes: z.string().optional(),
+});
+
+export const billingDetailSchema = z.object({
+  invoiceNo: z.string().min(1, "Invoice number is required"),
+  serviceId: z.string().min(1, "Service is required"),
+  Qty: z.coerce.number().min(1, "Quantity must be at least 1"),
+  Rate: z.coerce.number().min(0, "Rate must be positive"),
+  Amount: z.coerce.number().min(0, "Amount must be positive"),
+  SharePercent: z.coerce.number().min(0).max(100).optional(),
+  ShareAmount: z.coerce.number().min(0).optional(),
+  isServed: z.coerce.boolean().optional(),
+});
+
+export const patientPaymentSchema = z.object({
+  mrn: z.string().min(1, "Patient visit (MRN) is required"),
+  invoiceNo: z.string().min(1, "Invoice number is required"),
+  debit: z.coerce.number().min(0, "Debit must be positive"),
+  credit: z.coerce.number().min(0, "Credit must be positive"),
+  remarks: z.string().optional(),
 });
 
 export const pharmacySchema = z.object({
@@ -315,4 +334,12 @@ export const insurancePlanSchema = z.object({
   CoveragePercent: z.coerce.number().min(0, "Must be at least 0").max(100, "Cannot exceed 100").default(100),
   AnnualLimit: z.coerce.number().min(0, "Must be positive").optional().nullable(),
   isActive: z.boolean().default(true),
+});
+
+export const doctorShareMasterSchema = z.object({
+  DepartmentId: z.string().optional().nullable(),
+  ServiceId: z.string().optional().nullable(),
+  doctorId: z.string().optional().nullable(),
+  DoctorShare: z.coerce.number().min(0, "Must be at least 0").max(100, "Cannot exceed 100"),
+  hospitalShare: z.coerce.number().min(0, "Must be at least 0").max(100, "Cannot exceed 100"),
 });

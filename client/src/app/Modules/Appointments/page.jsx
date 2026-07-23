@@ -261,7 +261,7 @@ export default function AppointmentsPage() {
     try {
       await patientAppointmentService.create({
         DoctorId: selectedDoctor,
-        patientId: selectedPatient.id,
+        patientId: selectedPatient.patientId,
         Appointmentat: data.Appointmentat,
         TokenNo: data.TokenNo,
         Status: data.Status,
