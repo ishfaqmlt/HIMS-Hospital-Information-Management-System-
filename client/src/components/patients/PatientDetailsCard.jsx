@@ -24,6 +24,9 @@ export default function PatientDetailsCard({
   mobileSearch = "",
   onMobileSearchChange,
   onMobileSearch,
+  cnicSearch = "",
+  onCnicSearchChange,
+  onCnicSearch,
   selectedPatient = null,
   patientType = "",
   onPatientTypeChange,
@@ -87,11 +90,25 @@ export default function PatientDetailsCard({
 
           <div className="space-y-1">
             <Label className="text-xs">CNIC</Label>
-            <Input
-              value={selectedPatient?.cnic || ""}
-              disabled
-              className="h-8 text-xs"
-            />
+            <div className="flex gap-1">
+              {selectedPatient ? (
+                <Input
+                  value={selectedPatient.cnic || ""}
+                  disabled
+                  className="h-8 text-xs"
+                />
+              ) : (
+                <Input
+                  value={cnicSearch}
+                  onChange={(e) => onCnicSearchChange(e.target.value)}
+                  className="h-8 text-xs"
+                  placeholder="CNIC"
+                />
+              )}
+              <Button size="sm" variant="outline" className="h-8 px-2" onClick={onCnicSearch} disabled={!!selectedPatient}>
+                <Search className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-1">
