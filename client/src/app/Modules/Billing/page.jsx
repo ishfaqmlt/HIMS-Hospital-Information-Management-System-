@@ -98,12 +98,21 @@ export default function BillingPage() {
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [searchMrn, setSearchMrn] = useState("");
   const [searchPatientId, setSearchPatientId] = useState("");
+  const toLocalISOString = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    const h = String(date.getHours()).padStart(2, "0");
+    const min = String(date.getMinutes()).padStart(2, "0");
+    return `${y}-${m}-${d}T${h}:${min}`;
+  };
+
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date();
-  todayEnd.setHours(23, 59, 59, 999);
-  const [fromDate, setFromDate] = useState(todayStart.toISOString().slice(0, 16));
-  const [toDate, setToDate] = useState(todayEnd.toISOString().slice(0, 16));
+  todayEnd.setHours(23, 59, 0, 0);
+  const [fromDate, setFromDate] = useState(toLocalISOString(todayStart));
+  const [toDate, setToDate] = useState(toLocalISOString(todayEnd));
 
   useEffect(() => {
     if (!message) return;
@@ -401,6 +410,7 @@ export default function BillingPage() {
     const disc = subtotal * (discountPercent / 100);
     setDiscount(disc);
     setNetAmount(subtotal - disc);
+    setPaid(subtotal - disc);
   };
 
   const handleNew = () => {
@@ -728,41 +738,44 @@ export default function BillingPage() {
               </div>
               <div className="border-t pt-3 space-y-1">
                 <Label className="text-xs">Search by Service Code</Label>
-                <Input
-                  value={serviceCodeSearch}
-                  onChange={(e) => setServiceCodeSearch(e.target.value)}
-                  className="h-8 text-xs"
-                  placeholder="e.g. 401.402.403"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleServiceCodeSearch();
-                    }
-                  }}
-                />
-                <Button size="sm" variant="secondary" className="w-full" onClick={handleServiceCodeSearch} disabled={!serviceCodeSearch.trim()}>
-                  <Plus className="h-3 w-3 mr-1" /> Add by Code
-                </Button>
+                <div className="flex gap-2">
+                  <Input
+                    value={serviceCodeSearch}
+                    onChange={(e) => setServiceCodeSearch(e.target.value)}
+                    className="h-8 text-xs"
+                    placeholder="e.g. 401.402.403"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleServiceCodeSearch();
+                      }
+                    }}
+                  />
+                  <Button size="sm"  onClick={handleServiceCodeSearch} disabled={!serviceCodeSearch.trim()}>
+                    <Plus className="h-4 w-3 mr-1" /> Add
+                  </Button>
+                </div>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Service</Label>
-                <Select value={selectedService} onValueChange={setSelectedService}>
-                  <SelectTrigger className="w-full h-8 text-xs">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {services
-                      .filter((s) => !selectedDepartment || s.DepartmentId === selectedDepartment)
-                      .map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.ServiceName}</SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select value={selectedService} onValueChange={setSelectedService}>
+                    <SelectTrigger className="w-full h-8 text-xs">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {services
+                        .filter((s) => !selectedDepartment || s.DepartmentId === selectedDepartment)
+                        .map((s) => (
+                          <SelectItem key={s.id} value={s.id}>{s.ServiceName}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" onClick={addService} disabled={!selectedService}>
+                    <Plus className="h-4 w-3 mr-1" /> Add
+                  </Button>
+                </div>
               </div>
-
-              <Button size="sm" className="w-full" onClick={addService} disabled={!selectedService}>
-                <Plus className="h-3 w-3 mr-1" /> Add Service
-              </Button>
 
               
             </CardContent>
@@ -775,7 +788,7 @@ export default function BillingPage() {
             </Button>
             <Button className="w-full" onClick={handleSave} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-              {editingInvoiceId ? "Update (Ctrl+S)" : "Save (Ctrl+S)"}
+              {editingInvoiceId ? "Update" : "Save"}
             </Button>
            
           </div>
@@ -858,15 +871,6 @@ export default function BillingPage() {
             </CardHeader>
             <CardContent className="p-3 space-y-3">
               <div className="space-y-1">
-                <Label className="text-xs">Invoice No</Label>
-                <Input
-                  value={voucherNo || "Auto-generated"}
-                  className="h-8 text-xs bg-muted"
-                  disabled
-                />
-              </div>
-
-              <div className="space-y-1">
                 <Label className="text-xs">Date</Label>
                 <Input
                   type="datetime-local"
@@ -897,6 +901,7 @@ export default function BillingPage() {
                     const disc = totalBill * (pct / 100);
                     setDiscount(disc);
                     setNetAmount(totalBill - disc);
+                    setPaid(totalBill - disc);
                   }}
                   className="h-8 text-xs"
                 />
@@ -1052,7 +1057,7 @@ export default function BillingPage() {
                   value={searchMrn}
                   onChange={(e) => setSearchMrn(e.target.value)}
                   className="h-8 text-xs"
-                  placeholder="Search MRN"
+                   placeholder=""
                 />
               </div>
               <div className="col-span-2 space-y-1">
@@ -1061,7 +1066,7 @@ export default function BillingPage() {
                   value={searchPatientId}
                   onChange={(e) => setSearchPatientId(e.target.value)}
                   className="h-8 text-xs"
-                  placeholder="Search Patient ID"
+                   placeholder=""
                 />
               </div>
               <div className="col-span-3 space-y-1">
@@ -1090,7 +1095,7 @@ export default function BillingPage() {
               </div>
             </div>
 
-            <DataTable columns={invoiceColumns} data={invoices} filterColumn="InvoiceNo" />
+            <DataTable columns={invoiceColumns} data={invoices} filterColumn="patientName" />
           </CardContent>
         </Card>
       </div>

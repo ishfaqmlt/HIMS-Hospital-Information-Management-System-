@@ -14,6 +14,12 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Search } from "lucide-react";
 
+function formatCode(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 4) return digits;
+  return digits.slice(0, 4) + "-" + digits.slice(4);
+}
+
 export default function PatientDetailsCard({
   mrnSearch = "",
   onMrnSearchChange,
@@ -51,9 +57,11 @@ export default function PatientDetailsCard({
               ) : (
                 <Input
                   value={mrnSearch}
-                  onChange={(e) => onMrnSearchChange(e.target.value)}
+                  onChange={(e) => onMrnSearchChange(formatCode(e.target.value))}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onMrnSearch(); } }}
                   className="h-8 text-xs"
-                  placeholder="0726-001"
+                  placeholder=""
+                  maxLength={9}
                 />
               )}
               <Button size="sm" variant="outline" className="h-8 px-2" onClick={onMrnSearch} disabled={!!selectedPatient}>
@@ -77,9 +85,11 @@ export default function PatientDetailsCard({
               ) : (
                 <Input
                   value={patientIdSearch}
-                  onChange={(e) => onPatientIdSearchChange(e.target.value)}
+                  onChange={(e) => onPatientIdSearchChange(formatCode(e.target.value))}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onPatientIdSearch(); } }}
                   className="h-8 text-xs"
-                  placeholder="0726-001"
+                  placeholder=""
+                  maxLength={9}
                 />
               )}
               <Button size="sm" variant="outline" className="h-8 px-2" onClick={onPatientIdSearch} disabled={!!selectedPatient}>
@@ -101,8 +111,9 @@ export default function PatientDetailsCard({
                 <Input
                   value={cnicSearch}
                   onChange={(e) => onCnicSearchChange(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onCnicSearch(); } }}
                   className="h-8 text-xs"
-                  placeholder="CNIC"
+                  placeholder=""
                 />
               )}
               <Button size="sm" variant="outline" className="h-8 px-2" onClick={onCnicSearch} disabled={!!selectedPatient}>
@@ -124,8 +135,9 @@ export default function PatientDetailsCard({
                 <Input
                   value={mobileSearch}
                   onChange={(e) => onMobileSearchChange(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onMobileSearch(); } }}
                   className="h-8 text-xs"
-                  placeholder="Mobile"
+                  placeholder=""
                 />
               )}
               <Button size="sm" variant="outline" className="h-8 px-2" onClick={onMobileSearch} disabled={!!selectedPatient}>
