@@ -13,9 +13,9 @@ export const getColumns = ({ onEdit }) => [
   },
   {
     id: "roomWardName",
-    accessorFn: (row) => row.roomWard?.RoomWardName || "",
+    accessorFn: (row) => row.room_ward?.RoomWardName || "",
     header: "Room/Ward",
-    cell: ({ row }) => row.original.roomWard?.RoomWardName || "-",
+    cell: ({ row }) => row.original.room_ward?.RoomWardName || "-",
   },
   {
     accessorKey: "BedNo",
