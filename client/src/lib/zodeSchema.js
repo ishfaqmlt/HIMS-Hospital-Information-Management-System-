@@ -230,14 +230,14 @@ export const opdVisitSchema = z.object({
 });
 
 export const ipdAdmissionSchema = z.object({
-  patientId: z.string().min(1, "Patient is required"),
+  mrn: z.string().min(1, "Patient (MRN) is required"),
   DoctorId: z.string().min(1, "Doctor is required"),
-  DepartmentId: z.string().optional(),
   AdmissionNo: z.string().min(1, "Admission number is required").max(20),
   AdmissionDate: z.string().min(1, "Admission date is required"),
   DischargeDate: z.string().optional(),
-  RoomNo: z.string().optional(),
-  BedNo: z.string().optional(),
+  FloorId: z.string().min(1, "Floor is required"),
+  RoomWardId: z.string().min(1, "Room/Ward is required"),
+  bedId: z.string().min(1, "Bed is required"),
   AdmissionType: z.enum(["Elective", "Emergency", "Transfer"]),
   Status: z.enum(["Admitted", "Discharged", "Transferred", "Cancelled"]),
   ChiefComplaint: z.string().optional(),
@@ -245,7 +245,10 @@ export const ipdAdmissionSchema = z.object({
   TreatmentPlan: z.string().optional(),
   DischargeSummary: z.string().optional(),
   TotalCharges: z.coerce.number().min(0, "Charges must be positive"),
+  Discount: z.coerce.number().min(0, "Discount must be positive"),
+  PayableAmount: z.coerce.number().min(0),
   TotalPaid: z.coerce.number().min(0, "Paid amount must be positive"),
+  Balance: z.coerce.number(),
 });
 
 export const emergencyCaseSchema = z.object({

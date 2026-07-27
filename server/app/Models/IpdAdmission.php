@@ -13,14 +13,14 @@ class IpdAdmission extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'patientId',
+        'mrn',
         'DoctorId',
-        'DepartmentId',
         'AdmissionNo',
         'AdmissionDate',
         'DischargeDate',
-        'RoomNo',
-        'BedNo',
+        'FloorId',
+        'RoomWardId',
+        'bedId',
         'AdmissionType',
         'Status',
         'ChiefComplaint',
@@ -28,9 +28,11 @@ class IpdAdmission extends Model
         'TreatmentPlan',
         'DischargeSummary',
         'TotalCharges',
+        'Discount',
+        'PayableAmount',
         'TotalPaid',
         'Balance',
-        'CreatedBy',
+        'createdBy',
         'isSynced',
     ];
 
@@ -38,9 +40,11 @@ class IpdAdmission extends Model
         'AdmissionDate' => 'datetime',
         'DischargeDate' => 'datetime',
         'TotalCharges' => 'decimal:2',
+        'Discount' => 'decimal:2',
+        'PayableAmount' => 'decimal:2',
         'TotalPaid' => 'decimal:2',
         'Balance' => 'decimal:2',
-        'CreatedBy' => 'integer',
+        'createdBy' => 'integer',
         'isSynced' => 'boolean',
     ];
 
@@ -53,9 +57,9 @@ class IpdAdmission extends Model
         });
     }
 
-    public function patient()
+    public function patientVisit()
     {
-        return $this->belongsTo(Patient::class, 'patientId');
+        return $this->belongsTo(PatientVisit::class, 'mrn', 'mrn');
     }
 
     public function doctor()
@@ -63,8 +67,23 @@ class IpdAdmission extends Model
         return $this->belongsTo(Doctor::class, 'DoctorId');
     }
 
-    public function department()
+    public function floor()
     {
-        return $this->belongsTo(Department::class, 'DepartmentId');
+        return $this->belongsTo(FloorMaster::class, 'FloorId');
+    }
+
+    public function roomWard()
+    {
+        return $this->belongsTo(RoomsWardsMaster::class, 'RoomWardId');
+    }
+
+    public function bed()
+    {
+        return $this->belongsTo(BedMaster::class, 'bedId');
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'createdBy');
     }
 }

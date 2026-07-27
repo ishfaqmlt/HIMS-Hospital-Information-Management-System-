@@ -26,16 +26,21 @@ import { ipdAdmissionSchema } from "@/lib/zodeSchema";
 import ipdAdmissionService from "@/services/ipdAdmission.service";
 import patientService from "@/services/patient.service";
 import doctorService from "@/services/doctor.service";
-import departmentService from "@/services/department.service";
+import floorService from "@/services/floorService";
+import roomsWardsService from "@/services/roomsWardsService";
+import bedMasterService from "@/services/bedMasterService";
 import AddPatientDialog from "@/components/patients/AddPatientDialog";
 import { Loader2, Plus, Search, CalendarDays, Eye, UserPlus } from "lucide-react";
 
 export default function IPDPage() {
   const [loading, setLoading] = useState(false);
   const [admissions, setAdmissions] = useState([]);
-  const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
-  const [departments, setDepartments] = useState([]);
+  const [floors, setFloors] = useState([]);
+  const [allRooms, setAllRooms] = useState([]);
+  const [filteredRooms, setFilteredRooms] = useState([]);
+  const [allBeds, setAllBeds] = useState([]);
+  const [filteredBeds, setFilteredBeds] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [message, setMessage] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -48,25 +53,26 @@ export default function IPDPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [searchSearched, setSearchSearched] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [selectedMrn, setSelectedMrn] = useState(null);
 
   const {
     register,
     handleSubmit,
     reset,
-    setValue,
     watch,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(ipdAdmissionSchema),
     defaultValues: {
-      patientId: "",
+      mrn: "",
       DoctorId: "",
-      DepartmentId: "",
       AdmissionNo: "",
-      AdmissionDate: new Date().toISOString().split("T")[0],
+      AdmissionDate: new Date().toISOString().slice(0, 16),
       DischargeDate: "",
-      RoomNo: "",
-      BedNo: "",
+      FloorId: "",
+      RoomWardId: "",
+      bedId: "",
       AdmissionType: "Elective",
       Status: "Admitted",
       ChiefComplaint: "",
@@ -74,23 +80,59 @@ export default function IPDPage() {
       TreatmentPlan: "",
       DischargeSummary: "",
       TotalCharges: 0,
+      Discount: 0,
+      PayableAmount: 0,
       TotalPaid: 0,
+      Balance: 0,
     },
   });
 
+  const floorValue = watch("FloorId");
+  const roomValue = watch("RoomWardId");
+  const bedValue = watch("bedId");
   const totalCharges = watch("TotalCharges");
+  const discount = watch("Discount");
   const totalPaid = watch("TotalPaid");
 
-  useEffect(() => {
-    loadDoctors();
-    loadDepartments();
-  }, []);
-
+  useEffect(() => { loadDoctors(); loadFloors(); }, []);
   useEffect(() => {
     if (!message) return;
     const t = setTimeout(() => setMessage(null), 4000);
     return () => clearTimeout(t);
   }, [message]);
+
+  useEffect(() => {
+    if (floorValue) {
+      const filtered = allRooms.filter((r) => r.floorId === floorValue);
+      setFilteredRooms(filtered);
+      if (roomValue && !filtered.find((r) => r.id === roomValue)) {
+        setValue("RoomWardId", "");
+        setValue("bedId", "");
+        setFilteredBeds([]);
+      }
+    } else {
+      setFilteredRooms([]);
+      setFilteredBeds([]);
+    }
+  }, [floorValue, allRooms]);
+
+  useEffect(() => {
+    if (roomValue) {
+      const filtered = allBeds.filter((b) => b.roomWardId === roomValue);
+      setFilteredBeds(filtered);
+      if (bedValue && !filtered.find((b) => b.id === bedValue)) {
+        setValue("bedId", "");
+      }
+    } else {
+      setFilteredBeds([]);
+    }
+  }, [roomValue, allBeds]);
+
+  useEffect(() => {
+    const payable = (Number(totalCharges) || 0) - (Number(discount) || 0);
+    setValue("PayableAmount", payable);
+    setValue("Balance", payable - (Number(totalPaid) || 0));
+  }, [totalCharges, discount, totalPaid]);
 
   const loadDoctors = async () => {
     try {
@@ -101,10 +143,16 @@ export default function IPDPage() {
     }
   };
 
-  const loadDepartments = async () => {
+  const loadFloors = async () => {
     try {
-      const res = await departmentService.getAll();
-      setDepartments(res.data);
+      const [fRes, rRes, bRes] = await Promise.all([
+        floorService.getAll(),
+        roomsWardsService.getAll(),
+        bedMasterService.getAll(),
+      ]);
+      setFloors(fRes.data);
+      setAllRooms(rRes.data);
+      setAllBeds(bRes.data);
     } catch (error) {
       console.error(error);
     }
@@ -154,18 +202,21 @@ export default function IPDPage() {
   const openCreate = () => {
     setEditingAdmission(null);
     setSelectedPatient(null);
+    setSelectedMrn(null);
     setMrnSearch("");
     setSearchResults([]);
     setSearchSearched(false);
+    setFilteredRooms([]);
+    setFilteredBeds([]);
     reset({
-      patientId: "",
+      mrn: "",
       DoctorId: "",
-      DepartmentId: "",
-      AdmissionNo: `IPD-${Date.now().toString().slice(-6)}`,
-      AdmissionDate: new Date().toISOString().split("T")[0],
+      AdmissionNo: "",
+      AdmissionDate: new Date().toISOString().slice(0, 16),
       DischargeDate: "",
-      RoomNo: "",
-      BedNo: "",
+      FloorId: "",
+      RoomWardId: "",
+      bedId: "",
       AdmissionType: "Elective",
       Status: "Admitted",
       ChiefComplaint: "",
@@ -173,26 +224,36 @@ export default function IPDPage() {
       TreatmentPlan: "",
       DischargeSummary: "",
       TotalCharges: 0,
+      Discount: 0,
+      PayableAmount: 0,
       TotalPaid: 0,
+      Balance: 0,
     });
     setIsDialogOpen(true);
   };
 
   const openEdit = (admission) => {
     setEditingAdmission(admission);
-    setSelectedPatient(admission.patient);
+    setSelectedPatient(admission.patientVisit?.patient || null);
+    setSelectedMrn(admission.mrn);
     setMrnSearch("");
     setSearchResults([]);
     setSearchSearched(false);
+
+    const filteredR = allRooms.filter((r) => r.floorId === admission.FloorId);
+    setFilteredRooms(filteredR);
+    const filteredB = allBeds.filter((b) => b.roomWardId === admission.RoomWardId);
+    setFilteredBeds(filteredB);
+
     reset({
-      patientId: admission.patientId,
+      mrn: admission.mrn,
       DoctorId: admission.DoctorId,
-      DepartmentId: admission.DepartmentId || "",
       AdmissionNo: admission.AdmissionNo,
-      AdmissionDate: admission.AdmissionDate ? new Date(admission.AdmissionDate).toISOString().split("T")[0] : "",
-      DischargeDate: admission.DischargeDate ? new Date(admission.DischargeDate).toISOString().split("T")[0] : "",
-      RoomNo: admission.RoomNo || "",
-      BedNo: admission.BedNo || "",
+      AdmissionDate: admission.AdmissionDate ? new Date(admission.AdmissionDate).toISOString().slice(0, 16) : "",
+      DischargeDate: admission.DischargeDate ? new Date(admission.DischargeDate).toISOString().slice(0, 16) : "",
+      FloorId: admission.FloorId || "",
+      RoomWardId: admission.RoomWardId || "",
+      bedId: admission.bedId || "",
       AdmissionType: admission.AdmissionType,
       Status: admission.Status,
       ChiefComplaint: admission.ChiefComplaint || "",
@@ -200,7 +261,10 @@ export default function IPDPage() {
       TreatmentPlan: admission.TreatmentPlan || "",
       DischargeSummary: admission.DischargeSummary || "",
       TotalCharges: admission.TotalCharges,
+      Discount: admission.Discount,
+      PayableAmount: admission.PayableAmount,
       TotalPaid: admission.TotalPaid,
+      Balance: admission.Balance,
     });
     setIsDialogOpen(true);
   };
@@ -228,12 +292,12 @@ export default function IPDPage() {
 
   const selectExistingPatient = (patient) => {
     setSelectedPatient(patient);
-    setValue("patientId", patient.id);
+    setSelectedMrn("mrn-" + mrnSearch);
+    setValue("mrn", "mrn-" + mrnSearch);
   };
 
   const handlePatientAdded = (newPatient) => {
     setSelectedPatient(newPatient);
-    setValue("patientId", newPatient.id);
     setIsPatientDialogOpen(false);
   };
 
@@ -244,11 +308,12 @@ export default function IPDPage() {
         return;
       }
 
+      data.Balance = (Number(data.PayableAmount) || 0) - (Number(data.TotalPaid) || 0);
+
       if (editingAdmission) {
         await ipdAdmissionService.update(editingAdmission.Id, data);
         setMessage({ type: "success", text: "Admission updated successfully" });
       } else {
-        data.patientId = selectedPatient.id;
         await ipdAdmissionService.create(data);
         setMessage({ type: "success", text: "Admission created successfully" });
       }
@@ -298,7 +363,7 @@ export default function IPDPage() {
       <div className="flex gap-2">
         <form onSubmit={handleSearch} className="flex gap-2 flex-1">
           <Input
-            placeholder="Search by Admission No, Patient Name, or Mobile"
+            placeholder="Search by Admission No, Patient Name, or MRN"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -307,7 +372,7 @@ export default function IPDPage() {
           </Button>
         </form>
         <Button variant="outline" onClick={loadTodaysAdmissions} disabled={loading}>
-          <CalendarDays className="h-4 w-4 mr-2" />Today's Admissions
+          <CalendarDays className="h-4 w-4 mr-2" />Today&apos;s Admissions
         </Button>
         <Button variant="ghost" onClick={resetAdmissions} disabled={loading}>
           Reset
@@ -325,12 +390,12 @@ export default function IPDPage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : (
-        <DataTable columns={columns} data={admissions} filterColumn="AdmissionNo" />
+        <DataTable columns={columns} data={admissions} filterColumn="mrn" />
       )}
 
       {isDialogOpen && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingAdmission ? "Edit Admission" : "New Admission"}</DialogTitle>
             </DialogHeader>
@@ -400,9 +465,9 @@ export default function IPDPage() {
                   ) : (
                     <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800 flex items-center justify-between">
                       <div>
-                        Patient: <strong>{selectedPatient.pName}</strong> ({selectedPatient.patientId})
+                        Patient: <strong>{selectedPatient.pName}</strong> | MRN: <strong>{selectedMrn}</strong>
                       </div>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedPatient(null)}>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => { setSelectedPatient(null); setSelectedMrn(null); setValue("mrn", ""); }}>
                         Change
                       </Button>
                     </div>
@@ -427,40 +492,67 @@ export default function IPDPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Department</Label>
-                      <Select value={watch("DepartmentId")} onValueChange={(val) => setValue("DepartmentId", val)}>
-                        <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
-                        <SelectContent>
-                          {departments.map((d) => (
-                            <SelectItem key={d.id} value={d.id}>{d.DepartmentName}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label>Admission No *</Label>
+                      <Input {...register("AdmissionNo")} placeholder="IPD-0001" />
+                      {errors.AdmissionNo && <p className="text-sm text-destructive">{errors.AdmissionNo.message}</p>}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Admission Date *</Label>
-                      <Input type="date" {...register("AdmissionDate")} />
+                      <Input type="datetime-local" {...register("AdmissionDate")} />
                       {errors.AdmissionDate && <p className="text-sm text-destructive">{errors.AdmissionDate.message}</p>}
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Admission No *</Label>
-                      <Input {...register("AdmissionNo")} disabled />
+                      <Label>Discharge Date</Label>
+                      <Input type="datetime-local" {...register("DischargeDate")} />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label>Room No</Label>
-                      <Input {...register("RoomNo")} placeholder="R-101" />
+                      <Label>Floor *</Label>
+                      <Select value={floorValue} onValueChange={(val) => setValue("FloorId", val)}>
+                        <SelectTrigger><SelectValue placeholder="Select floor" /></SelectTrigger>
+                        <SelectContent>
+                          {floors.map((f) => (
+                            <SelectItem key={f.id} value={f.id}>{f.FloorName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.FloorId && <p className="text-sm text-destructive">{errors.FloorId.message}</p>}
                     </div>
+
                     <div className="space-y-2">
-                      <Label>Bed No</Label>
-                      <Input {...register("BedNo")} placeholder="B-1" />
+                      <Label>Room/Ward *</Label>
+                      <Select value={roomValue} onValueChange={(val) => setValue("RoomWardId", val)} disabled={!floorValue}>
+                        <SelectTrigger><SelectValue placeholder={floorValue ? "Select room" : "Select floor first"} /></SelectTrigger>
+                        <SelectContent>
+                          {filteredRooms.map((r) => (
+                            <SelectItem key={r.id} value={r.id}>{r.RoomWardName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.RoomWardId && <p className="text-sm text-destructive">{errors.RoomWardId.message}</p>}
                     </div>
+
+                    <div className="space-y-2">
+                      <Label>Bed *</Label>
+                      <Select value={bedValue} onValueChange={(val) => setValue("bedId", val)} disabled={!roomValue}>
+                        <SelectTrigger><SelectValue placeholder={roomValue ? "Select bed" : "Select room first"} /></SelectTrigger>
+                        <SelectContent>
+                          {filteredBeds.map((b) => (
+                            <SelectItem key={b.id} value={b.id}>{b.BedNo} (Rs. {b.Rent})</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.bedId && <p className="text-sm text-destructive">{errors.bedId.message}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Admission Type *</Label>
                       <Select value={watch("AdmissionType")} onValueChange={(val) => setValue("AdmissionType", val)}>
@@ -472,6 +564,7 @@ export default function IPDPage() {
                         </SelectContent>
                       </Select>
                     </div>
+
                     <div className="space-y-2">
                       <Label>Status *</Label>
                       <Select value={watch("Status")} onValueChange={(val) => setValue("Status", val)}>
@@ -501,24 +594,31 @@ export default function IPDPage() {
                     <Textarea {...register("TreatmentPlan")} placeholder="Treatment plan" />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-5 gap-4">
                     <div className="space-y-2">
                       <Label>Total Charges *</Label>
                       <Input type="number" step="0.01" {...register("TotalCharges")} />
                       {errors.TotalCharges && <p className="text-sm text-destructive">{errors.TotalCharges.message}</p>}
                     </div>
                     <div className="space-y-2">
+                      <Label>Discount *</Label>
+                      <Input type="number" step="0.01" {...register("Discount")} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Payable</Label>
+                      <Input type="number" step="0.01" value={watch("PayableAmount")} disabled />
+                    </div>
+                    <div className="space-y-2">
                       <Label>Total Paid *</Label>
                       <Input type="number" step="0.01" {...register("TotalPaid")} />
-                      {errors.TotalPaid && <p className="text-sm text-destructive">{errors.TotalPaid.message}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label>Balance</Label>
                       <Input
                         type="number"
-                        value={totalCharges - totalPaid}
+                        value={watch("Balance")}
                         disabled
-                        className={totalCharges - totalPaid > 0 ? "text-red-600" : "text-green-600"}
+                        className={watch("Balance") > 0 ? "text-red-600" : "text-green-600"}
                       />
                     </div>
                   </div>
@@ -551,22 +651,28 @@ export default function IPDPage() {
                   <p className="font-medium">{viewingAdmission.AdmissionNo}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Date</p>
-                  <p className="font-medium">
-                    {new Date(viewingAdmission.AdmissionDate).toLocaleDateString("en-GB")}
-                  </p>
+                  <p className="text-muted-foreground">MRN</p>
+                  <p className="font-medium">{viewingAdmission.mrn}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Patient</p>
-                  <p className="font-medium">{viewingAdmission.patient?.pName}</p>
+                  <p className="font-medium">{viewingAdmission.patientVisit?.patient?.pName}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Doctor</p>
                   <p className="font-medium">{viewingAdmission.doctor?.Name}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Room/Bed</p>
-                  <p className="font-medium">{viewingAdmission.RoomNo || "-"} / {viewingAdmission.BedNo || "-"}</p>
+                  <p className="text-muted-foreground">Floor</p>
+                  <p className="font-medium">{viewingAdmission.floor?.FloorName || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Room/Ward</p>
+                  <p className="font-medium">{viewingAdmission.roomWard?.RoomWardName || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Bed</p>
+                  <p className="font-medium">{viewingAdmission.bed?.BedNo || "-"}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Type</p>
@@ -579,8 +685,8 @@ export default function IPDPage() {
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Charges</p>
-                  <p className="font-medium">{Number(viewingAdmission.TotalCharges).toLocaleString()}</p>
+                  <p className="text-muted-foreground">Payable</p>
+                  <p className="font-medium">{Number(viewingAdmission.PayableAmount).toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Paid</p>

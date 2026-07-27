@@ -26,20 +26,26 @@ export const getColumns = ({ onEdit, onDelete, onView }) => [
     ),
   },
   {
-    accessorKey: "patientId",
+    id: "patientName",
+    accessorFn: (row) => row.patientVisit?.patient?.pName || "",
     header: "Patient",
     cell: ({ row }) => (
       <div>
-        <p className="font-medium">{row.original.patient?.pName}</p>
-        <p className="text-xs text-muted-foreground">{row.original.patient?.patientId}</p>
+        <p className="font-medium">{row.original.patientVisit?.patient?.pName || "-"}</p>
+        <p className="text-xs text-muted-foreground">{row.original.patientVisit?.patient?.patientId || "-"}</p>
       </div>
     ),
+  },
+  {
+    id: "mrn",
+    accessorKey: "mrn",
+    header: "MRN",
   },
   {
     id: "doctorName",
     accessorFn: (row) => row.doctor?.Name,
     header: "Doctor",
-    cell: ({ row }) => row.original.doctor?.Name,
+    cell: ({ row }) => row.original.doctor?.Name || "-",
   },
   {
     accessorKey: "AdmissionDate",
@@ -50,11 +56,22 @@ export const getColumns = ({ onEdit, onDelete, onView }) => [
     },
   },
   {
-    accessorKey: "RoomNo",
-    header: "Room/Bed",
-    cell: ({ row }) => (
-      <span className="text-sm">{row.original.RoomNo || "-"} / {row.original.BedNo || "-"}</span>
-    ),
+    id: "floorName",
+    accessorFn: (row) => row.floor?.FloorName || "",
+    header: "Floor",
+    cell: ({ row }) => row.original.floor?.FloorName || "-",
+  },
+  {
+    id: "roomWardName",
+    accessorFn: (row) => row.roomWard?.RoomWardName || "",
+    header: "Room/Ward",
+    cell: ({ row }) => row.original.roomWard?.RoomWardName || "-",
+  },
+  {
+    id: "bedNo",
+    accessorFn: (row) => row.bed?.BedNo || "",
+    header: "Bed",
+    cell: ({ row }) => row.original.bed?.BedNo || "-",
   },
   {
     accessorKey: "AdmissionType",
@@ -73,10 +90,17 @@ export const getColumns = ({ onEdit, onDelete, onView }) => [
     ),
   },
   {
-    accessorKey: "TotalCharges",
-    header: "Charges",
+    accessorKey: "PayableAmount",
+    header: "Payable",
     cell: ({ row }) => (
-      <span className="font-medium">{Number(row.original.TotalCharges).toLocaleString()}</span>
+      <span className="font-medium">{Number(row.original.PayableAmount).toLocaleString()}</span>
+    ),
+  },
+  {
+    accessorKey: "TotalPaid",
+    header: "Paid",
+    cell: ({ row }) => (
+      <span className="font-medium text-green-600">{Number(row.original.TotalPaid).toLocaleString()}</span>
     ),
   },
   {
@@ -85,15 +109,6 @@ export const getColumns = ({ onEdit, onDelete, onView }) => [
     cell: ({ row }) => (
       <span className={`font-medium ${row.original.Balance > 0 ? "text-red-600" : "text-green-600"}`}>
         {Number(row.original.Balance).toLocaleString()}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "Diagnosis",
-    header: "Diagnosis",
-    cell: ({ row }) => (
-      <span className="text-sm truncate max-w-[200px] block">
-        {row.original.Diagnosis || "-"}
       </span>
     ),
   },
