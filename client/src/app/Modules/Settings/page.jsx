@@ -33,6 +33,13 @@ const settingsModules = [
     href: "/Modules/Settings/roomsWards",
   },
   {
+    name: "Bed Master",
+    description: "Manage hospital beds with rent and AC charges",
+    icon: Building2,
+    color: "bg-orange-500",
+    href: "/Modules/Settings/bedMaster",
+  },
+  {
     name: "Services",
     description: "Manage hospital services and their configurations",
     icon: Building2,

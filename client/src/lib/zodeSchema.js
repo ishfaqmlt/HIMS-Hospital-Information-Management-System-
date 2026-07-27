@@ -355,3 +355,12 @@ export const roomsWardsSchema = z.object({
   RoomWardName: z.string().min(1, "Name is required").max(100, "Must be 100 characters or less"),
   isFunctional: z.boolean().default(true),
 });
+
+export const bedMasterSchema = z.object({
+  floorId: z.string().min(1, "Floor is required"),
+  roomWardId: z.string().min(1, "Room/Ward is required"),
+  BedNo: z.string().min(1, "Bed number is required").max(50, "Must be 50 characters or less"),
+  Rent: z.coerce.number().min(0, "Must be positive"),
+  AcCharges: z.coerce.number().min(0, "Must be positive"),
+  isFunctional: z.boolean().default(true),
+});

@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             ServiceSeeder::class,
             FloorMasterSeeder::class,
             RoomsWardsMasterSeeder::class,
+            BedMasterSeeder::class,
             OpdVisitSeeder::class,
             IpdAdmissionSeeder::class,
             EmergencyCaseSeeder::class,
