@@ -227,7 +227,7 @@ export default function IPDPage() {
       return;
     }
     try {
-      const res = await patientService.getAll({ [searchType]: searchTerm });
+      const res = await patientService.getAll({ [searchType]: searchTerm, hasVisit: true });
       setSearchResults(res.data);
       setSearchSearched(true);
     } catch (error) {

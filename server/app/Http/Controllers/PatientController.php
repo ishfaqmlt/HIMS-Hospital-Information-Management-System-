@@ -12,6 +12,10 @@ class PatientController extends Controller
     {
         $query = Patient::query();
 
+        if ($request->has('hasVisit') && $request->hasVisit) {
+            $query->whereHas('visits');
+        }
+
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
