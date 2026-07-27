@@ -2,9 +2,9 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 
-export const getColumns = ({ onEdit, onDelete }) => [
+export const getColumns = ({ onEdit }) => [
   {
     accessorKey: "FloorName",
     header: "Floor Name",
@@ -30,9 +30,6 @@ export const getColumns = ({ onEdit, onDelete }) => [
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => onEdit(item)}>
             <Pencil className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => onDelete(item)}>
-            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       );

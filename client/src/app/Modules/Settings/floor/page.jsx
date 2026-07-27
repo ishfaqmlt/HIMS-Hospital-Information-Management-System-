@@ -74,18 +74,6 @@ export default function FloorMasterPage() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (item) => {
-    if (!confirm(`Delete floor "${item.FloorName}"?`)) return;
-    try {
-      await floorService.delete(item.id);
-      setMessage({ type: "success", text: "Floor deleted successfully" });
-      loadFloors();
-    } catch (error) {
-      console.error(error);
-      setMessage({ type: "error", text: "Failed to delete floor" });
-    }
-  };
-
   const onSubmit = async (data) => {
     try {
       if (editingId) {
@@ -103,7 +91,7 @@ export default function FloorMasterPage() {
     }
   };
 
-  const columns = getColumns({ onEdit: openEdit, onDelete: handleDelete });
+  const columns = getColumns({ onEdit: openEdit });
 
   return (
     <div className="space-y-4">
