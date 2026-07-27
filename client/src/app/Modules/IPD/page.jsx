@@ -44,9 +44,7 @@ export default function IPDPage() {
   const [editingAdmission, setEditingAdmission] = useState(null);
   const [viewingAdmission, setViewingAdmission] = useState(null);
 
-  const [mobileSearch, setMobileSearch] = useState("");
   const [mrnSearch, setMrnSearch] = useState("");
-  const [patientIdSearch, setPatientIdSearch] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchSearched, setSearchSearched] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -156,9 +154,7 @@ export default function IPDPage() {
   const openCreate = () => {
     setEditingAdmission(null);
     setSelectedPatient(null);
-    setMobileSearch("");
     setMrnSearch("");
-    setPatientIdSearch("");
     setSearchResults([]);
     setSearchSearched(false);
     reset({
@@ -185,9 +181,7 @@ export default function IPDPage() {
   const openEdit = (admission) => {
     setEditingAdmission(admission);
     setSelectedPatient(admission.patient);
-    setMobileSearch("");
     setMrnSearch("");
-    setPatientIdSearch("");
     setSearchResults([]);
     setSearchSearched(false);
     reset({
@@ -216,18 +210,15 @@ export default function IPDPage() {
     setIsViewDialogOpen(true);
   };
 
-  const handlePatientSearch = async (searchType) => {
-    let searchTerm = "";
-    if (searchType === "mobile") searchTerm = mobileSearch;
-    else if (searchType === "mrn") searchTerm = "mrn-" + mrnSearch;
-    else if (searchType === "patientId") searchTerm = "pid-" + patientIdSearch;
+  const handlePatientSearch = async () => {
+    const searchTerm = "mrn-" + mrnSearch;
 
-    if (!searchTerm.trim()) {
-      setMessage({ type: "error", text: `Please enter a ${searchType === "mobile" ? "mobile number" : searchType === "mrn" ? "MRN" : "Patient ID"}` });
+    if (!mrnSearch.trim()) {
+      setMessage({ type: "error", text: "Please enter an MRN" });
       return;
     }
     try {
-      const res = await patientService.getAll({ [searchType]: searchTerm, hasVisit: true });
+      const res = await patientService.getAll({ mrn: searchTerm, hasVisit: true });
       setSearchResults(res.data);
       setSearchSearched(true);
     } catch (error) {
@@ -348,56 +339,22 @@ export default function IPDPage() {
                 <>
                   {!selectedPatient ? (
                     <div className="space-y-4">
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="space-y-1">
-                          <Label className="text-xs">MRN</Label>
-                          <div className="flex gap-1">
-                            <div className="flex items-center h-9 px-2 text-xs bg-muted border border-input rounded-md text-muted-foreground shrink-0">
-                              mrn-
-                            </div>
-                            <Input
-                              placeholder=""
-                              value={mrnSearch}
-                              onChange={(e) => setMrnSearch(e.target.value)}
-                              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handlePatientSearch("mrn"))}
-                            />
+                      <div className="space-y-1">
+                        <Label className="text-xs">Search by MRN</Label>
+                        <div className="flex gap-1">
+                          <div className="flex items-center h-9 px-2 text-xs bg-muted border border-input rounded-md text-muted-foreground shrink-0">
+                            mrn-
                           </div>
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Patient ID</Label>
-                          <div className="flex gap-1">
-                            <div className="flex items-center h-9 px-2 text-xs bg-muted border border-input rounded-md text-muted-foreground shrink-0">
-                              pid-
-                            </div>
-                            <Input
-                              placeholder=""
-                              value={patientIdSearch}
-                              onChange={(e) => setPatientIdSearch(e.target.value)}
-                              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handlePatientSearch("patientId"))}
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Mobile</Label>
                           <Input
                             placeholder=""
-                            value={mobileSearch}
-                            onChange={(e) => setMobileSearch(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handlePatientSearch("mobile"))}
+                            value={mrnSearch}
+                            onChange={(e) => setMrnSearch(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handlePatientSearch())}
                           />
+                          <Button type="button" onClick={handlePatientSearch} disabled={!mrnSearch.trim()}>
+                            <Search className="h-4 w-4 mr-2" />Search
+                          </Button>
                         </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button type="button" variant="secondary" onClick={() => handlePatientSearch("mrn")} disabled={!mrnSearch.trim()}>
-                          <Search className="h-4 w-4 mr-2" />Search MRN
-                        </Button>
-                        <Button type="button" variant="secondary" onClick={() => handlePatientSearch("patientId")} disabled={!patientIdSearch.trim()}>
-                          <Search className="h-4 w-4 mr-2" />Search ID
-                        </Button>
-                        <Button type="button" onClick={() => handlePatientSearch("mobile")} disabled={!mobileSearch.trim()}>
-                          <Search className="h-4 w-4 mr-2" />Search Mobile
-                        </Button>
                       </div>
 
                       {searchSearched && (
@@ -663,8 +620,6 @@ export default function IPDPage() {
         open={isPatientDialogOpen}
         onOpenChange={setIsPatientDialogOpen}
         onPatientAdded={handlePatientAdded}
-        prefillMobile={mobileSearch}
-        prefillPatientId={patientIdSearch}
       />
     </div>
   );

@@ -13,7 +13,9 @@ class PatientController extends Controller
         $query = Patient::query();
 
         if ($request->has('hasVisit') && $request->hasVisit) {
-            $query->whereHas('visits');
+            $query->whereIn('patientId', function ($q) {
+                $q->select('patientId')->from('patient_visits');
+            });
         }
 
         if ($request->has('search') && $request->search) {
@@ -40,8 +42,8 @@ class PatientController extends Controller
         }
 
         if ($request->has('mrn') && $request->mrn) {
-            $query->whereHas('visits', function ($q) use ($request) {
-                $q->where('mrn', $request->mrn);
+            $query->whereIn('patientId', function ($q) use ($request) {
+                $q->select('patientId')->from('patient_visits')->where('mrn', $request->mrn);
             });
         }
 
