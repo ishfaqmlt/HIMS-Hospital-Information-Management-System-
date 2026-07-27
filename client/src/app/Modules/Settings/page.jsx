@@ -26,6 +26,13 @@ const settingsModules = [
     href: "/Modules/Settings/floor",
   },
   {
+    name: "Rooms / Wards",
+    description: "Manage hospital rooms and wards per floor",
+    icon: Building2,
+    color: "bg-teal-500",
+    href: "/Modules/Settings/roomsWards",
+  },
+  {
     name: "Services",
     description: "Manage hospital services and their configurations",
     icon: Building2,

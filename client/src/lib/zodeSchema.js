@@ -348,3 +348,10 @@ export const floorSchema = z.object({
   FloorName: z.string().min(1, "Floor name is required").max(50, "Must be 50 characters or less"),
   isFunctional: z.boolean().default(true),
 });
+
+export const roomsWardsSchema = z.object({
+  floorId: z.string().min(1, "Floor is required"),
+  RoomWardType: z.enum(["Private Room", "Ward"], { required_error: "Type is required" }),
+  RoomWardName: z.string().min(1, "Name is required").max(100, "Must be 100 characters or less"),
+  isFunctional: z.boolean().default(true),
+});

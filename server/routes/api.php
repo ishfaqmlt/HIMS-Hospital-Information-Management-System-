@@ -27,6 +27,7 @@ use App\Http\Controllers\BillingDetailController;
 use App\Http\Controllers\PatientPaymentController;
 use App\Http\Controllers\DoctorShareMasterController;
 use App\Http\Controllers\FloorController;
+use App\Http\Controllers\RoomsWardsController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -123,4 +124,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Floor Master
     Route::apiResource('floor-master', FloorController::class);
+
+    // Rooms/Wards Master
+    Route::apiResource('rooms-wards-master', RoomsWardsController::class);
 });
