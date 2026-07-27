@@ -18,7 +18,13 @@ const settingsModules = [
     color: "bg-blue-500",
     href: "/Modules/Settings/departments",
   },
-  
+  {
+    name: "Floor Master",
+    description: "Manage hospital floors and their status",
+    icon: Building2,
+    color: "bg-cyan-500",
+    href: "/Modules/Settings/floor",
+  },
   {
     name: "Services",
     description: "Manage hospital services and their configurations",

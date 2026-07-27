@@ -26,6 +26,7 @@ use App\Http\Controllers\PatientVisitController;
 use App\Http\Controllers\BillingDetailController;
 use App\Http\Controllers\PatientPaymentController;
 use App\Http\Controllers\DoctorShareMasterController;
+use App\Http\Controllers\FloorController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -119,4 +120,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/doctor-share-master/bulk', [DoctorShareMasterController::class, 'bulkStore']);
     Route::delete('/doctor-share-master/bulk', [DoctorShareMasterController::class, 'bulkDestroy']);
     Route::apiResource('doctor-share-master', DoctorShareMasterController::class);
+
+    // Floor Master
+    Route::apiResource('floor-master', FloorController::class);
 });

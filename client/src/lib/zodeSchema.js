@@ -343,3 +343,8 @@ export const doctorShareMasterSchema = z.object({
   DoctorShare: z.coerce.number().min(0, "Must be at least 0").max(100, "Cannot exceed 100"),
   hospitalShare: z.coerce.number().min(0, "Must be at least 0").max(100, "Cannot exceed 100"),
 });
+
+export const floorSchema = z.object({
+  FloorName: z.string().min(1, "Floor name is required").max(50, "Must be 50 characters or less"),
+  isFunctional: z.boolean().default(true),
+});
