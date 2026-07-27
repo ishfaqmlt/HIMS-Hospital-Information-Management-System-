@@ -219,8 +219,8 @@ export default function IPDPage() {
   const handlePatientSearch = async (searchType) => {
     let searchTerm = "";
     if (searchType === "mobile") searchTerm = mobileSearch;
-    else if (searchType === "mrn") searchTerm = mrnSearch;
-    else if (searchType === "patientId") searchTerm = patientIdSearch;
+    else if (searchType === "mrn") searchTerm = "mrn-" + mrnSearch;
+    else if (searchType === "patientId") searchTerm = "pid-" + patientIdSearch;
 
     if (!searchTerm.trim()) {
       setMessage({ type: "error", text: `Please enter a ${searchType === "mobile" ? "mobile number" : searchType === "mrn" ? "MRN" : "Patient ID"}` });
