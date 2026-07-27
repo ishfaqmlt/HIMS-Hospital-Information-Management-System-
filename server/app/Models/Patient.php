@@ -42,4 +42,9 @@ class Patient extends Model
             }
         });
     }
+
+    public function visits()
+    {
+        return $this->hasMany(PatientVisit::class, 'patientId');
+    }
 }

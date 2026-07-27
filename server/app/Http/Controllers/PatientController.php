@@ -24,7 +24,7 @@ class PatientController extends Controller
         }
 
         if ($request->has('patientId') && $request->patientId) {
-            $query->where('patientId', 'like', "%{$request->patientId}%");
+            $query->where('patientId', $request->patientId);
         }
 
         if ($request->has('cnic') && $request->cnic) {
@@ -32,7 +32,13 @@ class PatientController extends Controller
         }
 
         if ($request->has('mobile') && $request->mobile) {
-            $query->where('mobile', 'like', "%{$request->mobile}%");
+            $query->where('mobile', $request->mobile);
+        }
+
+        if ($request->has('mrn') && $request->mrn) {
+            $query->whereHas('visits', function ($q) use ($request) {
+                $q->where('mrn', $request->mrn);
+            });
         }
 
         if ($request->has('today') && $request->today) {
