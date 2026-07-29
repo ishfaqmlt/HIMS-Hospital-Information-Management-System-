@@ -15,18 +15,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Search } from "lucide-react";
 
 function formatCode(value) {
-  const digits = value.replace(/\D/g, "").slice(0, 8);
-  if (digits.length <= 4) return digits;
-  return digits.slice(0, 4) + "-" + digits.slice(4);
+  const digits = value.replace(/\D/g, "").slice(0, 7);
+  if (digits.length <= 2) return digits;
+  return digits.slice(0, 2) + "-" + digits.slice(2);
 }
 
 export default function PatientDetailsCard({
   mrnSearch = "",
   onMrnSearchChange,
   onMrnSearch,
-  patientIdSearch = "",
-  onPatientIdSearchChange,
-  onPatientIdSearch,
   mobileSearch = "",
   onMobileSearchChange,
   onMobileSearch,
@@ -41,12 +38,12 @@ export default function PatientDetailsCard({
   return (
     <Card>
       <CardContent className="p-4">
-        <div className="grid grid-cols-9 gap-2 items-end">
+        <div className="grid grid-cols-8 gap-2 items-end">
           <div className="space-y-1">
             <Label className="text-xs">MRN</Label>
             <div className="flex gap-1">
               <div className="flex items-center h-8 px-2 text-xs bg-muted border border-input rounded-md text-muted-foreground shrink-0">
-                mrn-
+                MRN-
               </div>
               {selectedPatient ? (
                 <Input
@@ -61,38 +58,10 @@ export default function PatientDetailsCard({
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onMrnSearch(); } }}
                   className="h-8 text-xs"
                   placeholder=""
-                  maxLength={9}
+                  maxLength={7}
                 />
               )}
               <Button size="sm" variant="outline" className="h-8 px-2" onClick={onMrnSearch} disabled={!!selectedPatient}>
-                <Search className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-xs">Patient ID</Label>
-            <div className="flex gap-1">
-              <div className="flex items-center h-8 px-2 text-xs bg-muted border border-input rounded-md text-muted-foreground shrink-0">
-                pid-
-              </div>
-              {selectedPatient ? (
-                <Input
-                  value={selectedPatient.patientId?.replace("pid-", "") || ""}
-                  disabled
-                  className="h-8 text-xs"
-                />
-              ) : (
-                <Input
-                  value={patientIdSearch}
-                  onChange={(e) => onPatientIdSearchChange(formatCode(e.target.value))}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onPatientIdSearch(); } }}
-                  className="h-8 text-xs"
-                  placeholder=""
-                  maxLength={9}
-                />
-              )}
-              <Button size="sm" variant="outline" className="h-8 px-2" onClick={onPatientIdSearch} disabled={!!selectedPatient}>
                 <Search className="h-3 w-3" />
               </Button>
             </div>

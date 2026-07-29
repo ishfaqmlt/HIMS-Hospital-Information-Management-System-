@@ -230,7 +230,7 @@ export const opdVisitSchema = z.object({
 });
 
 export const ipdAdmissionSchema = z.object({
-  mrn: z.string().min(1, "Patient (MRN) is required"),
+  visitId: z.string().min(1, "Patient visit is required"),
   DoctorId: z.string().min(1, "Doctor is required"),
   AdmissionNo: z.string().min(1, "Admission number is required").max(20),
   AdmissionDate: z.string().min(1, "Admission date is required"),
@@ -269,9 +269,7 @@ export const emergencyCaseSchema = z.object({
 });
 
 export const billingSchema = z.object({
-  mrn: z.string().min(1, "Patient visit (MRN) is required"),
-  patientTypeId: z.string().min(1, "Patient type is required"),
-  InsuranceCompanyId: z.string().optional().nullable(),
+  visitId: z.string().min(1, "Patient visit is required"),
   DepartmentId: z.string().optional().nullable(),
   DoctorId: z.string().optional().nullable(),
   InvoiceDate: z.string().min(1, "Invoice date is required"),

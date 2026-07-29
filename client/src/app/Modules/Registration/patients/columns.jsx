@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 
 export const getColumns = ({ onEdit }) => [
   {
-    accessorKey: "patientId",
-    header: "Patient ID",
+    accessorKey: "mrn",
+    header: "MRN",
   },
   {
     accessorKey: "pName",

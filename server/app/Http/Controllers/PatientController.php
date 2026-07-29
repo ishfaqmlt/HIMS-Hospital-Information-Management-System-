@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Patient;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class PatientController extends Controller
 {
@@ -13,7 +12,7 @@ class PatientController extends Controller
         $query = Patient::query();
 
         if ($request->has('hasVisit') && $request->hasVisit) {
-            $query->whereIn('patientId', function ($q) {
+            $query->whereIn('id', function ($q) {
                 $q->select('patientId')->from('patient_visits');
             });
         }
@@ -21,7 +20,7 @@ class PatientController extends Controller
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('patientId', 'like', "%{$search}%")
+                $q->where('mrn', 'like', "%{$search}%")
                   ->orWhere('pName', 'like', "%{$search}%")
                   ->orWhere('mobile', 'like', "%{$search}%")
                   ->orWhere('cnic', 'like', "%{$search}%")
@@ -29,22 +28,16 @@ class PatientController extends Controller
             });
         }
 
-        if ($request->has('patientId') && $request->patientId) {
-            $query->where('patientId', $request->patientId);
+        if ($request->has('mrn') && $request->mrn) {
+            $query->where('mrn', $request->mrn);
         }
 
         if ($request->has('cnic') && $request->cnic) {
-            $query->where('cnic', 'like', "%{$request->cnic}%");
+            $query->where('cnic', $request->cnic);
         }
 
         if ($request->has('mobile') && $request->mobile) {
             $query->where('mobile', $request->mobile);
-        }
-
-        if ($request->has('mrn') && $request->mrn) {
-            $query->whereIn('patientId', function ($q) use ($request) {
-                $q->select('patientId')->from('patient_visits')->where('mrn', $request->mrn);
-            });
         }
 
         if ($request->has('today') && $request->today) {
@@ -60,16 +53,14 @@ class PatientController extends Controller
             'cnic' => 'nullable|string|max:20',
             'mobile' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:100',
-            'pName' => 'required|string|max:50',
-            'gName' => 'nullable|string|max:50',
+            'pName' => 'required|string|max:100',
+            'gName' => 'nullable|string|max:100',
             'gender' => 'nullable|in:Male,Female,Other',
             'dob' => 'nullable|date',
-            'address' => 'nullable|string|max:150',
-            'allergy' => 'nullable|string|max:150',
+            'address' => 'nullable|string',
+            'allergy' => 'nullable|string',
             'isActive' => 'boolean',
         ]);
-
-        $validated['patientId'] = $this->generatePatientId();
 
         $patient = Patient::create($validated);
 
@@ -87,12 +78,12 @@ class PatientController extends Controller
             'cnic' => 'nullable|string|max:20',
             'mobile' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:100',
-            'pName' => 'required|string|max:50',
-            'gName' => 'nullable|string|max:50',
+            'pName' => 'required|string|max:100',
+            'gName' => 'nullable|string|max:100',
             'gender' => 'nullable|in:Male,Female,Other',
             'dob' => 'nullable|date',
-            'address' => 'nullable|string|max:150',
-            'allergy' => 'nullable|string|max:150',
+            'address' => 'nullable|string',
+            'allergy' => 'nullable|string',
             'isActive' => 'boolean',
         ]);
 
@@ -106,15 +97,5 @@ class PatientController extends Controller
         $patient->delete();
 
         return response()->json(['message' => 'Patient deleted successfully']);
-    }
-
-    private function generatePatientId(): string
-    {
-        $now = now();
-        $prefix = 'pid-' . $now->format('my');
-
-        $count = Patient::where('patientId', 'like', "{$prefix}-%")->count() + 1;
-
-        return $prefix . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
     }
 }

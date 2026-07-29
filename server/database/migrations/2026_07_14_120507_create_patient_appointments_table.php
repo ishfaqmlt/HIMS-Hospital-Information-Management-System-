@@ -6,15 +6,12 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('patient_appointments', function (Blueprint $table) {
             $table->uuid('Id')->primary();
             $table->foreignUuid('DoctorId')->constrained('doctors')->cascadeOnDelete();
-            $table->foreignUuid('patientId')->constrained('patients', 'patientId')->cascadeOnDelete();
+            $table->string('mrn', 20)->constrained('patients', 'mrn')->cascadeOnDelete();
             $table->dateTime('Appointmentat');
             $table->integer('TokenNo')->default(1);
             $table->enum('Status', ['Pending', 'Booked', 'Cancelled', 'Completed']);
@@ -26,9 +23,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('patient_appointments');

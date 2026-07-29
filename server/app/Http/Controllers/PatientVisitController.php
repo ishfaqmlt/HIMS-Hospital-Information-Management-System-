@@ -14,13 +14,17 @@ class PatientVisitController extends Controller
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('mrn', 'like', "%{$search}%")
-                  ->orWhere('patientId', 'like', "%{$search}%");
+                $q->where('visitNo', 'like', "%{$search}%")
+                  ->orWhereHas('patient', function ($q2) use ($search) {
+                      $q2->where('mrn', 'like', "%{$search}%")
+                         ->orWhere('pName', 'like', "%{$search}%")
+                         ->orWhere('mobile', 'like', "%{$search}%");
+                  });
             });
         }
 
-        if ($request->has('mrn') && $request->mrn) {
-            $query->where('mrn', $request->mrn);
+        if ($request->has('visitNo') && $request->visitNo) {
+            $query->where('visitNo', $request->visitNo);
         }
 
         if ($request->has('patientId') && $request->patientId) {
@@ -35,8 +39,12 @@ class PatientVisitController extends Controller
             $query->where('doctorId', $request->doctorId);
         }
 
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        }
+
         if ($request->has('today') && $request->today) {
-            $query->whereDate('created_at', now()->toDateString());
+            $query->whereDate('visitDate', now()->toDateString());
         }
 
         return response()->json($query->latest()->get());
@@ -45,14 +53,14 @@ class PatientVisitController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'patientId' => 'required|string|exists:patients,patientId',
+            'patientId' => 'required|string|exists:patients,id',
             'patientTypeId' => 'required|string|exists:patient_types,id',
-            'InsuranceCompanyId' => 'nullable|string|exists:insurance_companies,id',
+            'insuranceCompanyId' => 'nullable|string|exists:insurance_companies,id',
             'doctorId' => 'nullable|string|exists:doctors,id',
-            'UserId' => 'required|integer|exists:users,id',
+            'userId' => 'required|integer|exists:users,id',
+            'visitDate' => 'required|date',
+            'status' => 'nullable|in:Waiting,In Progress,Completed,Cancelled',
         ]);
-
-        $validated['mrn'] = PatientVisit::generateMrn();
 
         $visit = PatientVisit::create($validated);
 
@@ -67,11 +75,13 @@ class PatientVisitController extends Controller
     public function update(Request $request, PatientVisit $patientVisit)
     {
         $validated = $request->validate([
-            'patientId' => 'required|string|exists:patients,patientId',
+            'patientId' => 'required|string|exists:patients,id',
             'patientTypeId' => 'required|string|exists:patient_types,id',
-            'InsuranceCompanyId' => 'nullable|string|exists:insurance_companies,id',
+            'insuranceCompanyId' => 'nullable|string|exists:insurance_companies,id',
             'doctorId' => 'nullable|string|exists:doctors,id',
-            'UserId' => 'required|integer|exists:users,id',
+            'userId' => 'required|integer|exists:users,id',
+            'visitDate' => 'required|date',
+            'status' => 'nullable|in:Waiting,In Progress,Completed,Cancelled',
         ]);
 
         $patientVisit->update($validated);
@@ -85,10 +95,10 @@ class PatientVisitController extends Controller
         return response()->json(['message' => 'Patient visit deleted successfully']);
     }
 
-    public function getByMrn($mrn)
+    public function getByVisitNo($visitNo)
     {
         $visit = PatientVisit::with(['patient', 'patientType', 'insuranceCompany', 'doctor', 'user'])
-            ->where('mrn', $mrn)
+            ->where('visitNo', $visitNo)
             ->first();
 
         if (!$visit) {

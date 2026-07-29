@@ -14,7 +14,7 @@ class Patient extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'patientId',
+        'mrn',
         'cnic',
         'mobile',
         'email',
@@ -40,7 +40,27 @@ class Patient extends Model
             if (empty($patient->id)) {
                 $patient->id = Str::uuid();
             }
+            if (empty($patient->mrn)) {
+                $patient->mrn = self::generateMrn();
+            }
         });
+    }
+
+    public static function generateMrn(): string
+    {
+        $prefix = date('y');
+        $lastPatient = self::where('mrn', 'like', "MRN-{$prefix}-%")
+            ->orderByRaw("SUBSTRING(mrn, -5) DESC")
+            ->first();
+
+        if ($lastPatient) {
+            $lastSeq = (int) substr($lastPatient->mrn, -5);
+            $newSeq = str_pad($lastSeq + 1, 5, '0', STR_PAD_LEFT);
+        } else {
+            $newSeq = '00001';
+        }
+
+        return "MRN-{$prefix}-{$newSeq}";
     }
 
     public function visits()

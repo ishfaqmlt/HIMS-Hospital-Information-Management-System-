@@ -108,7 +108,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('insurance-plans', InsurancePlanController::class);
 
     // Patient Visits
-    Route::get('/patient-visits/by-mrn/{mrn}', [PatientVisitController::class, 'getByMrn']);
+    Route::get('/patient-visits/by-visit-no/{visitNo}', [PatientVisitController::class, 'getByVisitNo']);
     Route::get('/patient-visits/by-patient/{patientId}', [PatientVisitController::class, 'getByPatientId']);
     Route::apiResource('patient-visits', PatientVisitController::class);
 

@@ -25,6 +25,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ipdAdmissionSchema } from "@/lib/zodeSchema";
 import ipdAdmissionService from "@/services/ipdAdmission.service";
 import patientService from "@/services/patient.service";
+import patientVisitService from "@/services/patientVisitService";
 import doctorService from "@/services/doctor.service";
 import floorService from "@/services/floorService";
 import roomsWardsService from "@/services/roomsWardsService";
@@ -53,7 +54,7 @@ export default function IPDPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [searchSearched, setSearchSearched] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [selectedMrn, setSelectedMrn] = useState(null);
+  const [selectedVisitId, setSelectedVisitId] = useState(null);
 
   const {
     register,
@@ -65,7 +66,7 @@ export default function IPDPage() {
   } = useForm({
     resolver: zodResolver(ipdAdmissionSchema),
     defaultValues: {
-      mrn: "",
+      visitId: "",
       DoctorId: "",
       AdmissionNo: "",
       AdmissionDate: new Date().toISOString().slice(0, 16),
@@ -202,14 +203,14 @@ export default function IPDPage() {
   const openCreate = () => {
     setEditingAdmission(null);
     setSelectedPatient(null);
-    setSelectedMrn(null);
+    setSelectedVisitId(null);
     setMrnSearch("");
     setSearchResults([]);
     setSearchSearched(false);
     setFilteredRooms([]);
     setFilteredBeds([]);
     reset({
-      mrn: "",
+      visitId: "",
       DoctorId: "",
       AdmissionNo: "",
       AdmissionDate: new Date().toISOString().slice(0, 16),
@@ -235,7 +236,7 @@ export default function IPDPage() {
   const openEdit = (admission) => {
     setEditingAdmission(admission);
     setSelectedPatient(admission.patientVisit?.patient || null);
-    setSelectedMrn(admission.mrn);
+    setSelectedVisitId(admission.visitId);
     setMrnSearch("");
     setSearchResults([]);
     setSearchSearched(false);
@@ -246,7 +247,7 @@ export default function IPDPage() {
     setFilteredBeds(filteredB);
 
     reset({
-      mrn: admission.mrn,
+      visitId: admission.visitId,
       DoctorId: admission.DoctorId,
       AdmissionNo: admission.AdmissionNo,
       AdmissionDate: admission.AdmissionDate ? new Date(admission.AdmissionDate).toISOString().slice(0, 16) : "",
@@ -275,7 +276,7 @@ export default function IPDPage() {
   };
 
   const handlePatientSearch = async () => {
-    const searchTerm = "mrn-" + mrnSearch;
+    const searchTerm = "MRN-" + mrnSearch;
 
     if (!mrnSearch.trim()) {
       setMessage({ type: "error", text: "Please enter an MRN" });
@@ -290,10 +291,18 @@ export default function IPDPage() {
     }
   };
 
-  const selectExistingPatient = (patient) => {
+  const selectExistingPatient = async (patient) => {
     setSelectedPatient(patient);
-    setSelectedMrn("mrn-" + mrnSearch);
-    setValue("mrn", "mrn-" + mrnSearch);
+    try {
+      const visitRes = await patientVisitService.getAll({ patientId: patient.id });
+      if (visitRes.data && visitRes.data.length > 0) {
+        const visit = visitRes.data[0];
+        setSelectedVisitId(visit.id);
+        setValue("visitId", visit.id);
+      }
+    } catch (error) {
+      console.error("Failed to fetch visit", error);
+    }
   };
 
   const handlePatientAdded = (newPatient) => {
@@ -390,7 +399,7 @@ export default function IPDPage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : (
-        <DataTable columns={columns} data={admissions} filterColumn="mrn" />
+        <DataTable columns={columns} data={admissions} filterColumn="patientName" />
       )}
 
       {isDialogOpen && (
@@ -408,7 +417,7 @@ export default function IPDPage() {
                         <Label className="text-xs">Search by MRN</Label>
                         <div className="flex gap-1">
                           <div className="flex items-center h-9 px-2 text-xs bg-muted border border-input rounded-md text-muted-foreground shrink-0">
-                            mrn-
+                            MRN-
                           </div>
                           <Input
                             placeholder=""
@@ -439,7 +448,7 @@ export default function IPDPage() {
                                     <div>
                                       <p className="font-medium">{p.pName}</p>
                                       <p className="text-sm text-muted-foreground">
-                                        {p.patientId} | {p.mobile} | {p.cnic || "No CNIC"}
+                                        {p.mrn} | {p.mobile} | {p.cnic || "No CNIC"}
                                       </p>
                                     </div>
                                     <Button type="button" size="sm" variant="outline">Select</Button>
@@ -465,9 +474,9 @@ export default function IPDPage() {
                   ) : (
                     <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800 flex items-center justify-between">
                       <div>
-                        Patient: <strong>{selectedPatient.pName}</strong> | MRN: <strong>{selectedMrn}</strong>
+                        Patient: <strong>{selectedPatient.pName}</strong> | MRN: <strong>{selectedPatient.mrn}</strong>
                       </div>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => { setSelectedPatient(null); setSelectedMrn(null); setValue("mrn", ""); }}>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => { setSelectedPatient(null); setSelectedVisitId(null); setValue("visitId", ""); }}>
                         Change
                       </Button>
                     </div>
@@ -652,7 +661,7 @@ export default function IPDPage() {
                 </div>
                 <div>
                   <p className="text-muted-foreground">MRN</p>
-                  <p className="font-medium">{viewingAdmission.mrn}</p>
+                  <p className="font-medium">{viewingAdmission.patientVisit?.patient?.mrn || "-"}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Patient</p>

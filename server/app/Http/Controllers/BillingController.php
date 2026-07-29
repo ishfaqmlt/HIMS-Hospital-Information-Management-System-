@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Billing;
-use App\Models\Patient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -13,17 +12,15 @@ class BillingController extends Controller
     public function index(Request $request)
     {
         $query = DB::table('billings')
-            ->leftJoin('patient_visits', 'billings.mrn', '=', 'patient_visits.mrn')
-            ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.patientId')
-            ->leftJoin('patient_types', 'billings.patientTypeId', '=', 'patient_types.id')
+            ->leftJoin('patient_visits', 'billings.visitId', '=', 'patient_visits.id')
+            ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.id')
             ->leftJoin('departments', 'billings.DepartmentId', '=', 'departments.id')
             ->leftJoin('doctors', 'billings.DoctorId', '=', 'doctors.id')
             ->select(
-                'billings.Id',
+                'billings.id',
                 'billings.InvoiceNo',
                 'billings.InvoiceDate',
-                'billings.mrn',
-                'billings.patientTypeId',
+                'billings.visitId',
                 'billings.DepartmentId',
                 'billings.DoctorId',
                 'billings.SubTotal',
@@ -34,11 +31,10 @@ class BillingController extends Controller
                 'billings.Notes',
                 'billings.printedCount',
                 'patients.pName as patient_name',
-                'patients.patientId as patient_patient_id',
+                'patients.mrn as patient_mrn',
                 'patients.mobile as patient_mobile',
                 'patients.cnic as patient_cnic',
                 'patients.gender as patient_gender',
-                'patient_types.patientType as patientType_name',
                 'departments.DepartmentName as department_name',
                 'doctors.Name as doctor_name'
             );
@@ -47,18 +43,17 @@ class BillingController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('billings.InvoiceNo', 'like', "%{$search}%")
-                  ->orWhere('billings.mrn', 'like', "%{$search}%")
                   ->orWhere('patients.pName', 'like', "%{$search}%")
-                  ->orWhere('patients.patientId', 'like', "%{$search}%");
+                  ->orWhere('patients.mrn', 'like', "%{$search}%");
             });
         }
 
         if ($request->has('mrn') && $request->mrn) {
-            $query->where('billings.mrn', 'like', "%{$request->mrn}%");
+            $query->where('patients.mrn', 'like', "%{$request->mrn}%");
         }
 
-        if ($request->has('patientTypeId') && $request->patientTypeId) {
-            $query->where('billings.patientTypeId', $request->patientTypeId);
+        if ($request->has('visitId') && $request->visitId) {
+            $query->where('billings.visitId', $request->visitId);
         }
 
         if ($request->has('PaymentStatus') && $request->PaymentStatus && $request->PaymentStatus !== 'All') {
@@ -81,18 +76,14 @@ class BillingController extends Controller
             $query->where('billings.InvoiceDate', '<=', $request->toDate);
         }
 
-        if ($request->has('patientId') && $request->patientId) {
-            $query->where('patients.patientId', 'like', "%{$request->patientId}%");
-        }
-
         $rows = $query->orderBy('billings.InvoiceDate', 'desc')->get();
 
         $billings = $rows->map(function ($row) {
             return [
-                'Id' => $row->Id,
+                'id' => $row->id,
                 'InvoiceNo' => $row->InvoiceNo,
                 'InvoiceDate' => $row->InvoiceDate,
-                'mrn' => $row->mrn,
+                'visitId' => $row->visitId,
                 'SubTotal' => $row->SubTotal,
                 'Discount' => $row->Discount,
                 'TotalAmount' => $row->TotalAmount,
@@ -101,17 +92,15 @@ class BillingController extends Controller
                 'Notes' => $row->Notes,
                 'printedCount' => $row->printedCount,
                 'patientVisit' => [
-                    'mrn' => $row->mrn,
+                    'id' => $row->visitId,
                     'patient' => $row->patient_name ? [
                         'pName' => $row->patient_name,
-                        'patientId' => $row->patient_patient_id,
+                        'mrn' => $row->patient_mrn,
                         'mobile' => $row->patient_mobile,
                         'cnic' => $row->patient_cnic,
                         'gender' => $row->patient_gender,
-                        'dob' => $row->patient_dob ?? null,
                     ] : null,
                 ],
-                'patientType' => $row->patientType_name ? ['id' => $row->patientTypeId, 'patientType' => $row->patientType_name] : null,
                 'department' => $row->department_name ? ['id' => $row->DepartmentId, 'DepartmentName' => $row->department_name] : null,
                 'doctor' => $row->doctor_name ? ['id' => $row->DoctorId, 'Name' => $row->doctor_name] : null,
             ];
@@ -123,9 +112,7 @@ class BillingController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'mrn' => 'required|string|exists:patient_visits,mrn',
-            'patientTypeId' => 'required|string|exists:patient_types,id',
-            'InsuranceCompanyId' => 'nullable|string|exists:insurance_companies,id',
+            'visitId' => 'required|string|exists:patient_visits,id',
             'DepartmentId' => 'nullable|string|exists:departments,id',
             'DoctorId' => 'nullable|string|exists:doctors,id',
             'InvoiceDate' => 'required|date',
@@ -133,8 +120,8 @@ class BillingController extends Controller
             'Discount' => 'required|numeric|min:0',
             'TotalAmount' => 'required|numeric|min:0',
             'PaymentStatus' => 'required|in:Pending,Partial,Paid,Cancelled',
-            'BillType' => 'required|in:Normal,Return',
-            'ReturnBillingId' => 'nullable|string|exists:billings,Id',
+            'BillType' => 'required|in:General,IPD,Return',
+            'ReturnInvoiceNo' => 'nullable|string',
             'Notes' => 'nullable|string',
         ]);
 
@@ -142,20 +129,18 @@ class BillingController extends Controller
 
         $billing = Billing::create($validated);
 
-        return response()->json($billing->load(['patientVisit.patient', 'patientType', 'insuranceCompany', 'department', 'doctor']), 201);
+        return response()->json($billing->load(['patientVisit.patient', 'doctor', 'department']), 201);
     }
 
     public function show(Billing $billing)
     {
-        return response()->json($billing->load(['patientVisit.patient', 'patientType', 'insuranceCompany', 'department', 'doctor', 'postedByUser', 'createdByUser']));
+        return response()->json($billing->load(['patientVisit.patient', 'doctor', 'department', 'creator']));
     }
 
     public function update(Request $request, Billing $billing)
     {
         $validated = $request->validate([
-            'mrn' => 'required|string|exists:patient_visits,mrn',
-            'patientTypeId' => 'required|string|exists:patient_types,id',
-            'InsuranceCompanyId' => 'nullable|string|exists:insurance_companies,id',
+            'visitId' => 'required|string|exists:patient_visits,id',
             'DepartmentId' => 'nullable|string|exists:departments,id',
             'DoctorId' => 'nullable|string|exists:doctors,id',
             'InvoiceDate' => 'required|date',
@@ -163,20 +148,19 @@ class BillingController extends Controller
             'Discount' => 'required|numeric|min:0',
             'TotalAmount' => 'required|numeric|min:0',
             'PaymentStatus' => 'required|in:Pending,Partial,Paid,Cancelled',
-            'BillType' => 'required|in:Normal,Return',
+            'BillType' => 'required|in:General,IPD,Return',
             'Notes' => 'nullable|string',
         ]);
 
-        $validated['updatedBy'] = Auth::id();
-
         $billing->update($validated);
 
-        return response()->json($billing->load(['patientVisit.patient', 'patientType', 'insuranceCompany', 'department', 'doctor']));
+        return response()->json($billing->load(['patientVisit.patient', 'doctor', 'department']));
     }
 
     public function destroy(Billing $billing)
     {
         $billing->delete();
-        return response()->json(['message' => 'Billing record deleted successfully']);
+
+        return response()->json(['message' => 'Billing deleted successfully']);
     }
 }

@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             RoomsWardsMasterSeeder::class,
             BedMasterSeeder::class,
             OpdVisitSeeder::class,
+            PatientVisitSeeder::class,
             IpdAdmissionSeeder::class,
             EmergencyCaseSeeder::class,
             BillingSeeder::class,

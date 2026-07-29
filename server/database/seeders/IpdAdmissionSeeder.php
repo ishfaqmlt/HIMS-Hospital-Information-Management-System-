@@ -4,20 +4,24 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\IpdAdmission;
-use App\Models\Patient;
+use App\Models\PatientVisit;
 use App\Models\Doctor;
-use App\Models\Department;
+use App\Models\FloorMaster;
+use App\Models\RoomsWardsMaster;
+use App\Models\BedMaster;
 use Illuminate\Support\Facades\DB;
 
 class IpdAdmissionSeeder extends Seeder
 {
     public function run(): void
     {
-        $patients = Patient::all();
+        $visits = PatientVisit::all();
         $doctors = Doctor::where('Name', '!=', 'Self')->get();
-        $departments = Department::all();
+        $floors = FloorMaster::all();
+        $rooms = RoomsWardsMaster::all();
+        $beds = BedMaster::all();
 
-        if ($patients->isEmpty() || $doctors->isEmpty() || $departments->isEmpty()) {
+        if ($visits->isEmpty() || $doctors->isEmpty() || $floors->isEmpty() || $rooms->isEmpty() || $beds->isEmpty()) {
             return;
         }
 
@@ -45,21 +49,25 @@ class IpdAdmissionSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         for ($i = 0; $i < 15; $i++) {
-            $patient = $patients->random();
+            $visit = $visits->random();
             $doctor = $doctors->random();
-            $department = $departments->random();
+            $floor = $floors->random();
+            $room = $rooms->where('floorId', $floor->id)->random();
+            $bed = $beds->where('roomWardId', $room->id)->random();
             $charges = rand(5000, 50000);
-            $paid = rand(0, $charges);
+            $discount = rand(0, intval($charges * 0.1));
+            $payable = $charges - $discount;
+            $paid = rand(0, $payable);
 
             IpdAdmission::create([
-                'patientId' => $patient->id,
+                'visitId' => $visit->id,
                 'DoctorId' => $doctor->id,
-                'DepartmentId' => $department->id,
+                'FloorId' => $floor->id,
+                'RoomWardId' => $room->id,
+                'bedId' => $bed->id,
                 'AdmissionNo' => 'IPD-' . str_pad($i + 1, 4, '0', STR_PAD_LEFT),
                 'AdmissionDate' => now()->subDays(rand(0, 30)),
                 'DischargeDate' => rand(0, 1) ? now()->subDays(rand(0, 5)) : null,
-                'RoomNo' => 'R-' . rand(100, 500),
-                'BedNo' => 'B-' . rand(1, 10),
                 'AdmissionType' => $admissionTypes[array_rand($admissionTypes)],
                 'Status' => $statuses[array_rand($statuses)],
                 'ChiefComplaint' => $complaints[array_rand($complaints)],
@@ -67,9 +75,11 @@ class IpdAdmissionSeeder extends Seeder
                 'TreatmentPlan' => 'Medication and monitoring',
                 'DischargeSummary' => null,
                 'TotalCharges' => $charges,
+                'Discount' => round($discount, 2),
+                'PayableAmount' => round($payable, 2),
                 'TotalPaid' => $paid,
-                'Balance' => $charges - $paid,
-                'CreatedBy' => 1,
+                'Balance' => round($payable - $paid, 2),
+                'createdBy' => 1,
             ]);
         }
 

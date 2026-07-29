@@ -8,18 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::dropIfExists('ipd_admissions');
-
         Schema::create('ipd_admissions', function (Blueprint $table) {
             $table->uuid('Id')->primary();
-            $table->string('mrn')->constrained('patient_visits');
+            $table->foreignUuid('visitId')->constrained('patient_visits');
             $table->foreignUuid('DoctorId')->constrained('doctors')->cascadeOnDelete();
-            $table->string('AdmissionNo', 20);
-            $table->dateTime('AdmissionDate');
-            $table->dateTime('DischargeDate')->nullable();
             $table->foreignUuid('FloorId')->constrained('floor_master')->cascadeOnDelete();
             $table->foreignUuid('RoomWardId')->constrained('rooms_wards_master')->cascadeOnDelete();
             $table->foreignUuid('bedId')->constrained('bed_master')->cascadeOnDelete();
+            $table->string('AdmissionNo', 20);
+            $table->dateTime('AdmissionDate');
+            $table->dateTime('DischargeDate')->nullable();
             $table->enum('AdmissionType', ['Elective', 'Emergency', 'Transfer'])->default('Elective');
             $table->enum('Status', ['Admitted', 'Discharged', 'Transferred', 'Cancelled'])->default('Admitted');
             $table->text('ChiefComplaint')->nullable();

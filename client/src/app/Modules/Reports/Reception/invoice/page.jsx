@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import hospitalProfileService from "@/services/hospitalProfile.service";
@@ -65,14 +67,13 @@ export async function printInvoiceSlip(invoice, format = "thermal", setMessage) 
     const flatInvoice = {
       InvoiceNo: invoice.InvoiceNo,
       InvoiceDate: invoice.InvoiceDate,
-      mrn: invoice.mrn,
+      mrn: invoice.patientVisit?.patient?.mrn || "-",
       SubTotal: invoice.SubTotal,
       Discount: invoice.Discount,
       TotalAmount: invoice.TotalAmount,
       PaymentStatus: invoice.PaymentStatus,
       BillType: invoice.BillType,
       patientName: invoice.patientVisit?.patient?.pName || "-",
-      patientId: invoice.patientVisit?.patient?.patientId || "-",
       mobile: invoice.patientVisit?.patient?.mobile || "-",
       gender: invoice.patientVisit?.patient?.gender || "-",
       doctorName: invoice.doctor?.Name || "-",
@@ -116,4 +117,8 @@ export async function printInvoiceSlip(invoice, format = "thermal", setMessage) 
       setMessage({ type: "error", text: "Failed to load invoice for printing" });
     }
   }
+}
+
+export default function InvoicePage() {
+  return null;
 }

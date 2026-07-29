@@ -14,7 +14,7 @@ class PatientAppointment extends Model
 
     protected $fillable = [
         'DoctorId',
-        'patientId',
+        'mrn',
         'Appointmentat',
         'TokenNo',
         'Status',
@@ -48,6 +48,6 @@ class PatientAppointment extends Model
 
     public function patient()
     {
-        return $this->belongsTo(Patient::class, 'patientId');
+        return $this->belongsTo(Patient::class, 'mrn', 'mrn');
     }
 }

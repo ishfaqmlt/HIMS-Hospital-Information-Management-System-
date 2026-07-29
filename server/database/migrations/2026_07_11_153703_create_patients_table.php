@@ -10,16 +10,16 @@ return new class extends Migration
     {
         Schema::create('patients', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('patientId', 20)->unique();
+            $table->string('mrn', 20)->unique();
             $table->string('cnic', 20)->nullable();
             $table->string('mobile', 20)->nullable();
             $table->string('email', 100)->nullable();
-            $table->string('pName', 50);
-            $table->string('gName', 50)->nullable();
+            $table->string('pName', 100);
+            $table->string('gName', 100);
             $table->enum('gender', ['Male', 'Female', 'Other'])->nullable();
             $table->date('dob')->nullable();
-            $table->string('address', 150)->nullable();
-            $table->string('allergy', 150)->nullable();
+            $table->text('address')->nullable();
+            $table->text('allergy')->nullable();
             $table->boolean('isActive')->default(true);
             $table->boolean('isSynced')->default(false);
             $table->timestamps();

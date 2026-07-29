@@ -17,17 +17,19 @@ class IpdAdmissionController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('AdmissionNo', 'like', "%{$search}%")
-                  ->orWhere('mrn', 'like', "%{$search}%")
+                  ->orWhereHas('patientVisit', function ($q2) use ($search) {
+                      $q2->where('visitNo', 'like', "%{$search}%");
+                  })
                   ->orWhereHas('patientVisit.patient', function ($q2) use ($search) {
                       $q2->where('pName', 'like', "%{$search}%")
-                         ->orWhere('patientId', 'like', "%{$search}%")
+                         ->orWhere('mrn', 'like', "%{$search}%")
                          ->orWhere('mobile', 'like', "%{$search}%");
                   });
             });
         }
 
-        if ($request->has('mrn') && $request->mrn) {
-            $query->where('mrn', $request->mrn);
+        if ($request->has('visitId') && $request->visitId) {
+            $query->where('visitId', $request->visitId);
         }
 
         if ($request->has('status') && $request->status && $request->status !== 'All') {
@@ -44,7 +46,7 @@ class IpdAdmissionController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'mrn' => 'required|string|exists:patient_visits,mrn',
+            'visitId' => 'required|string|exists:patient_visits,id',
             'DoctorId' => 'required|exists:doctors,id',
             'AdmissionNo' => 'required|string|max:20',
             'AdmissionDate' => 'required|date',
@@ -82,7 +84,7 @@ class IpdAdmissionController extends Controller
     public function update(Request $request, IpdAdmission $ipdAdmission)
     {
         $validated = $request->validate([
-            'mrn' => 'required|string|exists:patient_visits,mrn',
+            'visitId' => 'required|string|exists:patient_visits,id',
             'DoctorId' => 'required|exists:doctors,id',
             'AdmissionNo' => 'required|string|max:20',
             'AdmissionDate' => 'required|date',

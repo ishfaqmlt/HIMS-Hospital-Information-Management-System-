@@ -3,33 +3,64 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class PatientVisit extends Model
 {
     protected $table = 'patient_visits';
 
     public $incrementing = false;
-    protected $primaryKey = 'mrn';
     protected $keyType = 'string';
 
     protected $fillable = [
-        'mrn',
+        'visitNo',
         'patientId',
         'patientTypeId',
-        'InsuranceCompanyId',
+        'insuranceCompanyId',
         'doctorId',
-        'UserId',
+        'userId',
+        'visitDate',
+        'status',
         'isSynced',
     ];
 
     protected $casts = [
+        'visitDate' => 'datetime',
         'isSynced' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (PatientVisit $visit) {
+            if (empty($visit->id)) {
+                $visit->id = Str::uuid();
+            }
+            if (empty($visit->visitNo)) {
+                $visit->visitNo = self::generateVisitNo();
+            }
+        });
+    }
+
+    public static function generateVisitNo(): string
+    {
+        $prefix = date('my');
+        $lastVisit = self::where('visitNo', 'like', "V-{$prefix}-%")
+            ->orderByRaw("SUBSTRING(visitNo, -3) DESC")
+            ->first();
+
+        if ($lastVisit) {
+            $lastSeq = (int) substr($lastVisit->visitNo, -3);
+            $newSeq = str_pad($lastSeq + 1, 3, '0', STR_PAD_LEFT);
+        } else {
+            $newSeq = '001';
+        }
+
+        return "V-{$prefix}-{$newSeq}";
+    }
+
     public function patient()
     {
-        return $this->belongsTo(Patient::class, 'patientId', 'patientId');
+        return $this->belongsTo(Patient::class, 'patientId');
     }
 
     public function patientType()
@@ -39,7 +70,7 @@ class PatientVisit extends Model
 
     public function insuranceCompany()
     {
-        return $this->belongsTo(InsuranceCompany::class, 'InsuranceCompanyId');
+        return $this->belongsTo(InsuranceCompany::class, 'insuranceCompanyId');
     }
 
     public function doctor()
@@ -49,25 +80,6 @@ class PatientVisit extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'UserId');
-    }
-
-    public static function generateMrn(): string
-    {
-        $now = now();
-        $prefix = 'mrn-' . $now->format('my');
-
-        $count = PatientVisit::where('mrn', 'like', "{$prefix}-%")->count() + 1;
-
-        return $prefix . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
-    }
-
-    protected static function booted(): void
-    {
-        static::creating(function (PatientVisit $model) {
-            if (empty($model->mrn)) {
-                $model->mrn = self::generateMrn();
-            }
-        });
+        return $this->belongsTo(User::class, 'userId');
     }
 }

@@ -18,8 +18,8 @@ class PatientAppointmentController extends Controller
             $query->where('DoctorId', $request->DoctorId);
         }
 
-        if ($request->has('patientId') && $request->patientId) {
-            $query->where('patientId', $request->patientId);
+        if ($request->has('mrn') && $request->mrn) {
+            $query->where('mrn', $request->mrn);
         }
 
         if ($request->has('status') && $request->status && $request->status !== 'All') {
@@ -72,7 +72,7 @@ class PatientAppointmentController extends Controller
     {
         $validated = $request->validate([
             'DoctorId' => 'required|exists:doctors,id',
-            'patientId' => 'required|exists:patients,patientId',
+            'mrn' => 'required|string|exists:patients,mrn',
             'Appointmentat' => 'required|date',
             'TokenNo' => 'required|integer|min:1',
             'Status' => 'required|in:Pending,Booked,Cancelled,Completed',
@@ -97,7 +97,7 @@ class PatientAppointmentController extends Controller
     {
         $validated = $request->validate([
             'DoctorId' => 'required|exists:doctors,id',
-            'patientId' => 'required|exists:patients,patientId',
+            'mrn' => 'required|string|exists:patients,mrn',
             'Appointmentat' => 'required|date',
             'TokenNo' => 'required|integer|min:1',
             'Status' => 'required|in:Pending,Booked,Cancelled,Completed',

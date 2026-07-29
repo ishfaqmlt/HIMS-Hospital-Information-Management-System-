@@ -150,9 +150,7 @@ function ReturnInvoiceContent() {
     setLoading(true);
     try {
       const billingRes = await billingService.create({
-        mrn: originalInvoice.mrn,
-        patientTypeId: originalInvoice.patientType?.id || originalInvoice.patientTypeId,
-        InsuranceCompanyId: null,
+        visitId: originalInvoice.visitId,
         DepartmentId: originalInvoice.department?.id || originalInvoice.DepartmentId || null,
         DoctorId: originalInvoice.doctor?.id || originalInvoice.DoctorId || null,
         InvoiceDate: new Date().toISOString(),
@@ -161,7 +159,7 @@ function ReturnInvoiceContent() {
         TotalAmount: totalReturn,
         PaymentStatus: "Pending",
         BillType: "Return",
-        ReturnBillingId: originalInvoice.Id,
+        ReturnInvoiceNo: originalInvoice.InvoiceNo,
         Notes: remarks || `Return from ${invoiceNo}`,
       });
 
@@ -233,7 +231,7 @@ function ReturnInvoiceContent() {
           </CardHeader>
           <CardContent className="p-3">
             <div className="grid grid-cols-4 gap-3 text-xs">
-              <div><strong>MRN:</strong> {originalInvoice.mrn}</div>
+              <div><strong>MRN:</strong> {originalInvoice.patientVisit?.patient?.mrn || "-"}</div>
               <div><strong>Patient:</strong> {originalInvoice.patientVisit?.patient?.pName || "-"}</div>
               <div><strong>Date:</strong> {new Date(originalInvoice.InvoiceDate).toLocaleDateString("en-GB")}</div>
               <div><strong>Total:</strong> {Number(originalInvoice.TotalAmount).toFixed(2)}</div>

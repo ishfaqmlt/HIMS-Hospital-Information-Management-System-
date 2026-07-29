@@ -30,7 +30,6 @@ function A4Receipt({ title, hospitalProfile, invoice, services, payment, showSig
         <div style={{ border: "1px solid #e5e7eb", borderRadius: "6px", padding: "10px" }}>
           <h4 style={{ fontSize: "11px", color: "#6b7280", marginBottom: "5px", textTransform: "uppercase" }}>Patient Information</h4>
           <p style={{ margin: "2px 0" }}><strong>Name:</strong> {invoice.patientName || "-"}</p>
-          <p style={{ margin: "2px 0" }}><strong>ID:</strong> {invoice.patientId || "-"}</p>
           <p style={{ margin: "2px 0" }}><strong>Mobile:</strong> {invoice.mobile || "-"}</p>
           <p style={{ margin: "2px 0" }}><strong>Gender:</strong> {invoice.gender || "-"}</p>
         </div>

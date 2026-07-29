@@ -10,20 +10,15 @@ export const getColumns = ({ onPrint, onPrintA4, onEdit, onReturn }) => [
   },
   {
     id: "mrn",
-    accessorKey: "mrn",
+    accessorFn: (row) => row.patientVisit?.patient?.mrn || "",
     header: "MRN",
+    cell: ({ row }) => row.original.patientVisit?.patient?.mrn || "-",
   },
   {
     id: "patientName",
     accessorFn: (row) => row.patientVisit?.patient?.pName || "",
     header: "Patient Name",
     cell: ({ row }) => row.original.patientVisit?.patient?.pName || "-",
-  },
-  {
-    id: "patientId",
-    accessorFn: (row) => row.patientVisit?.patient?.patientId || "",
-    header: "Patient ID",
-    cell: ({ row }) => row.original.patientVisit?.patient?.patientId || "-",
   },
   {
     id: "mobile",

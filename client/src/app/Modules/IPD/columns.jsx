@@ -32,14 +32,15 @@ export const getColumns = ({ onEdit, onDelete, onView }) => [
     cell: ({ row }) => (
       <div>
         <p className="font-medium">{row.original.patientVisit?.patient?.pName || "-"}</p>
-        <p className="text-xs text-muted-foreground">{row.original.patientVisit?.patient?.patientId || "-"}</p>
+        <p className="text-xs text-muted-foreground">{row.original.patientVisit?.patient?.mrn || "-"}</p>
       </div>
     ),
   },
   {
     id: "mrn",
-    accessorKey: "mrn",
+    accessorFn: (row) => row.patientVisit?.patient?.mrn || "",
     header: "MRN",
+    cell: ({ row }) => row.original.patientVisit?.patient?.mrn || "-",
   },
   {
     id: "doctorName",

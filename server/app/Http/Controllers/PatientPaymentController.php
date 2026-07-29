@@ -10,14 +10,25 @@ class PatientPaymentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = PatientPayment::with(['patientVisit', 'billing', 'createdByUser']);
+        $query = PatientPayment::with(['patientVisit.patient', 'billing', 'creator']);
 
-        if ($request->has('mrn') && $request->mrn) {
-            $query->where('mrn', $request->mrn);
+        if ($request->has('visitId') && $request->visitId) {
+            $query->where('visitId', $request->visitId);
         }
 
         if ($request->has('invoiceNo') && $request->invoiceNo) {
             $query->where('invoiceNo', $request->invoiceNo);
+        }
+
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('invoiceNo', 'like', "%{$search}%")
+                  ->orWhereHas('patientVisit.patient', function ($q2) use ($search) {
+                      $q2->where('pName', 'like', "%{$search}%")
+                         ->orWhere('mrn', 'like', "%{$search}%");
+                  });
+            });
         }
 
         return response()->json($query->latest()->get());
@@ -26,7 +37,7 @@ class PatientPaymentController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'mrn' => 'required|string|exists:patient_visits,mrn',
+            'visitId' => 'required|string|exists:patient_visits,id',
             'invoiceNo' => 'required|string|exists:billings,InvoiceNo',
             'debit' => 'required|numeric|min:0',
             'credit' => 'required|numeric|min:0',
@@ -37,12 +48,12 @@ class PatientPaymentController extends Controller
 
         $payment = PatientPayment::create($validated);
 
-        return response()->json($payment->load(['patientVisit', 'billing', 'createdByUser']), 201);
+        return response()->json($payment->load(['patientVisit.patient', 'billing', 'creator']), 201);
     }
 
     public function show(PatientPayment $patientPayment)
     {
-        return response()->json($patientPayment->load(['patientVisit', 'billing', 'createdByUser']));
+        return response()->json($patientPayment->load(['patientVisit.patient', 'billing', 'creator']));
     }
 
     public function update(Request $request, PatientPayment $patientPayment)
@@ -55,7 +66,7 @@ class PatientPaymentController extends Controller
 
         $patientPayment->update($validated);
 
-        return response()->json($patientPayment->load(['patientVisit', 'billing', 'createdByUser']));
+        return response()->json($patientPayment->load(['patientVisit.patient', 'billing', 'creator']));
     }
 
     public function destroy(PatientPayment $patientPayment)

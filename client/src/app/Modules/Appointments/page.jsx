@@ -51,7 +51,7 @@ export default function AppointmentsPage() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [currentSchedule, setCurrentSchedule] = useState(null);
 
-  const [patientIdSearch, setPatientIdSearch] = useState("");
+  const [mrnSearch, setMrnSearch] = useState("");
   const [mobileSearch, setMobileSearch] = useState("");
   const [cnicSearch, setCnicSearch] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -186,7 +186,7 @@ export default function AppointmentsPage() {
 
   const openCreate = (tokenNo) => {
     setSelectedSlot(tokenNo);
-    setPatientIdSearch("");
+    setMrnSearch("");
     setMobileSearch("");
     setCnicSearch("");
     setSearchResults([]);
@@ -201,13 +201,13 @@ export default function AppointmentsPage() {
     setIsDialogOpen(true);
   };
 
-  const handleSearchByPatientId = async () => {
-    if (!patientIdSearch.trim()) {
-      setMessage({ type: "error", text: "Please enter a Patient ID" });
+  const handleSearchByMrn = async () => {
+    if (!mrnSearch.trim()) {
+      setMessage({ type: "error", text: "Please enter an MRN" });
       return;
     }
     try {
-      const res = await patientService.getAll({ patientId: patientIdSearch });
+      const res = await patientService.getAll({ mrn: "MRN-" + mrnSearch });
       setSearchResults(res.data);
       setSearched(true);
     } catch (error) {
@@ -261,7 +261,7 @@ export default function AppointmentsPage() {
     try {
       await patientAppointmentService.create({
         DoctorId: selectedDoctor,
-        patientId: selectedPatient.patientId,
+        mrn: selectedPatient.mrn,
         Appointmentat: data.Appointmentat,
         TokenNo: data.TokenNo,
         Status: data.Status,
@@ -282,7 +282,7 @@ export default function AppointmentsPage() {
 
       await patientAppointmentService.update(appointmentId, {
         DoctorId: apt.DoctorId,
-        patientId: apt.patientId,
+        mrn: apt.mrn,
         Appointmentat: apt.Appointmentat,
         TokenNo: apt.TokenNo,
         Status: newStatus,
@@ -436,14 +436,17 @@ export default function AppointmentsPage() {
             {!selectedPatient ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-3">
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
+                    <div className="flex items-center h-9 px-2 text-xs bg-muted border border-input rounded-md text-muted-foreground shrink-0">
+                      MRN-
+                    </div>
                     <Input
-                      placeholder="Patient ID"
-                      value={patientIdSearch}
-                      onChange={(e) => setPatientIdSearch(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleSearchByPatientId())}
+                      placeholder=""
+                      value={mrnSearch}
+                      onChange={(e) => setMrnSearch(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleSearchByMrn())}
                     />
-                    <Button onClick={handleSearchByPatientId} variant="outline">
+                    <Button onClick={handleSearchByMrn} variant="outline">
                       <Search className="h-4 w-4" />
                     </Button>
                   </div>
@@ -487,12 +490,12 @@ export default function AppointmentsPage() {
                               className="flex items-center justify-between p-3 hover:bg-muted cursor-pointer"
                               onClick={() => selectExistingPatient(p)}
                             >
-                              <div>
-                                <p className="font-medium">{p.pName}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {p.patientId} | {p.mobile} | {p.cnic || "No CNIC"}
-                                </p>
-                              </div>
+                                    <div>
+                                      <p className="font-medium">{p.pName}</p>
+                                      <p className="text-sm text-muted-foreground">
+                                        {p.mrn} | {p.mobile} | {p.cnic || "No CNIC"}
+                                      </p>
+                                    </div>
                               <Button size="sm" variant="outline">Select</Button>
                             </div>
                           ))}
@@ -510,7 +513,7 @@ export default function AppointmentsPage() {
             ) : (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
-                  Patient: <strong>{selectedPatient.pName}</strong> ({selectedPatient.patientId})
+                      Patient: <strong>{selectedPatient.pName}</strong> ({selectedPatient.mrn})
                 </div>
 
                 <div className="space-y-2">

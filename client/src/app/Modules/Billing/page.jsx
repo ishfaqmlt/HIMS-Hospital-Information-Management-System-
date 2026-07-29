@@ -59,11 +59,10 @@ export default function BillingPage() {
   const [serviceCodeSearch, setServiceCodeSearch] = useState("");
 
   const [mrnSearch, setMrnSearch] = useState("");
-  const [patientIdSearch, setPatientIdSearch] = useState("");
   const [mobileSearch, setMobileSearch] = useState("");
   const [cnicSearch, setCnicSearch] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [existingMrn, setExistingMrn] = useState(null);
+  const [existingVisitId, setExistingVisitId] = useState(null);
   const [isPatientDialogOpen, setIsPatientDialogOpen] = useState(false);
   const [mobileSearchResults, setMobileSearchResults] = useState([]);
   const [isMobileSelectDialogOpen, setIsMobileSelectDialogOpen] = useState(false);
@@ -97,7 +96,6 @@ export default function BillingPage() {
   const [invoices, setInvoices] = useState([]);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [searchMrn, setSearchMrn] = useState("");
-  const [searchPatientId, setSearchPatientId] = useState("");
   const toLocalISOString = (date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -241,37 +239,16 @@ export default function BillingPage() {
     }
     setLoading(true);
     try {
-      const res = await patientVisitService.getByMrn("mrn-" + mrnSearch);
-      if (res.data) {
-        setExistingMrn(res.data.mrn);
-        setSelectedPatient(res.data.patient);
-        setPatientIdSearch(res.data.patientId);
-        setPatientType(res.data.patientTypeId || "");
-        setSelectedConsultant(res.data.doctorId || "");
+      const res = await patientVisitService.getAll({ mrn: "MRN-" + mrnSearch });
+      if (res.data && res.data.length > 0) {
+        const visit = res.data[0];
+        setExistingVisitId(visit.id);
+        setSelectedPatient(visit.patient);
+        setPatientType(visit.patientTypeId || "");
+        setSelectedConsultant(visit.doctorId || "");
       }
     } catch {
       setMessage({ type: "error", text: "MRN not found" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePatientIdSearch = async () => {
-    if (!patientIdSearch.trim()) {
-      setMessage({ type: "error", text: "Please enter Patient ID" });
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await patientService.getAll({ patientId: "pid-" + patientIdSearch });
-      if (res.data.length > 0) {
-        setSelectedPatient(res.data[0]);
-        setExistingMrn(null);
-      } else {
-        setMessage({ type: "error", text: "Patient not found" });
-      }
-    } catch {
-      setMessage({ type: "error", text: "Search failed" });
     } finally {
       setLoading(false);
     }
@@ -287,7 +264,7 @@ export default function BillingPage() {
       const res = await patientService.getAll({ mobile: mobileSearch });
       if (res.data.length === 1) {
         setSelectedPatient(res.data[0]);
-        setExistingMrn(null);
+        setExistingVisitId(null);
       } else if (res.data.length > 1) {
         setMobileSearchResults(res.data);
         setIsMobileSelectDialogOpen(true);
@@ -304,7 +281,7 @@ export default function BillingPage() {
 
   const handleSelectMobilePatient = (patient) => {
     setSelectedPatient(patient);
-    setExistingMrn(null);
+    setExistingVisitId(null);
     setIsMobileSelectDialogOpen(false);
     setMobileSearchResults([]);
   };
@@ -319,7 +296,7 @@ export default function BillingPage() {
       const res = await patientService.getAll({ cnic: cnicSearch });
       if (res.data.length === 1) {
         setSelectedPatient(res.data[0]);
-        setExistingMrn(null);
+        setExistingVisitId(null);
       } else if (res.data.length > 1) {
         setCnicSearchResults(res.data);
         setIsCnicSelectDialogOpen(true);
@@ -336,7 +313,7 @@ export default function BillingPage() {
 
   const handleSelectCnicPatient = (patient) => {
     setSelectedPatient(patient);
-    setExistingMrn(null);
+    setExistingVisitId(null);
     setIsCnicSelectDialogOpen(false);
     setCnicSearchResults([]);
   };
@@ -415,11 +392,10 @@ export default function BillingPage() {
 
   const handleNew = () => {
     setMrnSearch("");
-    setPatientIdSearch("");
     setMobileSearch("");
     setCnicSearch("");
     setSelectedPatient(null);
-    setExistingMrn(null);
+    setExistingVisitId(null);
     const generalType = patientTypes.find((pt) => pt.patientType === "General");
     setPatientType(generalType ? generalType.id : (patientTypes.length > 0 ? patientTypes[0].id : ""));
     setVoucherNo("");
@@ -467,9 +443,9 @@ export default function BillingPage() {
 
       setEditingInvoice(invoice);
       setEditingInvoiceId(invoice.Id);
-      setExistingMrn(invoice.mrn);
+      setExistingVisitId(invoice.visitId);
       setSelectedPatient(invoice.patientVisit?.patient || null);
-      setMrnSearch(invoice.mrn || "");
+      setMrnSearch(invoice.patientVisit?.patient?.mrn || "");
       setPatientType(invoice.patientType?.id || "");
       setSelectedConsultant(invoice.doctor?.id || "");
       setSelectedDepartment(invoice.department?.id || "");
@@ -514,7 +490,6 @@ export default function BillingPage() {
     try {
       const params = {};
       if (searchMrn.trim()) params.mrn = searchMrn.trim();
-      if (searchPatientId.trim()) params.patientId = searchPatientId.trim();
       if (fromDate) params.fromDate = fromDate;
       if (toDate) params.toDate = toDate;
       const res = await billingService.getAll(params);
@@ -536,7 +511,7 @@ export default function BillingPage() {
   };
 
   const handleReturnInvoice = async (invoice) => {
-    router.push(`/Modules/Reports/Reception/return-invoice?invoiceNo=${invoice.InvoiceNo}&mrn=${invoice.mrn}`);
+    router.push(`/Modules/Reports/Reception/return-invoice?invoiceNo=${invoice.InvoiceNo}`);
   };
 
   const invoiceColumns = getColumns({
@@ -558,26 +533,26 @@ export default function BillingPage() {
 
     setLoading(true);
     try {
-      let mrnToUse = existingMrn;
+      let visitIdToUse = existingVisitId;
 
-      if (!mrnToUse) {
+      if (!visitIdToUse) {
         const visitRes = await patientVisitService.create({
-          patientId: selectedPatient.patientId,
+          patientId: selectedPatient.id,
           patientTypeId: patientType,
-          InsuranceCompanyId: null,
+          insuranceCompanyId: null,
           doctorId: selectedConsultant || null,
-          UserId: user?.id || 1,
+          userId: user?.id || 1,
+          visitDate: regDate || new Date().toISOString(),
+          status: "In Progress",
         });
-        mrnToUse = visitRes.data.mrn;
-        setExistingMrn(mrnToUse);
+        visitIdToUse = visitRes.data.id;
+        setExistingVisitId(visitIdToUse);
       }
 
       let billingRes;
       if (editingInvoiceId) {
         billingRes = await billingService.update(editingInvoiceId, {
-          mrn: mrnToUse,
-          patientTypeId: patientType,
-          InsuranceCompanyId: null,
+          visitId: visitIdToUse,
           DepartmentId: selectedDepartment || null,
           DoctorId: selectedConsultant || null,
           InvoiceDate: regDate || new Date().toISOString(),
@@ -585,14 +560,12 @@ export default function BillingPage() {
           Discount: discount,
           TotalAmount: netAmount,
           PaymentStatus: paid >= netAmount ? "Paid" : paid > 0 ? "Partial" : "Pending",
-          BillType: "Normal",
+          BillType: "General",
           Notes: remarks || null,
         });
       } else {
         billingRes = await billingService.create({
-          mrn: mrnToUse,
-          patientTypeId: patientType,
-          InsuranceCompanyId: null,
+          visitId: visitIdToUse,
           DepartmentId: selectedDepartment || null,
           DoctorId: selectedConsultant || null,
           InvoiceDate: regDate || new Date().toISOString(),
@@ -632,7 +605,7 @@ export default function BillingPage() {
 
       if (paid > 0) {
         await patientPaymentService.create({
-          mrn: mrnToUse,
+          visitId: visitIdToUse,
           invoiceNo,
           debit: paid,
           credit: 0,
@@ -640,7 +613,7 @@ export default function BillingPage() {
         });
       }
 
-      setMessage({ type: "success", text: `${editingInvoiceId ? "Invoice updated" : "Bill saved"} successfully. Invoice: ${invoiceNo}, MRN: ${mrnToUse}` });
+      setMessage({ type: "success", text: `${editingInvoiceId ? "Invoice updated" : "Bill saved"} successfully. Invoice: ${invoiceNo}` });
       handleNew();
       searchInvoices();
     } catch (error) {
@@ -673,7 +646,7 @@ export default function BillingPage() {
 
       {editingInvoice && (
         <div className="p-3 rounded-lg text-sm bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-between">
-          <span>Editing Invoice: <strong>{editingInvoice.InvoiceNo}</strong> | MRN: {editingInvoice.mrn}</span>
+          <span>Editing Invoice: <strong>{editingInvoice.InvoiceNo}</strong> | MRN: {editingInvoice.patientVisit?.patient?.mrn}</span>
           <Button size="sm" variant="outline" onClick={handleNew}>
             <X className="h-4 w-4 mr-1" /> Cancel Edit
           </Button>
@@ -685,9 +658,6 @@ export default function BillingPage() {
         mrnSearch={mrnSearch}
         onMrnSearchChange={setMrnSearch}
         onMrnSearch={handleMrnSearch}
-        patientIdSearch={patientIdSearch}
-        onPatientIdSearchChange={setPatientIdSearch}
-        onPatientIdSearch={handlePatientIdSearch}
         mobileSearch={mobileSearch}
         onMobileSearchChange={setMobileSearch}
         onMobileSearch={handleMobileSearch}
@@ -975,7 +945,7 @@ export default function BillingPage() {
                   <div>
                     <p className="font-medium">{patient.pName}</p>
                     <p className="text-sm text-muted-foreground">
-                      {patient.patientId} | {patient.gender || "N/A"} | {patient.cnic || "No CNIC"}
+                      {patient.mrn} | {patient.gender || "N/A"} | {patient.cnic || "No CNIC"}
                     </p>
                   </div>
                   <Button size="sm" variant="outline">Select</Button>
@@ -1015,7 +985,7 @@ export default function BillingPage() {
                   <div>
                     <p className="font-medium">{patient.pName}</p>
                     <p className="text-sm text-muted-foreground">
-                      {patient.patientId} | {patient.gender || "N/A"} | {patient.mobile || "No Mobile"}
+                      {patient.mrn} | {patient.gender || "N/A"} | {patient.mobile || "No Mobile"}
                     </p>
                   </div>
                   <Button size="sm" variant="outline">Select</Button>
@@ -1051,20 +1021,11 @@ export default function BillingPage() {
           </CardHeader>
           <CardContent className="p-4 space-y-4">
             <div className="grid grid-cols-12 gap-3">
-              <div className="col-span-2 space-y-1">
+              <div className="col-span-3 space-y-1">
                 <Label className="text-xs">MRN</Label>
                 <Input
                   value={searchMrn}
                   onChange={(e) => setSearchMrn(e.target.value)}
-                  className="h-8 text-xs"
-                   placeholder=""
-                />
-              </div>
-              <div className="col-span-2 space-y-1">
-                <Label className="text-xs">Patient ID</Label>
-                <Input
-                  value={searchPatientId}
-                  onChange={(e) => setSearchPatientId(e.target.value)}
                   className="h-8 text-xs"
                    placeholder=""
                 />

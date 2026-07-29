@@ -31,7 +31,7 @@ export const getColumns = ({ onEdit, onDelete, onView }) => [
     cell: ({ row }) => (
       <div>
         <p className="font-medium">{row.original.patient?.pName}</p>
-        <p className="text-xs text-muted-foreground">{row.original.patient?.patientId}</p>
+        <p className="text-xs text-muted-foreground">{row.original.patient?.mrn}</p>
       </div>
     ),
   },

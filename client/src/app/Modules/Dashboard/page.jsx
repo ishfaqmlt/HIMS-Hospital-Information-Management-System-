@@ -48,6 +48,7 @@ import {
 const departments = [
   { name: "Appointment", icon: Calendar, color: "bg-blue-500", href: "/Modules/Appointments", permission: "view_appointments" },
   { name: "Patient Registration", icon: UserPlus, color: "bg-emerald-500", href: "/Modules/Registration/patients", permission: "view_registration" },
+  { name: "Patient Visits", icon: UserPlus, color: "bg-emerald-500", href: "/Modules/Registration/visits", permission: "view_visits" },
   { name: "Billing", icon: Wallet, color: "bg-yellow-500", href: "/Modules/Billing", permission: "view_billing" },
   { name: "OPD", icon: Stethoscope, color: "bg-teal-500", href: "/Modules/OPD", permission: "view_opd" },
   { name: "IPD", icon: BedDouble, color: "bg-indigo-500", href: "/Modules/IPD", permission: "view_ipd" },

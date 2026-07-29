@@ -27,7 +27,6 @@ function ThermalReceipt({ title, hospitalProfile, invoice, services, payment, sh
           <tr><td style={{ fontSize: "10px" }}>Date:</td><td style={{ textAlign: "right" }}>{date}</td></tr>
           <tr><td style={{ fontSize: "10px" }}>MRN:</td><td style={{ textAlign: "right" }}>{invoice.mrn || "-"}</td></tr>
           <tr><td style={{ fontSize: "10px" }}>Patient:</td><td style={{ textAlign: "right" }}>{invoice.patientName || "-"}</td></tr>
-          <tr><td style={{ fontSize: "10px" }}>Patient ID:</td><td style={{ textAlign: "right" }}>{invoice.patientId || "-"}</td></tr>
           <tr><td style={{ fontSize: "10px" }}>Mobile:</td><td style={{ textAlign: "right" }}>{invoice.mobile || "-"}</td></tr>
           <tr><td style={{ fontSize: "10px" }}>Doctor:</td><td style={{ textAlign: "right" }}>{invoice.doctorName || "-"}</td></tr>
           <tr><td style={{ fontSize: "10px" }}>Department:</td><td style={{ textAlign: "right" }}>{invoice.departmentName || "-"}</td></tr>

@@ -351,7 +351,7 @@ export default function OPDPage() {
                                     <div>
                                       <p className="font-medium">{p.pName}</p>
                                       <p className="text-sm text-muted-foreground">
-                                        {p.patientId} | {p.mobile} | {p.cnic || "No CNIC"}
+                                        {p.mrn} | {p.mobile} | {p.cnic || "No CNIC"}
                                       </p>
                                     </div>
                                     <Button type="button" size="sm" variant="outline">Select</Button>
@@ -377,7 +377,7 @@ export default function OPDPage() {
                   ) : (
                     <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800 flex items-center justify-between">
                       <div>
-                        Patient: <strong>{selectedPatient.pName}</strong> ({selectedPatient.patientId})
+                        Patient: <strong>{selectedPatient.pName}</strong> ({selectedPatient.mrn})
                       </div>
                       <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedPatient(null)}>
                         Change
