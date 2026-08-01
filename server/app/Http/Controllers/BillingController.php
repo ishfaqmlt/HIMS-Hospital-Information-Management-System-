@@ -6,6 +6,7 @@ use App\Models\Billing;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class BillingController extends Controller
 {
@@ -23,6 +24,7 @@ class BillingController extends Controller
                 'billings.visitId',
                 'billings.DepartmentId',
                 'billings.DoctorId',
+                'billings.tokenNo',
                 'billings.SubTotal',
                 'billings.Discount',
                 'billings.TotalAmount',
@@ -84,6 +86,7 @@ class BillingController extends Controller
                 'InvoiceNo' => $row->InvoiceNo,
                 'InvoiceDate' => $row->InvoiceDate,
                 'visitId' => $row->visitId,
+                'tokenNo' => $row->tokenNo,
                 'SubTotal' => $row->SubTotal,
                 'Discount' => $row->Discount,
                 'TotalAmount' => $row->TotalAmount,
@@ -115,21 +118,26 @@ class BillingController extends Controller
             'visitId' => 'required|string|exists:patient_visits,id',
             'DepartmentId' => 'nullable|string|exists:departments,id',
             'DoctorId' => 'nullable|string|exists:doctors,id',
+            'tokenNo' => 'nullable|integer',
             'InvoiceDate' => 'required|date',
             'SubTotal' => 'required|numeric|min:0',
             'Discount' => 'required|numeric|min:0',
             'TotalAmount' => 'required|numeric|min:0',
             'PaymentStatus' => 'required|in:Pending,Partial,Paid,Cancelled',
-            'BillType' => 'required|in:General,IPD,Return',
+            'BillType' => 'required|in:Return,Normal',
             'ReturnInvoiceNo' => 'nullable|string',
             'Notes' => 'nullable|string',
         ]);
 
         $validated['createdBy'] = Auth::id();
+        $validated['Id'] = Str::uuid();
+        $validated['InvoiceNo'] = Billing::generateInvoiceNo();
 
-        $billing = Billing::create($validated);
+        DB::table('billings')->insert($validated);
 
-        return response()->json($billing->load(['patientVisit.patient', 'doctor', 'department']), 201);
+        $billing = DB::table('billings')->where('id', $validated['Id'])->first();
+
+        return response()->json($billing, 201);
     }
 
     public function show(Billing $billing)
@@ -143,18 +151,21 @@ class BillingController extends Controller
             'visitId' => 'required|string|exists:patient_visits,id',
             'DepartmentId' => 'nullable|string|exists:departments,id',
             'DoctorId' => 'nullable|string|exists:doctors,id',
+            'tokenNo' => 'nullable|integer',
             'InvoiceDate' => 'required|date',
             'SubTotal' => 'required|numeric|min:0',
             'Discount' => 'required|numeric|min:0',
             'TotalAmount' => 'required|numeric|min:0',
             'PaymentStatus' => 'required|in:Pending,Partial,Paid,Cancelled',
-            'BillType' => 'required|in:General,IPD,Return',
+            'BillType' => 'required|in:Return,Normal',
             'Notes' => 'nullable|string',
         ]);
 
-        $billing->update($validated);
+        DB::table('billings')->where('id', $billing->id)->update($validated);
 
-        return response()->json($billing->load(['patientVisit.patient', 'doctor', 'department']));
+        $updated = DB::table('billings')->where('id', $billing->id)->first();
+
+        return response()->json($updated);
     }
 
     public function destroy(Billing $billing)

@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import PrintHeader from "./PrintHeader";
 import PrintFooter from "./PrintFooter";
+import Image from "next/image";
 
 function ThermalReceipt({ title, hospitalProfile, invoice, services, payment, showSignature }) {
   const date = new Date(invoice.InvoiceDate).toLocaleDateString("en-GB");
@@ -10,12 +11,22 @@ function ThermalReceipt({ title, hospitalProfile, invoice, services, payment, sh
     <div style={{ fontFamily: "'Courier New', monospace", width: "280px", padding: "10px", fontSize: "12px" }}>
       <div style={{ textAlign: "center" }}>
         {hospitalProfile?.logo && (
-          <img src={hospitalProfile.logo} alt="Logo" style={{ maxHeight: "50px" }} />
+          <Image src={hospitalProfile.logo} alt="Logo" style={{ maxHeight: "50px" }} />
         )}
-        <h3 style={{ fontSize: "14px" }}>{hospitalProfile?.hospitalName || "Hospital"}</h3>
-        <p style={{ fontSize: "10px" }}>{hospitalProfile?.address || ""}</p>
-        <p style={{ fontSize: "10px" }}>{hospitalProfile?.phone || ""}</p>
+        <h3 style={{ fontSize: "14px" }}>{hospitalProfile?.hospitalName || "Musa Memorial Hospital"}</h3>
+        <p style={{ fontSize: "10px" }}>{hospitalProfile?.address || "Near Daewoo Terminal Bhakkar"}</p>
+        <p style={{ fontSize: "10px" }}>{hospitalProfile?.phone || "0453-510319"}</p>
       </div>
+
+      {invoice.tokenNo && (
+        <>
+          <div style={{ borderTop: "2px solid #000", margin: "6px 0" }} />
+          <div style={{ textAlign: "center" }}>
+            <span style={{ fontSize: "22px" }}>Token No.</span>
+            <span style={{ fontSize: "30px", fontWeight: "bold", marginLeft: "10px" }}>{invoice.tokenNo}</span>
+          </div>
+        </>
+      )}
 
       <div style={{ borderTop: "2px solid #000", margin: "6px 0" }} />
       <div style={{ textAlign: "center", fontWeight: "bold", fontSize: "13px" }}>{title || "RECEIPT"}</div>
@@ -49,8 +60,8 @@ function ThermalReceipt({ title, hospitalProfile, invoice, services, payment, sh
             <tr key={i}>
               <td style={{ padding: "2px 0", fontSize: "11px" }}>{s.serviceName || "-"}</td>
               <td style={{ padding: "2px 0", fontSize: "11px", textAlign: "center" }}>{s.Qty || 1}</td>
-              <td style={{ padding: "2px 0", fontSize: "11px", textAlign: "right" }}>{Number(s.Rate || 0).toFixed(2)}</td>
-              <td style={{ padding: "2px 0", fontSize: "11px", textAlign: "right" }}>{Number(s.Amount || 0).toFixed(2)}</td>
+              <td style={{ padding: "2px 0", fontSize: "11px", textAlign: "right" }}>{Number(s.Rate || 0).toFixed(0)}</td>
+              <td style={{ padding: "2px 0", fontSize: "11px", textAlign: "right" }}>{Number(s.Amount || 0).toFixed(0)}</td>
             </tr>
           ))}
         </tbody>
@@ -60,16 +71,24 @@ function ThermalReceipt({ title, hospitalProfile, invoice, services, payment, sh
 
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <tbody>
-          <tr><td style={{ fontSize: "10px" }}>SubTotal:</td><td style={{ textAlign: "right" }}>{Number(invoice.SubTotal || 0).toFixed(2)}</td></tr>
-          <tr><td style={{ fontSize: "10px" }}>Discount:</td><td style={{ textAlign: "right" }}>-{Number(invoice.Discount || 0).toFixed(2)}</td></tr>
+          <tr><td style={{ fontSize: "10px" }}>SubTotal:</td><td style={{ textAlign: "right" }}>{Number(invoice.SubTotal || 0).toFixed(0)}</td></tr>
+         { invoice.Discount > 0 && (
+          <tr><td style={{ fontSize: "10px" }}>Discount:</td><td style={{ textAlign: "right" }}>-{Number(invoice.Discount || 0).toFixed(0)}</td></tr>
+         )}
+       
+        
           <tr style={{ borderTop: "1px solid #000" }}>
             <td style={{ fontWeight: "bold", padding: "4px 0" }}>TOTAL:</td>
-            <td style={{ textAlign: "right", fontWeight: "bold" }}>{Number(invoice.TotalAmount || 0).toFixed(2)}</td>
+            <td style={{ textAlign: "right", fontWeight: "bold" }}>{Number(invoice.TotalAmount || 0).toFixed(0)}</td>
           </tr>
           {payment && (
             <>
-              <tr><td style={{ fontSize: "10px" }}>Paid:</td><td style={{ textAlign: "right" }}>{Number(payment.debit || 0).toFixed(2)}</td></tr>
-              <tr><td style={{ fontSize: "10px" }}>Balance:</td><td style={{ textAlign: "right" }}>{Number(invoice.TotalAmount - (payment.debit || 0)).toFixed(2)}</td></tr>
+              <tr><td style={{ fontSize: "10px" }}>Paid:</td><td style={{ textAlign: "right" }}>{Number(payment.debit || 0).toFixed(0)}</td></tr>
+              
+              {Number(invoice.TotalAmount - (payment.debit || 0)).toFixed(0) > 0 && (
+                <tr><td style={{ fontSize: "10px" }}>Balance:</td><td style={{ textAlign: "right" }}>{Number(invoice.TotalAmount - (payment.debit || 0)).toFixed(0)}</td></tr>
+              )}
+              {/* <tr><td style={{ fontSize: "10px" }}>Balance:</td><td style={{ textAlign: "right" }}>{Number(invoice.TotalAmount - (payment.debit || 0)).toFixed(0)}</td></tr> */}
             </>
           )}
           <tr><td style={{ fontSize: "10px" }}>Status:</td><td style={{ textAlign: "right", fontWeight: "bold" }}>{invoice.PaymentStatus || "-"}</td></tr>

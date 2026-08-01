@@ -78,6 +78,7 @@ export async function printInvoiceSlip(invoice, format = "thermal", setMessage) 
       gender: invoice.patientVisit?.patient?.gender || "-",
       doctorName: invoice.doctor?.Name || "-",
       departmentName: invoice.department?.DepartmentName || "-",
+      tokenNo: invoice.tokenNo || null,
     };
 
     const serviceRows = details.map((d) => ({

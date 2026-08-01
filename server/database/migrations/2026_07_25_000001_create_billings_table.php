@@ -15,11 +15,12 @@ return new class extends Migration
             $table->dateTime('InvoiceDate');
             $table->foreignUuid('DepartmentId')->nullable()->constrained('departments')->nullOnDelete();
             $table->foreignUuid('DoctorId')->nullable()->constrained('doctors')->nullOnDelete();
+            $table->integer('tokenNo')->nullable();
             $table->decimal('SubTotal', 12, 2)->default(0);
             $table->decimal('Discount', 12, 2)->default(0);
             $table->decimal('TotalAmount', 12, 2)->default(0);
             $table->enum('PaymentStatus', ['Pending', 'Partial', 'Paid', 'Cancelled'])->default('Pending');
-            $table->enum('BillType', ['General', 'IPD', 'Return'])->default('General');
+            $table->enum('BillType', [ 'Return', 'Normal'])->default('Normal');
             $table->string('ReturnInvoiceNo', 20)->nullable();
             $table->integer('printedCount')->default(0);
             $table->text('Notes')->nullable();

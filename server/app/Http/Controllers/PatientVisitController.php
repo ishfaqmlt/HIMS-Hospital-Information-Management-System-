@@ -31,6 +31,12 @@ class PatientVisitController extends Controller
             $query->where('patientId', $request->patientId);
         }
 
+        if ($request->has('mrn') && $request->mrn) {
+            $query->whereHas('patient', function ($q) use ($request) {
+                $q->where('mrn', $request->mrn);
+            });
+        }
+
         if ($request->has('patientTypeId') && $request->patientTypeId) {
             $query->where('patientTypeId', $request->patientTypeId);
         }
@@ -45,6 +51,16 @@ class PatientVisitController extends Controller
 
         if ($request->has('today') && $request->today) {
             $query->whereDate('visitDate', now()->toDateString());
+        }
+
+        if ($request->has('fromDate') && $request->fromDate) {
+            $fromDate = $request->fromDate;
+            $query->where('visitDate', '>=', $fromDate);
+        }
+
+        if ($request->has('toDate') && $request->toDate) {
+            $toDate = $request->toDate;
+            $query->where('visitDate', '<=', $toDate);
         }
 
         return response()->json($query->latest()->get());

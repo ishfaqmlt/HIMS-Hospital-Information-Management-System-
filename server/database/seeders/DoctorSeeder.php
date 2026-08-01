@@ -10,13 +10,14 @@ class DoctorSeeder extends Seeder
     public function run(): void
     {
         Doctor::firstOrCreate(
-            ['Name' => 'Self'],
+            ['Name' => 'Qazi Waleed Hussain'],
             [
-                'Name' => 'Self',
+                'Name' => 'Qazi Waleed Hussain',
                 'Gender' => 'Male',
                 'EmployeementStatus' => 'Active',
                 'Opd' => true,
             ]
+           
         );
 
         Doctor::firstOrCreate(

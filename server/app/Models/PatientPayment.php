@@ -13,6 +13,8 @@ class PatientPayment extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
+        'visitId',
+        'billingId',
         'mrn',
         'invoiceNo',
         'debit',
@@ -39,7 +41,7 @@ class PatientPayment extends Model
 
     public function patientVisit()
     {
-        return $this->belongsTo(PatientVisit::class, 'mrn');
+        return $this->belongsTo(PatientVisit::class, 'visitId');
     }
 
     public function billing()
@@ -48,6 +50,11 @@ class PatientPayment extends Model
     }
 
     public function createdByUser()
+    {
+        return $this->belongsTo(User::class, 'createdBy');
+    }
+
+    public function creator()
     {
         return $this->belongsTo(User::class, 'createdBy');
     }

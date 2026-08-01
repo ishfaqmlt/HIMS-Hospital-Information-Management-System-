@@ -187,6 +187,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 - Sanctum statefulApi REMOVED (token-based only)
 - **`createdBy`/`updatedBy`/`postedBy`** use `foreignId` (bigint, references `users.id`)
 - **All FK references must match actual column types** — if target is string (e.g., `pid-MMYY-###`), use raw `DB::table()` joins instead of Eloquent relationships
+- **Use `DB::table()` for insert and update operations** — Eloquent's dirty attribute detection can silently skip updates when it thinks values haven't changed (especially with `decimal` casts). Use `DB::table('table')->insert($data)` and `DB::table('table')->where('id', $id)->update($data)` for store/update methods. Eloquent is fine for reads (selects, relationships).
 
 ## Frontend Rules
 - Root page (`page.tsx`) redirects to `/login`

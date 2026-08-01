@@ -365,3 +365,27 @@ export const bedMasterSchema = z.object({
   AcCharges: z.coerce.number().min(0, "Must be positive"),
   isFunctional: z.boolean().default(true),
 });
+
+export const billingFormSchema = z.object({
+  regDate: z.string().min(1, "Date is required"),
+  tokenNo: z.string().optional().default(""),
+  selectedConsultant: z.string().optional().default(""),
+  selectedDepartment: z.string().optional().default(""),
+  selectedService: z.string().optional().default(""),
+  discountPercent: z.coerce.number().min(0).default(0),
+  discount: z.coerce.number().min(0).default(0),
+  paid: z.coerce.number().min(0).default(0),
+  remarks: z.string().optional().default(""),
+  services: z.array(z.object({
+    id: z.number(),
+    billingDetailId: z.string().optional(),
+    serviceId: z.string(),
+    serviceCode: z.string().optional().default(""),
+    serviceName: z.string().optional().default(""),
+    fee: z.coerce.number().default(0),
+    qty: z.coerce.number().min(1).default(1),
+    sharePercent: z.coerce.number().default(0),
+    shareAmount: z.coerce.number().default(0),
+    flag: z.enum(["I", "U"]),
+  })).default([]),
+});

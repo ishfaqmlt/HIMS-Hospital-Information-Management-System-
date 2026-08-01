@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
 import { DataTable } from "@/components/data-table/data-table";
 import { getColumns } from "./columns";
 import { Button } from "@/components/ui/button";
@@ -20,26 +21,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Plus, Search, UserPlus } from "lucide-react";
+import { Loader2, Search, UserPlus, CalendarDays } from "lucide-react";
 import PatientDetailsCard from "@/components/patients/PatientDetailsCard";
 import patientService from "@/services/patient.service";
 import patientVisitService from "@/services/patientVisitService";
 import patientTypeService from "@/services/patientTypeService";
 import doctorService from "@/services/doctor.service";
+import insuranceCompanyService from "@/services/insuranceCompanyService";
 import AddPatientDialog from "@/components/patients/AddPatientDialog";
 
 export default function PatientVisitsPage() {
   const { user } = useSelector((state) => state.auth);
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
   const [visits, setVisits] = useState([]);
   const [patientTypes, setPatientTypes] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [insuranceCompanies, setInsuranceCompanies] = useState([]);
 
   const [mrnSearch, setMrnSearch] = useState("");
   const [mobileSearch, setMobileSearch] = useState("");
   const [cnicSearch, setCnicSearch] = useState("");
+  const [visitNoSearch, setVisitNoSearch] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
 
   const [isPatientListDialogOpen, setIsPatientListDialogOpen] = useState(false);
@@ -54,6 +59,7 @@ export default function PatientVisitsPage() {
   const [editingVisit, setEditingVisit] = useState(null);
   const [patientType, setPatientType] = useState("");
   const [selectedDoctor, setSelectedDoctor] = useState("");
+  const [selectedInsuranceCompany, setSelectedInsuranceCompany] = useState("");
   const [visitStatus, setVisitStatus] = useState("Waiting");
 
   const toLocalISOString = (date) => {
@@ -64,6 +70,13 @@ export default function PatientVisitsPage() {
     const min = String(date.getMinutes()).padStart(2, "0");
     return `${y}-${m}-${d}T${h}:${min}`;
   };
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 0, 0);
+  const [fromDate, setFromDate] = useState(toLocalISOString(todayStart));
+  const [toDate, setToDate] = useState(toLocalISOString(todayEnd));
 
   const [visitDate, setVisitDate] = useState(toLocalISOString(new Date()));
 
@@ -76,7 +89,8 @@ export default function PatientVisitsPage() {
   useEffect(() => {
     loadPatientTypes();
     loadDoctors();
-    fetchVisits();
+    loadInsuranceCompanies();
+    fetchVisits({ today: true });
   }, []);
 
   const loadPatientTypes = async () => {
@@ -101,6 +115,15 @@ export default function PatientVisitsPage() {
     }
   };
 
+  const loadInsuranceCompanies = async () => {
+    try {
+      const res = await insuranceCompanyService.getAll();
+      setInsuranceCompanies(res.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const fetchVisits = async (params = {}) => {
     try {
       setLoading(true);
@@ -112,6 +135,20 @@ export default function PatientVisitsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTodaySearch = () => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 0, 0);
+    setFromDate(toLocalISOString(start));
+    setToDate(toLocalISOString(end));
+    fetchVisits({ today: true });
+  };
+
+  const handleDateSearch = () => {
+    fetchVisits({ fromDate, toDate });
   };
 
   const handleMrnSearch = async () => {
@@ -133,6 +170,37 @@ export default function PatientVisitsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVisitNoSearch = async () => {
+    if (!visitNoSearch.trim()) {
+      setMessage({ type: "error", text: "Please enter Visit No" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await patientVisitService.getByVisitNo("V-" + visitNoSearch);
+      if (res.data) {
+        setSelectedPatient(res.data.patient);
+        setMrnSearch(res.data.patient?.mrn?.replace("MRN-", "") || "");
+        fetchVisits({ visitNo: visitNoSearch });
+      } else {
+        setMessage({ type: "error", text: "Visit not found" });
+      }
+    } catch {
+      setMessage({ type: "error", text: "Search failed" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetCard = () => {
+    setMrnSearch("");
+    setMobileSearch("");
+    setCnicSearch("");
+    setVisitNoSearch("");
+    setSelectedPatient(null);
+    fetchVisits({ today: true });
   };
 
   const openPatientList = async (searchParams, title) => {
@@ -200,9 +268,20 @@ export default function PatientVisitsPage() {
     setSelectedPatient(visit.patient);
     setPatientType(visit.patientTypeId || "");
     setSelectedDoctor(visit.doctorId || "");
+    setSelectedInsuranceCompany(visit.insuranceCompanyId || "");
     setVisitStatus(visit.status || "Waiting");
     setVisitDate(visit.visitDate ? toLocalISOString(new Date(visit.visitDate)) : toLocalISOString(new Date()));
     setIsVisitDialogOpen(true);
+  };
+
+  const handleBill = (visit) => {
+    const params = new URLSearchParams();
+    if (visit.patient?.mrn) params.set("mrn", visit.patient.mrn);
+    if (visit.id) params.set("visitId", visit.id);
+    if (visit.doctorId) params.set("doctorId", visit.doctorId);
+    if (visit.patientTypeId) params.set("patientTypeId", visit.patientTypeId);
+    params.set("fromVisit", "1");
+    router.push(`/Modules/Billing?${params.toString()}`);
   };
 
   const handleNewVisit = async () => {
@@ -221,6 +300,7 @@ export default function PatientVisitsPage() {
         patientId: selectedPatient.id,
         patientTypeId: patientType,
         doctorId: selectedDoctor || null,
+        insuranceCompanyId: selectedInsuranceCompany || null,
         userId: user?.id,
         visitDate: new Date(visitDate).toISOString(),
         status: visitStatus,
@@ -235,7 +315,7 @@ export default function PatientVisitsPage() {
       }
       setIsVisitDialogOpen(false);
       resetForm();
-      fetchVisits();
+      fetchVisits({ fromDate, toDate });
     } catch (error) {
       setMessage({
         type: "error",
@@ -252,11 +332,13 @@ export default function PatientVisitsPage() {
     setMrnSearch("");
     setMobileSearch("");
     setCnicSearch("");
+    setVisitNoSearch("");
     setSelectedDoctor("");
+    setSelectedInsuranceCompany("");
     setVisitStatus("Waiting");
     setVisitDate(toLocalISOString(new Date()));
     if (patientTypes.length > 0) {
-      const generalType = patientTypes.find((pt) => pt.patientType === "General");
+        const generalType = patientTypes.find((pt) => pt.patientType === "OPD Consultation");
       setPatientType(generalType ? generalType.id : patientTypes[0].id);
     }
   };
@@ -268,9 +350,6 @@ export default function PatientVisitsPage() {
           <h1 className="text-2xl font-bold text-foreground">Patient Visits</h1>
           <p className="text-muted-foreground mt-1">Manage patient visits</p>
         </div>
-        <Button onClick={() => { setEditingVisit(null); setIsVisitDialogOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" />New Visit
-        </Button>
       </div>
 
       {message && (
@@ -289,11 +368,42 @@ export default function PatientVisitsPage() {
         cnicSearch={cnicSearch}
         onCnicSearchChange={setCnicSearch}
         onCnicSearch={handleCnicSearch}
+        visitNoSearch={visitNoSearch}
+        onVisitNoSearchChange={setVisitNoSearch}
+        onVisitNoSearch={handleVisitNoSearch}
         selectedPatient={selectedPatient}
         patientType={patientType}
         onPatientTypeChange={setPatientType}
         patientTypes={patientTypes}
+        onReset={handleResetCard}
       />
+
+      <div className="flex gap-2 items-end flex-wrap">
+        <Button variant="outline" onClick={handleTodaySearch}>
+          <CalendarDays className="h-4 w-4 mr-1" />Today
+        </Button>
+        <div className="space-y-1">
+          <Label className="text-xs">From Date</Label>
+          <Input
+            type="datetime-local"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="w-52"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">To Date</Label>
+          <Input
+            type="datetime-local"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="w-52"
+          />
+        </div>
+        <Button onClick={handleDateSearch}>
+          <Search className="h-4 w-4 mr-1" />Search
+        </Button>
+      </div>
 
       {loading ? (
         <div className="flex items-center justify-center min-h-[400px]">
@@ -301,9 +411,9 @@ export default function PatientVisitsPage() {
         </div>
       ) : (
         <DataTable
-          columns={getColumns({ onEdit: handleEditVisit })}
+          columns={getColumns({ onEdit: handleEditVisit, onBill: handleBill })}
           data={visits}
-          filterColumn="visitNo"
+          filterColumn="pName"
         />
       )}
 
@@ -365,6 +475,7 @@ export default function PatientVisitsPage() {
                 type="datetime-local"
                 value={visitDate}
                 onChange={(e) => setVisitDate(e.target.value)}
+                disabled={true}
               />
             </div>
 
@@ -394,6 +505,23 @@ export default function PatientVisitsPage() {
                   {doctors.map((doc) => (
                     <SelectItem key={doc.id} value={doc.id}>
                       {doc.Name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Insurance Company</Label>
+              <Select value={selectedInsuranceCompany || "none"} onValueChange={(val) => setSelectedInsuranceCompany(val === "none" ? "" : val)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select insurance company" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {insuranceCompanies.map((ic) => (
+                    <SelectItem key={ic.id} value={ic.id}>
+                      {ic.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

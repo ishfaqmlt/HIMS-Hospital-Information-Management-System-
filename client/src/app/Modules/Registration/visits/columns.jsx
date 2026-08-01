@@ -3,8 +3,9 @@
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { FileText } from "lucide-react";
 
-export const getColumns = ({ onEdit }) => [
+export const getColumns = ({ onEdit, onBill }) => [
   {
     id: "visitNo",
     accessorKey: "visitNo",
@@ -25,8 +26,7 @@ export const getColumns = ({ onEdit }) => [
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
         Patient Name
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
+        </Button>
     ),
     cell: ({ row }) => row.original.patient?.pName || "-",
   },
@@ -47,6 +47,12 @@ export const getColumns = ({ onEdit }) => [
     accessorFn: (row) => row.patient_type?.patientType || "",
     header: "Patient Type",
     cell: ({ row }) => row.original.patient_type?.patientType || "-",
+  },
+  {
+    id: "insuranceCompany",
+    accessorFn: (row) => row.insurance_company?.name || "",
+    header: "Insurance Company",
+    cell: ({ row }) => row.original.insurance_company?.name || "-",
   },
   {
     id: "visitDate",
@@ -94,6 +100,13 @@ export const getColumns = ({ onEdit }) => [
             onClick={() => onEdit(visit)}
           >
             Edit
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onBill(visit)}
+          >
+            <FileText className="h-4 w-4 mr-1" /> Bill
           </Button>
         </div>
       );
