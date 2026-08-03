@@ -154,6 +154,10 @@ export const subHeaderSchema = z.object({
   sub_header_name: z.string().min(1, "Sub header name is required"),
 });
 
+export const labHeaderSchema = z.object({
+  header_name: z.string().min(1, "Header name is required"),
+});
+
 export const branchSchema = z.object({
   branchCode: z.string().min(1, "Branch code is required"),
   branchName: z.string().min(1, "Branch name is required"),
@@ -293,11 +297,26 @@ export const billingDetailSchema = z.object({
 });
 
 export const patientPaymentSchema = z.object({
-  mrn: z.string().min(1, "Patient visit (MRN) is required"),
-  invoiceNo: z.string().min(1, "Invoice number is required"),
-  debit: z.coerce.number().min(0, "Debit must be positive"),
-  credit: z.coerce.number().min(0, "Credit must be positive"),
+  visitId: z.string().optional(),
+  mrn: z.string().optional(),
+  invoiceNo: z.string().optional(),
+  debit: z.coerce.number().optional().default(0),
+  credit: z.coerce.number().min(0).default(0),
+  payerType: z.enum(["Patient", "Insurance"]),
+  insuranceCompanyId: z.string().optional(),
   remarks: z.string().optional(),
+  paymentDetails: z.array(z.object({
+    paymentMode: z.string().min(1, "Payment mode is required"),
+    amount: z.coerce.number().min(0.01, "Amount must be greater than 0"),
+  })).min(1, "At least one payment method is required"),
+  billingIds: z.array(z.string()).optional(),
+  billingAmounts: z.array(z.coerce.number()).optional(),
+});
+
+export const applyAdvanceSchema = z.object({
+  paymentId: z.string().min(1, "Payment is required"),
+  billingId: z.string().min(1, "Invoice is required"),
+  amount: z.coerce.number().min(0.01, "Amount must be greater than 0"),
 });
 
 export const pharmacySchema = z.object({

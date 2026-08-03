@@ -23,8 +23,11 @@ class DatabaseSeeder extends Seeder
             EmergencyCaseSeeder::class,
             BillingSeeder::class,
             PharmacyItemSeeder::class,
-            LabTestSeeder::class,
             RadiologyScanSeeder::class,
+            LabHeaderSeeder::class,
+            LabSubHeaderSeeder::class,
+            LabRequiredSampleSeeder::class,
+            LabMasterTestSeeder::class,
         ]);
     }
 }

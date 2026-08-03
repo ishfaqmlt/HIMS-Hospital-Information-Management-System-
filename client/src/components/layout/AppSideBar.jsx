@@ -31,122 +31,68 @@ const sidebarItems = [
     group: "Reception",
     items: [
       {
-        title: "Patient Search",
-        url: "/laboratory/search",
-        icon: Search,
-      },
-      {
         title: "Patient Registration",
         url: "/laboratory/patientRegistration",
         icon: UserPlus,
       },
       {
-        title: "Return Bill",
-        url: "/laboratory/return-bill",
-        icon: FileText,
+        title: "Branch",
+        url: "/laboratory/branch",
+        icon: Building2,
       },
-      
-     
+      {
+        title: "Collection Center",
+        url: "/laboratory/collectionCenter",
+        icon: Building2,
+      },
     ],
   },
  
   {
-    group: "Laboratory",
-    items: [
-      {
-        title: "Sample Collection",
-        url: "/laboratory/sample",
-        icon: FlaskConical,
-      },
-      {
-        title: "Enter Results",
-        url: "/lab/results",
-        icon: FileText,
-      },
-      {
-        title: "Approve Reports",
-        url: "/lab/approve",
-        icon: ShieldCheck,
-      },
-      {
-        title: "Print Reports",
-        url: "/lab/print",
-        icon: FileText,
-      },
-       {
-            title: "Doctors",
-            url: "/laboratory/doctors",
-            icon: Stethoscope,
-          },
-    ],
-  },
-  {
     group: "Administration",
     items: [
-      
       {
-        title: "User Management",
-        url: "/laboratory/registerUsers",
-        icon: Users,
-      },
-       {
-        title: "Authorization Settings",
-        icon: Settings,
-        subItems: [
-          {
-        title: "Role Management",
-        url: "/laboratory/spatie/roles",
-        icon: Settings,
-         },
-          {
-            title: "Permission Management",
-            url: "/laboratory/spatie/permissions",
-            icon: Building2,
-          },
-          
-         
-        ],
-      },
-       {
         title: "Master Settings",
         icon: Settings,
         subItems: [
           {
-        title: "Profile Settings",
-        url: "/laboratory/labProfile",
-        icon: Settings,
-         },
-          {
-            title: "Department",
-            url: "/laboratory/departments",
-            icon: Building2,
+            title: "Headers",
+            url: "/Modules/laboratory/header",
+            icon: Settings,
           },
-          {
+          
+       {
             title: "Sub-Header",
             url: "/laboratory/subHeader",
             icon: Building2,
           },
-          {
-            title: "Required Samples",
-            url: "/laboratory/requiredSamples",
-            icon: Building2,
-          },
-          {
-            title: "Sample Performs",
-            url: "/laboratory/samplePerforms",
-            icon: Building2,
-          },
-          {
-            title: "Reported at",
-            url: "/laboratory/reportedAt",
-            icon: Building2,
-          },
-          {
-            title: "Master Tests",
-            url: "/laboratory/masterTests",
-            icon: Building2,
-          },
+      {
+        title: "Master Tests",
+        url: "/laboratory/masterTests",
+        icon: FileText,
+      },
+      {
+        title: "Master Parameters",
+        url: "/laboratory/masterParameters",
+        icon: FileText,
+      },
+      {
+        title: "Sample Performs",
+        url: "/laboratory/samplePerforms",
+        icon: FlaskConical,
+      },
+      {
+        title: "Required Samples",
+        url: "/laboratory/requiredSamples",
+        icon: FlaskConical,
+      },
+      {
+        title: "Reported At",
+        url: "/laboratory/reportedAt",
+        icon: FileText,
+      },
          
+          
         ],
       },
       {
@@ -154,12 +100,6 @@ const sidebarItems = [
         url: "/laboratory/discountMaster",
         icon: Users,
       },
-      {
-        title: "Lab Profile Management",
-        url: "/laboratory/labProfile",
-        icon: Users,
-      },
-      
     ],
   },
 ];

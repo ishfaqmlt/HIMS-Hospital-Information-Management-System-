@@ -18,7 +18,6 @@ use App\Http\Controllers\IpdAdmissionController;
 use App\Http\Controllers\EmergencyCaseController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\PharmacyItemController;
-use App\Http\Controllers\LabTestController;
 use App\Http\Controllers\RadiologyScanController;
 use App\Http\Controllers\InsuranceCompanyController;
 use App\Http\Controllers\InsurancePlanController;
@@ -29,6 +28,10 @@ use App\Http\Controllers\DoctorShareMasterController;
 use App\Http\Controllers\FloorController;
 use App\Http\Controllers\RoomsWardsController;
 use App\Http\Controllers\BedMasterController;
+use App\Http\Controllers\LabHeaderController;
+use App\Http\Controllers\LabSubHeaderController;
+use App\Http\Controllers\LabRequiredSampleController;
+use App\Http\Controllers\LabMasterTestController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -95,11 +98,20 @@ Route::middleware('auth:sanctum')->group(function () {
     // Pharmacy Items
     Route::apiResource('pharmacy-items', PharmacyItemController::class);
 
-    // Lab Tests
-    Route::apiResource('lab-tests', LabTestController::class);
-
     // Radiology Scans
     Route::apiResource('radiology-scans', RadiologyScanController::class);
+
+    // Lab Headers
+    Route::apiResource('lab-headers', LabHeaderController::class);
+
+    // Lab Sub Headers
+    Route::apiResource('lab-sub-headers', LabSubHeaderController::class);
+
+    // Lab Required Samples
+    Route::apiResource('lab-required-samples', LabRequiredSampleController::class);
+
+    // Lab Master Tests
+    Route::apiResource('lab-master-tests', LabMasterTestController::class);
 
     // Insurance Companies
     Route::apiResource('insurance-companies', InsuranceCompanyController::class);
@@ -116,6 +128,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('billing-details', BillingDetailController::class);
 
     // Patient Payments
+    Route::get('/patient-payments/advance-balance', [PatientPaymentController::class, 'getAdvanceBalance']);
+    Route::post('/patient-payments/apply-advance', [PatientPaymentController::class, 'applyAdvance']);
+    Route::post('/patient-payments/refund-advance', [PatientPaymentController::class, 'refundAdvance']);
     Route::apiResource('patient-payments', PatientPaymentController::class);
 
     // Doctor Share Master

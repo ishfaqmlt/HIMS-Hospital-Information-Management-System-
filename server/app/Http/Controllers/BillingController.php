@@ -32,6 +32,7 @@ class BillingController extends Controller
                 'billings.BillType',
                 'billings.Notes',
                 'billings.printedCount',
+                'patient_visits.visitNo',
                 'patients.pName as patient_name',
                 'patients.mrn as patient_mrn',
                 'patients.mobile as patient_mobile',
@@ -96,6 +97,7 @@ class BillingController extends Controller
                 'printedCount' => $row->printedCount,
                 'patientVisit' => [
                     'id' => $row->visitId,
+                    'visitNo' => $row->visitNo,
                     'patient' => $row->patient_name ? [
                         'pName' => $row->patient_name,
                         'mrn' => $row->patient_mrn,
@@ -161,7 +163,37 @@ class BillingController extends Controller
             'Notes' => 'nullable|string',
         ]);
 
+        $oldTotal = DB::table('billings')->where('id', $billing->id)->value('TotalAmount');
+        $newTotal = $validated['TotalAmount'];
+
         DB::table('billings')->where('id', $billing->id)->update($validated);
+
+        // Sync payment amounts when TotalAmount changes
+        if ($oldTotal != $newTotal) {
+            $linkedPayments = DB::table('billing_payments')
+                ->join('patient_payments', 'billing_payments.paymentId', '=', 'patient_payments.id')
+                ->where('billing_payments.billingId', $billing->id)
+                ->where('patient_payments.status', 'Active')
+                ->select('billing_payments.id as bpId', 'patient_payments.id as ppId')
+                ->get();
+
+            foreach ($linkedPayments as $linked) {
+                DB::table('billing_payments')->where('id', $linked->bpId)->update([
+                    'amount' => $newTotal,
+                    'updated_at' => now(),
+                ]);
+
+                DB::table('patient_payments')->where('id', $linked->ppId)->update([
+                    'debit' => $newTotal,
+                    'updated_at' => now(),
+                ]);
+
+                DB::table('payment_details')->where('paymentId', $linked->ppId)->update([
+                    'amount' => $newTotal,
+                    'updated_at' => now(),
+                ]);
+            }
+        }
 
         $updated = DB::table('billings')->where('id', $billing->id)->first();
 

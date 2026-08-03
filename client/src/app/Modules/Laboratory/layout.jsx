@@ -9,7 +9,7 @@ const LaboratoryLayout = ({ children }) => {
       <SidebarProvider>
         <AppSideBar />
         <main className="w-full ">
-          <Navbar />
+          {/* <Navbar /> */}
           <div className="px-4">{children}</div>
         </main>
       </SidebarProvider>

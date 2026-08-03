@@ -124,6 +124,9 @@ export default function BillingPage() {
 
   const [patientType, setPatientType] = useState("");
   const [existingPaymentId, setExistingPaymentId] = useState(null);
+  const [advanceBalance, setAdvanceBalance] = useState(0);
+  const [applyAdvance, setApplyAdvance] = useState(false);
+  const [advancePaymentId, setAdvancePaymentId] = useState(null);
 
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [editingInvoiceId, setEditingInvoiceId] = useState(null);
@@ -336,7 +339,8 @@ export default function BillingPage() {
     }
     setLoading(true);
     try {
-      const res = await patientVisitService.getAll({ mrn: "MRN-" + mrnSearch, today: true });
+      const fullMrn = mrnSearch.startsWith("MRN-") ? mrnSearch : "MRN-" + mrnSearch;
+      const res = await patientVisitService.getAll({ mrn: fullMrn });
       if (res.data && res.data.length > 0) {
         const visit = res.data[0];
         setExistingVisitId(visit.id);
@@ -346,8 +350,9 @@ export default function BillingPage() {
         setPatientType(visit.patientTypeId || "");
         setValue("selectedConsultant", visit.doctorId || "");
       } else {
-        setMessage({ type: "error", text: "No visit found today for this MRN" });
+        setMessage({ type: "error", text: "No visit found for this MRN" });
       }
+      fetchAdvanceBalance(fullMrn);
     } catch {
       setMessage({ type: "error", text: "MRN not found" });
     } finally {
@@ -385,7 +390,36 @@ export default function BillingPage() {
     setSelectedPatient(null);
     setExistingVisitId(null);
     setPatientType("");
+    setAdvanceBalance(0);
+    setApplyAdvance(false);
+    setAdvancePaymentId(null);
     setValue("selectedConsultant", "");
+  };
+
+  const fetchAdvanceBalance = async (mrn) => {
+    if (!mrn) {
+      setAdvanceBalance(0);
+      setAdvancePaymentId(null);
+      return;
+    }
+    try {
+      console.log("Fetching advance balance for MRN:", mrn);
+      const res = await patientPaymentService.getAdvanceBalance(mrn);
+      console.log("Advance balance response:", res.data);
+      setAdvanceBalance(res.data.advanceBalance || 0);
+      if (res.data.advanceBalance > 0) {
+        const advRes = await patientPaymentService.getAll({ type: "advance" });
+        console.log("Advance payments:", advRes.data);
+        const advPayment = advRes.data?.find((p) => p.mrn === mrn && Number(p.advanceBalance) > 0);
+        setAdvancePaymentId(advPayment?.id || null);
+      } else {
+        setAdvancePaymentId(null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch advance balance:", error);
+      setAdvanceBalance(0);
+      setAdvancePaymentId(null);
+    }
   };
 
   const handleMobileSearch = async () => {
@@ -479,8 +513,34 @@ export default function BillingPage() {
     setSelectedPatient(null);
     setExistingVisitId(null);
     setExistingPaymentId(null);
+    setAdvanceBalance(0);
+    setApplyAdvance(false);
+    setAdvancePaymentId(null);
     const generalType = patientTypes.find((pt) => pt.patientType === "General");
     setPatientType(generalType ? generalType.id : (patientTypes.length > 0 ? patientTypes[0].id : ""));
+    setEditingInvoice(null);
+    setEditingInvoiceId(null);
+  };
+
+  const handleNewInvoice = () => {
+    const currentConsultant = getValues("selectedConsultant");
+    reset({
+      regDate: toLocalISOString(new Date()),
+      tokenNo: "",
+      selectedConsultant: currentConsultant,
+      selectedDepartment: "",
+      selectedService: "",
+      discountPercent: 0,
+      discount: 0,
+      paid: 0,
+      remarks: "",
+      services: [],
+    });
+    setExistingVisitId(null);
+    setExistingPaymentId(null);
+    setAdvanceBalance(0);
+    setApplyAdvance(false);
+    setAdvancePaymentId(null);
     setEditingInvoice(null);
     setEditingInvoiceId(null);
   };
@@ -514,7 +574,8 @@ export default function BillingPage() {
       setSelectedPatient(invoice.patientVisit?.patient || null);
       setMrnSearch(invoice.patientVisit?.patient?.mrn || "");
       setPatientType(invoice.patientType?.id || "");
-
+      setVisitNoSearch(invoice.patientVisit?.visitNo?.replace("V-", "") || "");
+      // alert(invoice.patientVisit?.visitNo);
       const loadedServices = details.map((d, idx) => ({
         id: Date.now() + idx,
         billingDetailId: d.Id,
@@ -607,7 +668,7 @@ export default function BillingPage() {
           insuranceCompanyId: null,
           doctorId: formData.selectedConsultant || null,
           userId: user?.id || 1,
-          visitDate: formData.regDate || new Date().toISOString(),
+          visitDate: formData.regDate || toLocalISOString(new Date()),
           status: "In Progress",
         });
         visitIdToUse = visitRes.data.id;
@@ -671,11 +732,17 @@ export default function BillingPage() {
       }
 
       if (formData.paid > 0) {
+        const billingId = billingRes.data?.id || billingRes.data?.Id;
         const paymentPayload = {
           visitId: visitIdToUse,
+          mrn: selectedPatient?.mrn || null,
           invoiceNo,
           debit: formData.paid,
           credit: 0,
+          payerType: "Patient",
+          paymentDetails: [{ paymentMode: "Cash", amount: formData.paid }],
+          billingIds: billingId ? [billingId] : [],
+          billingAmounts: billingId ? [formData.paid] : [],
           remarks: formData.remarks || null,
         };
         if (existingPaymentId) {
@@ -691,6 +758,17 @@ export default function BillingPage() {
           credit: 0,
           remarks: formData.remarks || null,
         });
+      }
+
+      if (applyAdvance && advancePaymentId && advanceBalance > 0) {
+        const applyAmount = Math.min(advanceBalance, netAmount - (formData.paid || 0));
+        if (applyAmount > 0) {
+          await patientPaymentService.applyAdvance({
+            paymentId: advancePaymentId,
+            billingId: billingRes.data.id || billingRes.data.Id,
+            amount: applyAmount,
+          });
+        }
       }
 
       if (formData.tokenNo && formData.selectedConsultant && formData.selectedConsultant !== "self" && selectedPatient) {
@@ -713,7 +791,7 @@ export default function BillingPage() {
       }
 
       setMessage({ type: "success", text: `${editingInvoiceId ? "Invoice updated" : "Bill saved"} successfully. Invoice: ${invoiceNo}` });
-      handleNew();
+      handleNewInvoice();
       searchInvoices();
     } catch (error) {
       setMessage({ type: "error", text: error.response?.data?.message || "Failed to save" });
@@ -749,6 +827,7 @@ export default function BillingPage() {
             setVisitNoSearch(visit.visitNo?.replace("V-", "") || "");
             setPatientType(patientTypeId || visit.patientTypeId || "");
             setValue("selectedConsultant", doctorId || visit.doctorId || "");
+            fetchAdvanceBalance(visit.patient?.mrn);
           }
         } catch (error) {
           console.error(error);
@@ -767,16 +846,20 @@ export default function BillingPage() {
   return (
     <div className="space-y-4">
       {message && (
-        <div className={`p-3 rounded-lg text-sm ${message.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+        <div className={`px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm ${message.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+          {message.type === "success" ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
           {message.text}
         </div>
       )}
 
       {editingInvoice && (
-        <div className="p-3 rounded-lg text-sm bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-between">
-          <span>Editing Invoice: <strong>{editingInvoice.InvoiceNo}</strong> | MRN: {editingInvoice.patientVisit?.patient?.mrn}</span>
-          <Button size="sm" variant="outline" onClick={handleNew}>
-            <X className="h-4 w-4 mr-1" /> Cancel Edit
+        <div className="px-4 py-3 rounded-lg text-sm font-medium bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-between shadow-sm">
+          <span className="flex items-center gap-2">
+            <span className="inline-flex items-center justify-center h-5 px-2 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">EDIT</span>
+            Invoice: <strong>{editingInvoice.InvoiceNo}</strong> | MRN: {editingInvoice.patientVisit?.patient?.mrn}
+          </span>
+          <Button size="sm" variant="ghost" onClick={handleNew} className="text-amber-700 hover:bg-amber-100">
+            <X className="h-4 w-4 mr-1" /> Cancel
           </Button>
         </div>
       )}
@@ -802,194 +885,196 @@ export default function BillingPage() {
         onReset={handleResetCard}
       />
 
-      {/* Three Column Layout */}
-      <div className="grid grid-cols-12 gap-4">
-        {/* Left Column - Service Selection + Actions */}
-        <div className="col-span-3 space-y-4">
-          <Card>
-            <CardHeader className="py-2 bg-primary text-primary-foreground">
-              <CardTitle className="text-sm font-semibold">Select Service</CardTitle>
+      {/* Three Row Layout */}
+      <div className="space-y-4">
+        {/* First Row - Service Selection + Actions */}
+        <div className="flex gap-4 items-start">
+          <Card className="flex-1 shadow-sm border border-border/50">
+            <CardHeader className="py-2.5 bg-gradient-to-r from-primary/90 to-primary text-primary-foreground rounded-t-lg">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary-foreground/20 text-xs">1</span>
+                Select Service
+              </CardTitle>
             </CardHeader>
-            <CardContent className="p-3 space-y-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Token No</Label>
-                <Input
-                  type="number"
-                  {...register("tokenNo")}
-                  className="h-8 text-xs"
-                  placeholder="Auto-filled when printToken service added"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Consultant</Label>
-                <Controller
-                  name="selectedConsultant"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      value={field.value}
-                      onValueChange={(val) => {
-                        field.onChange(val);
-                        setValue("selectedDepartment", "");
-                        setValue("selectedService", "");
-                      }}
-                      disabled={fromVisit}
-                    >
-                      <SelectTrigger className="w-full h-8 text-xs">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="self">Self</SelectItem>
-                        {doctors.map((d) => (
-                          <SelectItem key={d.id} value={d.id}>{d.Name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">Department</Label>
-                <Controller
-                  name="selectedDepartment"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      value={field.value}
-                      onValueChange={(val) => {
-                        field.onChange(val);
-                        setValue("selectedService", "");
-                      }}
-                      disabled={serviceFields.length > 0}
-                    >
-                      <SelectTrigger className="w-full h-8 text-xs">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(watchedConsultant === "self"
-                          ? departments.filter((d) => d.ServingBy === "Department")
-                          : departments
-                        ).map((d) => (
-                          <SelectItem key={d.id} value={d.id}>{d.DepartmentName}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-              <div className="border-t pt-3 space-y-1">
-                <Label className="text-xs">Search by Service Code</Label>
-                <div className="flex gap-2">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-5 gap-2 items-end">
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-medium text-muted-foreground">Token No</Label>
                   <Input
-                    value={serviceCodeSearch}
-                    onChange={(e) => setServiceCodeSearch(e.target.value)}
-                    className="h-8 text-xs"
-                    placeholder="e.g. 401.402.403"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleServiceCodeSearch();
-                      }
-                    }}
+                    type="number"
+                    {...register("tokenNo")}
+                    className="h-7 text-[11px]"
+                    placeholder="Auto"
                   />
-                  <Button size="sm" onClick={handleServiceCodeSearch} disabled={!serviceCodeSearch.trim()}>
-                    <Plus className="h-4 w-3 mr-1" /> Add
-                  </Button>
                 </div>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Service</Label>
-                <div className="flex gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-medium text-muted-foreground">Consultant</Label>
                   <Controller
-                    name="selectedService"
+                    name="selectedConsultant"
                     control={control}
-                    render={({ field }) => {
-                      const filteredServices = services
-                        .filter((s) => !watch("selectedDepartment") || s.DepartmentId === watch("selectedDepartment"));
-                      const selectedSvc = filteredServices.find((s) => s.id === field.value);
-                      return (
-                        <Popover open={servicePopoverOpen} onOpenChange={setServicePopoverOpen} className="flex-1 min-w-0">
-                          <PopoverTrigger
-                            ref={serviceTriggerRef}
-                            nativeButton={false}
-                            render={<div />}
-                            className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-xs ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
-                          >
-                            {selectedSvc ? selectedSvc.ServiceName : "Select service..."}
-                            <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
-                              <CommandInput placeholder="Search service..." className="h-8" />
-                              <CommandList>
-                                <CommandEmpty>No service found.</CommandEmpty>
-                                <CommandGroup>
-                                  {filteredServices.map((s) => (
-                                    <CommandItem
-                                      key={s.id}
-                                      value={s.ServiceName}
-                                      onSelect={() => {
-                                        field.onChange(s.id);
-                                        setServicePopoverOpen(false);
-                                      }}
-                                    >
-                                      <Check className={`mr-2 h-3 w-3 ${field.value === s.id ? "opacity-100" : "opacity-0"}`} />
-                                      {s.ServiceName}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      );
-                    }}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value}
+                        onValueChange={(val) => {
+                          field.onChange(val);
+                          setValue("selectedDepartment", "");
+                          setValue("selectedService", "");
+                        }}
+                        disabled={fromVisit || serviceFields.length > 0}
+                      >
+                        <SelectTrigger className="w-full h-7 text-[11px]">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="self">Self</SelectItem>
+                          {doctors.map((d) => (
+                            <SelectItem key={d.id} value={d.id}>{d.Name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   />
-                  <Button size="sm" onClick={addService} disabled={!watch("selectedService")}>
-                    <Plus className="h-4 w-3 mr-1" /> Add
-                  </Button>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-medium text-muted-foreground">Department</Label>
+                  <Controller
+                    name="selectedDepartment"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value}
+                        onValueChange={(val) => {
+                          field.onChange(val);
+                          setValue("selectedService", "");
+                        }}
+                        disabled={serviceFields.length > 0}
+                      >
+                        <SelectTrigger className="w-full h-7 text-[11px]">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(watchedConsultant === "self"
+                            ? departments.filter((d) => d.ServingBy === "Department")
+                            : departments
+                          ).map((d) => (
+                            <SelectItem key={d.id} value={d.id}>{d.DepartmentName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-medium text-muted-foreground">Service Code</Label>
+                  <div className="flex gap-1">
+                    <Input
+                      value={serviceCodeSearch}
+                      onChange={(e) => setServiceCodeSearch(e.target.value)}
+                      className="h-7 text-[11px]"
+                      placeholder="e.g. 401.402"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleServiceCodeSearch();
+                        }
+                      }}
+                    />
+                    <Button size="sm" className="h-7 px-2 shrink-0" onClick={handleServiceCodeSearch} disabled={!serviceCodeSearch.trim()}>
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-medium text-muted-foreground">Service</Label>
+                  <div className="flex gap-1">
+                    <Controller
+                      name="selectedService"
+                      control={control}
+                      render={({ field }) => {
+                        const filteredServices = services
+                          .filter((s) => !watch("selectedDepartment") || s.DepartmentId === watch("selectedDepartment"));
+                        const selectedSvc = filteredServices.find((s) => s.id === field.value);
+                        return (
+                          <Popover open={servicePopoverOpen} onOpenChange={setServicePopoverOpen} className="flex-1 min-w-0">
+                            <PopoverTrigger
+                              ref={serviceTriggerRef}
+                              nativeButton={false}
+                              render={<div />}
+                              className="flex h-7 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-1 text-[11px] ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                            >
+                              {selectedSvc ? selectedSvc.ServiceName : "Select service..."}
+                              <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                              <Command>
+                                <CommandInput placeholder="Search service..." className="h-7" />
+                                <CommandList>
+                                  <CommandEmpty>No service found.</CommandEmpty>
+                                  <CommandGroup>
+                                    {filteredServices.map((s) => (
+                                      <CommandItem
+                                        key={s.id}
+                                        value={s.ServiceName}
+                                        onSelect={() => {
+                                          field.onChange(s.id);
+                                          setServicePopoverOpen(false);
+                                        }}
+                                      >
+                                        <Check className={`mr-2 h-3 w-3 ${field.value === s.id ? "opacity-100" : "opacity-0"}`} />
+                                        {s.ServiceName}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        );
+                      }}
+                    />
+                    <Button size="sm" className="h-7 px-2 shrink-0" onClick={addService} disabled={!watch("selectedService")}>
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-
-          {/* Action Buttons */}
-          <div className="space-y-2">
-            <Button variant="outline" className="w-full" onClick={handleNew} disabled={loading}>
-              <Plus className="h-4 w-4 mr-2" /> New
-            </Button>
-            <Button className="w-full" onClick={handleSubmit(onSubmit)} disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-              {editingInvoiceId ? "Update" : "Save"}
-            </Button>
-          </div>
         </div>
 
-        {/* Center Column - Selected Services Table */}
-        <div className="col-span-6">
-          <Card className="h-full">
-            <CardHeader className="py-2 bg-primary text-primary-foreground">
-              <CardTitle className="text-sm font-semibold">Selected Services</CardTitle>
+        {/* Second Row - Selected Services Table */}
+        <Card className="shadow-sm border border-border/50">
+            <CardHeader className="py-2.5 bg-gradient-to-r from-primary/90 to-primary text-primary-foreground rounded-t-lg">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary-foreground/20 text-xs">2</span>
+                Selected Services
+                {serviceFields.length > 0 && (
+                  <span className="ml-auto inline-flex items-center justify-center h-5 px-2 rounded-full bg-primary-foreground/20 text-xs">{serviceFields.length}</span>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="text-xs h-7">Flag</TableHead>
-                    <TableHead className="text-xs h-7">Code</TableHead>
-                    <TableHead className="text-xs h-7">Service Name</TableHead>
-                    <TableHead className="text-xs h-7" >Charges</TableHead>
-                    <TableHead className="text-xs h-7">Qty</TableHead>
-                    <TableHead className="text-xs h-7">Amount</TableHead>
-                    <TableHead className="text-xs h-7">Delete</TableHead>
+                  <TableRow className="bg-muted/70 hover:bg-muted/70">
+                    <TableHead className="text-xs h-8 font-semibold">Flag</TableHead>
+                    <TableHead className="text-xs h-8 font-semibold">Code</TableHead>
+                    <TableHead className="text-xs h-8 font-semibold">Service Name</TableHead>
+                    <TableHead className="text-xs h-8 font-semibold">Charges</TableHead>
+                    <TableHead className="text-xs h-8 font-semibold">Qty</TableHead>
+                    <TableHead className="text-xs h-8 font-semibold">Amount</TableHead>
+                    <TableHead className="text-xs h-8 font-semibold text-center">Delete</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {serviceFields.length > 0 ? (
                     serviceFields.map((field, index) => (
-                      <TableRow key={field.fieldId}>
-                        <TableCell className="text-xs py-1 font-bold">{field.flag}</TableCell>
+                      <TableRow key={field.fieldId} className={index % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                        <TableCell className="text-xs py-1.5">
+                          <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-xs font-bold ${field.flag === "I" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
+                            {field.flag}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-xs py-1">{field.serviceCode}</TableCell>
                         <TableCell className="text-xs py-1">{field.serviceName}</TableCell>
                         <TableCell className="text-xs py-1">{field.fee}</TableCell>
@@ -1025,8 +1110,14 @@ export default function BillingPage() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-8">
-                        No services added yet
+                      <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                            <Plus className="h-6 w-6 text-muted-foreground/50" />
+                          </div>
+                          <p>No services added yet</p>
+                          <p className="text-xs text-muted-foreground/70">Select a service above and click Add</p>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}
@@ -1034,106 +1125,130 @@ export default function BillingPage() {
               </Table>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Right Column - Bill Details */}
-        <div className="col-span-3">
-          <Card className="h-full">
-            <CardHeader className="py-2 bg-primary text-primary-foreground">
-              <CardTitle className="text-sm font-semibold">Bill Details</CardTitle>
+        {/* Third Row - Bill Details */}
+        <Card className="shadow-sm border border-border/50">
+            <CardHeader className="py-2.5 bg-gradient-to-r from-primary/90 to-primary text-primary-foreground rounded-t-lg">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary-foreground/20 text-xs">3</span>
+                Bill Details
+              </CardTitle>
             </CardHeader>
-            <CardContent className="p-3 space-y-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Date</Label>
-                <Input
-                  type="datetime-local"
-                  {...register("regDate")}
-                  className="h-8 text-xs"
-                />
+            <CardContent className="p-4">
+              <div className="grid grid-cols-7 gap-2 items-end">
+                <div className="">
+                  <Label className="text-[10px] font-medium text-muted-foreground">Date</Label>
+                  <Input
+                    type="datetime-local"
+                    {...register("regDate")}
+                    className="h-7 text-[11px]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-medium text-muted-foreground">SubTotal</Label>
+                  <Input
+                    type="number"
+                    value={totalBill}
+                    className="h-7 text-[11px] bg-muted/50 font-semibold"
+                    disabled
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-medium text-muted-foreground">Disc %</Label>
+                  <Input
+                    type="number"
+                    value={watchedDiscountPercent}
+                    onChange={(e) => {
+                      const pct = Number(e.target.value);
+                      setValue("discountPercent", pct);
+                      const disc = totalBill * (pct / 100);
+                      setValue("discount", disc);
+                      setValue("paid", totalBill - disc);
+                    }}
+                    className="h-7 text-[11px]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-medium text-muted-foreground">Discount</Label>
+                  <Input
+                    type="number"
+                    value={watchedDiscount}
+                    onChange={(e) => {
+                      const disc = Number(e.target.value) || 0;
+                      setValue("discount", disc);
+                      const pct = totalBill > 0 ? (disc / totalBill) * 100 : 0;
+                      setValue("discountPercent", pct);
+                      setValue("paid", totalBill - disc);
+                    }}
+                    className="h-7 text-[11px]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-medium text-muted-foreground">Total</Label>
+                  <Input
+                    type="number"
+                    value={netAmount}
+                    className="h-7 text-[11px] bg-primary/5 font-semibold text-primary"
+                    disabled
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-medium text-muted-foreground">Paid</Label>
+                  <Input
+                    type="number"
+                    {...register("paid", { valueAsNumber: true })}
+                    className="h-7 text-[11px]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-medium text-muted-foreground">Balance</Label>
+                  <Input
+                    type="number"
+                    value={remaining}
+                    className={`h-7 text-[11px] font-semibold ${remaining > 0 ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}
+                    disabled
+                  />
+                </div>
               </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">SubTotal</Label>
-                <Input
-                  type="number"
-                  value={totalBill}
-                  className="h-8 text-xs bg-muted"
-                  disabled
-                />
+              <div className="flex gap-2 items-center justify-end mt-2 pt-2 border-t">
+                <div className="flex-1" />
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-medium text-muted-foreground">Remarks</Label>
+                  <Input
+                    {...register("remarks")}
+                    className="h-7 text-[11px] w-48"
+                    placeholder="Optional"
+                  />
+                </div>
+                <Button variant="outline" className="h-7 px-2 text-[11px]" onClick={handleNewInvoice} disabled={loading}>
+                  <Plus className="h-3 w-3 mr-0.5" /> New
+                </Button>
+                <Button className="h-7 px-2 text-[11px]" onClick={handleSubmit(onSubmit)} disabled={loading}>
+                  {loading ? <Loader2 className="h-3 w-3 mr-0.5 animate-spin" /> : <Save className="h-3 w-3 mr-0.5" />}
+                  {editingInvoiceId ? "Update" : "Save"}
+                </Button>
               </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">Discount %</Label>
-                <Input
-                  type="number"
-                  value={watchedDiscountPercent}
-                  onChange={(e) => {
-                    const pct = Number(e.target.value);
-                    setValue("discountPercent", pct);
-                    const disc = totalBill * (pct / 100);
-                    setValue("discount", disc);
-                    setValue("paid", totalBill - disc);
-                  }}
-                  className="h-8 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">Discount</Label>
-                <Input
-                  type="number"
-                  value={watchedDiscount}
-                  onChange={(e) => {
-                    const disc = Number(e.target.value) || 0;
-                    setValue("discount", disc);
-                    const pct = totalBill > 0 ? (disc / totalBill) * 100 : 0;
-                    setValue("discountPercent", pct);
-                    setValue("paid", totalBill - disc);
-                  }}
-                  className="h-8 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">TotalAmount</Label>
-                <Input
-                  type="number"
-                  value={netAmount}
-                  className="h-8 text-xs bg-muted"
-                  disabled
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">Paid</Label>
-                <Input
-                  type="number"
-                  {...register("paid", { valueAsNumber: true })}
-                  className="h-8 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">Patient Balance</Label>
-                <Input
-                  type="number"
-                  value={remaining}
-                  className="h-8 text-xs bg-muted"
-                  disabled
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">Remarks</Label>
-                <Input
-                  {...register("remarks")}
-                  className="h-8 text-xs"
-                  placeholder="Optional remarks"
-                />
-              </div>
+              {advanceBalance > 0 && !editingInvoiceId && (
+                <div className="mt-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={applyAdvance}
+                      onChange={(e) => setApplyAdvance(e.target.checked)}
+                      className="h-4 w-4 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span className="text-sm font-medium text-emerald-700">Apply Advance</span>
+                  </label>
+                  <span className="text-sm text-emerald-600">Available: Rs. {advanceBalance.toFixed(2)}</span>
+                  {applyAdvance && (
+                    <span className="text-xs text-emerald-500">
+                      (Will apply Rs. {Math.min(advanceBalance, remaining).toFixed(2)})
+                    </span>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
-        </div>
       </div>
 
       {/* Mobile Patient Select Dialog */}

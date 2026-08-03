@@ -46,144 +46,144 @@ export default function PatientDetailsCard({
   onReset,
 }) {
   return (
-    <Card>
+    <Card className="shadow-sm border border-border/50 w-full">
       <CardContent className="p-4">
-        <div className="grid grid-cols-9 gap-2 items-end">
-          <div className="space-y-1">
-            <Label className="text-xs">Visit No</Label>
+        <div className="grid grid-cols-9 gap-3 items-end w-full">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Visit No</Label>
             <div className="flex gap-1">
-              <div className="flex items-center h-8 px-2 text-xs bg-muted border border-input rounded-md text-muted-foreground shrink-0">
+              <div className="flex items-center h-9 px-2 text-xs bg-muted/50 border border-input rounded-md text-muted-foreground shrink-0 font-medium">
                 V-
               </div>
               {selectedPatient ? (
                 <Input
                   value={visitNoSearch || ""}
                   disabled
-                  className="h-8 text-xs"
+                  className="h-9 text-xs bg-muted/50"
                 />
               ) : (
                 <Input
                   value={visitNoSearch}
                   onChange={(e) => onVisitNoSearchChange(formatVisitNoCode(e.target.value))}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onVisitNoSearch(); } }}
-                  className="h-8 text-xs"
+                  className="h-9 text-xs"
                   placeholder=""
                   maxLength={11}
                 />
               )}
-              <Button size="sm" variant="outline" className="h-8 px-2" onClick={onVisitNoSearch} disabled={!!selectedPatient}>
+              <Button size="sm" variant="outline" className="h-9 px-2" onClick={onVisitNoSearch} disabled={!!selectedPatient}>
                 <Search className="h-3 w-3" />
               </Button>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs">MRN</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">MRN</Label>
             <div className="flex gap-1">
-              <div className="flex items-center h-8 px-2 text-xs bg-muted border border-input rounded-md text-muted-foreground shrink-0">
+              <div className="flex items-center h-9 px-2 text-xs bg-muted/50 border border-input rounded-md text-muted-foreground shrink-0 font-medium">
                 MRN-
               </div>
               {selectedPatient ? (
                 <Input
                   value={mrnSearch || ""}
                   disabled
-                  className="h-8 text-xs"
+                  className="h-9 text-xs bg-muted/50 flex-1"
                 />
               ) : (
                 <Input
                   value={mrnSearch}
                   onChange={(e) => onMrnSearchChange(formatMrnCode(e.target.value))}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onMrnSearch(); } }}
-                  className="h-8 text-xs"
+                  className="h-9 text-xs flex-1"
                   placeholder=""
                   maxLength={8}
                 />
               )}
-              <Button size="sm" variant="outline" className="h-8 px-2" onClick={onMrnSearch} disabled={!!selectedPatient}>
+              <Button size="sm" variant="outline" className="h-9 px-2" onClick={onMrnSearch} disabled={!!selectedPatient}>
                 <Search className="h-3 w-3" />
               </Button>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs">CNIC</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">CNIC</Label>
             <div className="flex gap-1">
               {selectedPatient ? (
                 <Input
                   value={selectedPatient.cnic || ""}
                   disabled
-                  className="h-8 text-xs"
+                  className="h-9 text-xs bg-muted/50"
                 />
               ) : (
                 <Input
                   value={cnicSearch}
                   onChange={(e) => onCnicSearchChange(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onCnicSearch(); } }}
-                  className="h-8 text-xs"
+                  className="h-9 text-xs"
                   placeholder=""
                 />
               )}
-              <Button size="sm" variant="outline" className="h-8 px-2" onClick={onCnicSearch} disabled={!!selectedPatient}>
+              <Button size="sm" variant="outline" className="h-9 px-2" onClick={onCnicSearch} disabled={!!selectedPatient}>
                 <Search className="h-3 w-3" />
               </Button>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs">Mobile No.</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Mobile No.</Label>
             <div className="flex gap-1">
               {selectedPatient ? (
                 <Input
                   value={selectedPatient.mobile || ""}
                   disabled
-                  className="h-8 text-xs"
+                  className="h-9 text-xs bg-muted/50"
                 />
               ) : (
                 <Input
                   value={mobileSearch}
                   onChange={(e) => onMobileSearchChange(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onMobileSearch(); } }}
-                  className="h-8 text-xs"
+                  className="h-9 text-xs"
                   placeholder=""
                 />
               )}
-              <Button size="sm" variant="outline" className="h-8 px-2" onClick={onMobileSearch} disabled={!!selectedPatient}>
+              <Button size="sm" variant="outline" className="h-9 px-2" onClick={onMobileSearch} disabled={!!selectedPatient}>
                 <Search className="h-3 w-3" />
               </Button>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs">Patient</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Patient</Label>
             <Input
               value={selectedPatient?.pName || ""}
               disabled
-              className="h-8 text-xs"
+              className="h-9 text-xs bg-muted/50"
             />
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs">Guardian</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Guardian</Label>
             <Input
               value={selectedPatient?.gName || ""}
               disabled
-              className="h-8 text-xs"
+              className="h-9 text-xs bg-muted/50"
             />
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs">Gender</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Gender</Label>
             <Input
               value={selectedPatient?.gender || ""}
               disabled
-              className="h-8 text-xs"
+              className="h-9 text-xs bg-muted/50"
             />
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs">Patient Type</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Patient Type</Label>
             <Select value={patientType} onValueChange={onPatientTypeChange}>
-              <SelectTrigger className="w-full h-8 text-xs">
+              <SelectTrigger className="w-full h-9 text-xs">
                 <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
@@ -194,9 +194,9 @@ export default function PatientDetailsCard({
             </Select>
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs">&nbsp;</Label>
-            <Button size="sm" variant="outline" className="h-8 px-2" onClick={onReset}>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">&nbsp;</Label>
+            <Button size="sm" variant="outline" className="h-9 px-3" onClick={onReset}>
               <RotateCcw className="h-3 w-3 mr-1" />Reset
             </Button>
           </div>

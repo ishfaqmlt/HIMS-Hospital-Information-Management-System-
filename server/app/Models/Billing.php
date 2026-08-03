@@ -110,4 +110,11 @@ class Billing extends Model
     {
         return $this->belongsTo(User::class, 'createdBy');
     }
+
+    public function payments()
+    {
+        return $this->belongsToMany(PatientPayment::class, 'billing_payments', 'billingId', 'paymentId')
+            ->withPivot('amount')
+            ->withTimestamps();
+    }
 }
