@@ -1,13 +1,12 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getMasterTests } from "@/services/masterTests.service";
+import masterTestService from "@/services/masterTests.service";
 
-// 🔹 Async fetch
 export const fetchMasterTests = createAsyncThunk(
   "masterTests/fetchMasterTests",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await getMasterTests();
-      return response;
+      const res = await masterTestService.getAll();
+      return res.data || [];
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -46,7 +45,6 @@ const masterTestsSlice = createSlice({
   },
 });
 
-export const { setMasterTests, clearMasterTests } =
-  masterTestsSlice.actions;
+export const { setMasterTests, clearMasterTests } = masterTestsSlice.actions;
 
 export default masterTestsSlice.reducer;

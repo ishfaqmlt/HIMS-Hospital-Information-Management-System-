@@ -50,24 +50,6 @@ export const departmentSchema = z.object({
 });
 
 export const masterTestSchema = z.object({
-  // UUID Foreign Keys
-  department_id: z
-    .string({ required_error: "Department is required" })
-    .uuid("Invalid department"),
-
-  required_sample_id: z
-    .string({ required_error: "Required sample is required" })
-    .uuid("Invalid required sample"),
-
-  sample_performs_id: z
-    .string({ required_error: "Sample performs is required" })
-    .uuid("Invalid sample performs"),
-
-  reported_ats_id: z
-    .string({ required_error: "Reported AT is required" })
-    .uuid("Invalid reported AT"),
-
-  // Unique Strings
   testCode: z
     .string({ required_error: "Test code is required" })
     .min(1, "Test code is required")
@@ -78,15 +60,20 @@ export const masterTestSchema = z.object({
     .min(1, "Test name is required")
     .max(255, "Test name too long"),
 
-  // Expected Time (store as number if possible)
-  expectedTime: z.coerce.number().min(0).optional(),
+  lab_required_sample_id: z
+    .string()
+    .optional()
+    .nullable(),
 
-  price: z.coerce.number().nonnegative("Price cannot be negative").default(0),
+  testSort: z.coerce.number().int().default(1),
+
+  expectedTime: z.coerce.string().optional(),
 
   interpretation: z.string().optional().nullable(),
 
   isActive: z.coerce.boolean(),
 });
+
 export const patientSchema = z.object({
   pName: z.string().min(1, "Patient name is required"),
   gName: z.string().optional(),
@@ -105,7 +92,7 @@ export const testParameterSchema = z.object({
     .string({ required_error: "Master test ID is required" })
     .uuid("Invalid Master Test ID"),
 
-  sub_headers_id: z.string({ required_error: "Sub Header is required" }).uuid("Invalid Sub Header ID"),
+  sub_headers_id: z.string().uuid("Invalid Sub Header ID").optional().nullable(),
   parameterName: z
     .string({ required_error: "Parameter name is required" })
     .min(1, "Parameter name is required")
@@ -115,14 +102,7 @@ export const testParameterSchema = z.object({
 
   units: z.string().optional().nullable(),
 
-  resultDataType: z
-    .string({ required_error: "Result data type is required" })
-    .min(1, "Result data type is required")
-    .max(255),
-
-  digitFormat: z
-    .enum(["0", "1", "2", "3"])
-    .default("0"),
+  decimal: z.coerce.number().int().min(0).max(5).default(0),
 
   resultTemplets: z.string().optional().nullable(),
 
@@ -137,6 +117,20 @@ export const testParameterSchema = z.object({
   isActive: z.coerce.boolean(),
 
   normalRange: z.string().optional().nullable(),
+});
+
+export const labBoundingSchema = z.object({
+  parameterId: z.string().uuid("Invalid Parameter ID"),
+  gender: z.string().optional().nullable(),
+  fromAge: z.coerce.number().int().min(0).default(0),
+  toAge: z.coerce.number().int().min(0).default(0),
+  ageType: z.string().min(1, "Age type is required").default("Years"),
+  lowerBound: z.coerce.number().default(0),
+  upperBound: z.coerce.number().default(0),
+  lowerCritical: z.coerce.number().default(0),
+  upperCritical: z.coerce.number().default(0),
+  fromAgeDays: z.coerce.number().int().min(0).default(0),
+  toAgeDays: z.coerce.number().int().min(0).default(0),
 });
 
 export const labProfileSchema = z.object({

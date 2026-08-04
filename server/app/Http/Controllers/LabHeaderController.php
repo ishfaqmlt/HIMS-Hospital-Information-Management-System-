@@ -18,6 +18,7 @@ class LabHeaderController extends Controller
             'header_name' => 'required|string|max:255|unique:lab_headers,header_name',
         ]);
 
+        $validated['id'] = \Illuminate\Support\Str::uuid();
         $item = LabHeader::create($validated);
 
         return response()->json($item, 201);

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\LabHeader;
+use Illuminate\Support\Str;
 
 class LabHeaderSeeder extends Seeder
 {
@@ -12,14 +13,17 @@ class LabHeaderSeeder extends Seeder
         LabHeader::truncate();
 
         $headers = [
-            ['header_name' => 'Hematology'],
-            ['header_name' => 'Chemistry'],
-            ['header_name' => 'Microbiology'],
-            ['header_name' => 'Immunology'],
-            ['header_name' => 'Urinalysis'],
-            ['header_name' => 'Stool Analysis'],
-            ['header_name' => 'Serology'],
-            ['header_name' => 'Endocrinology'],
+            ['id' => Str::uuid(), 'header_name' => 'Hematology'],
+            ['id' => Str::uuid(), 'header_name' => 'Biochemistry'],
+            ['id' => Str::uuid(), 'header_name' => 'Serology'],
+            ['id' => Str::uuid(), 'header_name' => 'Microbiology'],
+            ['id' => Str::uuid(), 'header_name' => 'Histopathology'],
+            ['id' => Str::uuid(), 'header_name' => 'Cytology'],
+            ['id' => Str::uuid(), 'header_name' => 'Immunology'],
+            ['id' => Str::uuid(), 'header_name' => 'Virology'],
+            ['id' => Str::uuid(), 'header_name' => 'Blood Bank'],
+            ['id' => Str::uuid(), 'header_name' => 'Clinical Pathology'],
+            ['id' => Str::uuid(), 'header_name' => 'Endocrinology'],
         ];
 
         foreach ($headers as $header) {

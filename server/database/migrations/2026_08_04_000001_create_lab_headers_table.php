@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('lab_headers', function (Blueprint $table) {
-            $table->id();
+           $table->uuid('id')->primary();
             $table->string('header_name')->unique();
             $table->boolean('isSynced')->default(false);
             $table->timestamps();

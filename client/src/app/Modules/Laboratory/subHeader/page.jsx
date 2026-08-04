@@ -1,6 +1,6 @@
 "use client";
+
 import React, { useEffect, useState, useMemo } from "react";
-// import { DataTable } from "./data-table";
 import { DataTable } from "@/components/data-table/data-table";
 import { getColumns } from "./columns";
 import { Button } from "@/components/ui/button";
@@ -9,182 +9,191 @@ import { Label } from "@/components/ui/label";
 import { useForm, Controller } from "react-hook-form";
 import { subHeaderSchema } from "@/lib/zodeSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  getSubHeaders,
-  getSubHeaderById,
-  createSubHeader,
-  updateSubHeader,
-} from "@/services/subHeaders.service";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Loader2, Plus, Save, X, Check, FlaskConical } from "lucide-react";
+import subHeaderService from "@/services/subHeaders.service";
 
-export default function SubHeaders() {
-  
+export default function SubHeadersPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [subHeaders, setSubHeaders] = useState([]);
-
-  
-  const FormSchema = subHeaderSchema.pick({ sub_header_name: true }); 
-
-  const defaultValues = {
-    sub_header_name: "",
-  };
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const {
     register,
-    handleSubmit: rhfHandleSubmit,
+    handleSubmit,
     control,
     reset,
     formState: { errors },
   } = useForm({
-    resolver: zodResolver(FormSchema),
-    defaultValues,
+    resolver: zodResolver(subHeaderSchema),
+    defaultValues: {
+      sub_header_name: "",
+    },
   });
 
-    const loadSubHeaders = async () => {
+  const loadSubHeaders = async () => {
     try {
-      const data = await getSubHeaders();
-      setSubHeaders(data);
+      const res = await subHeaderService.getAll();
+      setSubHeaders(res.data || []);
     } catch (error) {
       console.error("Failed to load sub headers:", error);
     }
   };
-  
+
   useEffect(() => {
     loadSubHeaders();
   }, []);
 
-  // Auto-dismiss messages after a short timeout
   useEffect(() => {
     if (!message) return;
     const t = setTimeout(() => setMessage(null), 4000);
     return () => clearTimeout(t);
   }, [message]);
 
-  const onSubmit = async (data) => {
+  const openCreate = () => {
+    setEditingId(null);
+    reset({ sub_header_name: "" });
+    setIsDialogOpen(true);
+  };
+
+  const openEdit = async (id) => {
+    try {
+      setLoading(true);
+      const res = await subHeaderService.getById(id);
+      const data = res.data;
+      setEditingId(data.id);
+      reset({ sub_header_name: data.sub_header_name || "" });
+      setIsDialogOpen(true);
+    } catch (error) {
+      setMessage({ type: "error", text: "Failed to load sub header" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onSubmit = async (formData) => {
     setLoading(true);
     setMessage(null);
-
     try {
       if (editingId) {
-        await updateSubHeader(editingId, data);
+        await subHeaderService.update(editingId, formData);
+        setMessage({ type: "success", text: "Sub header updated successfully" });
       } else {
-        await createSubHeader(data);
+        await subHeaderService.create(formData);
+        setMessage({ type: "success", text: "Sub header created successfully" });
       }
-
-      setMessage({
-        type: "success",
-        text: editingId
-          ? "Sub header updated successfully."
-          : "Sub header created successfully.",
-      });
-
-      reset(defaultValues);
+      setIsDialogOpen(false);
+      reset({ sub_header_name: "" });
       setEditingId(null);
-
-      // Refresh the departments list from the store
       await loadSubHeaders();
     } catch (err) {
       setMessage({
         type: "error",
-        text: err.message || "Failed to save sub header.",
+        text: err.response?.data?.message || "Failed to save sub header",
       });
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleEdit = async (id) => {
-  
-    try {
-      setLoading(true);
-
-      const subHeaderData = await getSubHeaderById(id);
-
-      reset({
-        sub_header_name: subHeaderData?.sub_header_name ?? "",
-      });
-
-      setEditingId(subHeaderData?.id);
-    } catch (error) {
-      console.error("Failed to fetch sub header:", error);
-      setMessage({ type: "error", text: "Failed to load sub header data" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReset = () => {
-    reset(defaultValues);
-    setEditingId(null);
-    setMessage(null);
-    loadSubHeaders();
   };
 
   const columns = useMemo(() => {
     return getColumns({
-      onEdit: handleEdit,
+      onEdit: openEdit,
     });
   }, []);
 
   return (
-    <div className="p-6 max-w-full mx-auto">
-      <h1 className="text-2xl font-bold text-center bg-gray-700 text-white p-2 rounded-2xl">
-        Laboratory Sub Headers
-      </h1>
-
+    <div className="space-y-4">
       {message && (
         <div
-          className={`mb-4 p-4 rounded-md text-sm ${
+          className={`px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm ${
             message.type === "success"
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800"
+              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+              : "bg-red-50 text-red-700 border border-red-200"
           }`}
         >
+          {message.type === "success" ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <X className="h-4 w-4" />
+          )}
           {message.text}
         </div>
       )}
 
-      <form
-        onSubmit={rhfHandleSubmit(onSubmit)}
-        className="p-6 rounded-lg shadow-md mb-8"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label className="mb-1" htmlFor="sub_header_name">
-              Sub Header Name
-            </Label>
-            <Controller
-              name="sub_header_name"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} placeholder="Enter sub header name" />
+      <Card className="shadow-sm border border-border/50">
+        <CardHeader className="py-2.5 bg-gradient-to-r from-primary/90 to-primary text-primary-foreground rounded-t-lg">
+          <CardTitle className="text-sm font-semibold flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <FlaskConical className="h-4 w-4" />
+              Lab Sub Headers
+            </span>
+            <Button
+              size="sm"
+              className="bg-white/20 hover:bg-white/30 text-white"
+              onClick={openCreate}
+            >
+              <Plus className="h-3 w-3 mr-1" /> Add Sub Header
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <DataTable columns={columns} data={subHeaders} filterColumn="sub_header_name" />
+        </CardContent>
+      </Card>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingId ? "Edit Sub Header" : "Add Sub Header"}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs">Sub Header Name</Label>
+              <Input
+                {...register("sub_header_name")}
+                className="h-9 text-xs"
+                placeholder="Enter sub header name"
+              />
+              {errors.sub_header_name && (
+                <p className="text-xs text-destructive">
+                  {errors.sub_header_name.message}
+                </p>
               )}
-            />
-            {errors.sub_header_name && (
-              <p className="text-red-600 text-sm mt-1">
-                {errors.sub_header_name.message}
-              </p>
-            )}
-          </div>
-
-        
-        </div>
-
-        <div className="flex gap-2 mt-6">
-          <Button type="submit" disabled={loading}>
-            {loading ? "Processing..." : editingId ? "Update" : "Create"}
-          </Button>
-          <Button type="button" variant="outline" onClick={handleReset}>
-            Reset
-          </Button>
-        </div>
-      </form>
-
-      <div>
-        <h2 className="text-xl font-bold mb-4">Sub Headers List</h2>
-        <DataTable columns={columns} data={subHeaders} />
-      </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" size="sm" disabled={loading}>
+                {loading ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Save className="h-3 w-3 mr-1" />
+                )}
+                {editingId ? "Update" : "Save"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -415,6 +415,7 @@ const toLocalISOString = (date) => {
 ### Migration Safety
 - **NEVER run `migrate:fresh` unless explicitly told** — only `php artisan migrate` or targeted rollback
 - When changing FK types, create a new migration (don't modify existing ones)
+- **When altering a table via migration**: Also update the original `create_*_table` migration to reflect the same change. After running the alter migration, delete the alter migration file. The change should only exist in the main migration.
 
 ### File Naming
 - Frontend pages: `page.jsx` (not `.tsx` unless TypeScript required)

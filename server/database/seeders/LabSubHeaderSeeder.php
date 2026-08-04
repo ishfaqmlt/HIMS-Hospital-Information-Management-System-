@@ -10,21 +10,45 @@ class LabSubHeaderSeeder extends Seeder
 {
     public function run(): void
     {
-        LabSubHeader::truncate();
+        LabSubHeader::query()->delete();
 
         $subHeaders = [
-            ['id' => Str::uuid(), 'sub_header_name' => 'Complete Blood Count'],
-            ['id' => Str::uuid(), 'sub_header_name' => 'Lipid Profile'],
-            ['id' => Str::uuid(), 'sub_header_name' => 'Liver Function Test'],
-            ['id' => Str::uuid(), 'sub_header_name' => 'Kidney Function Test'],
-            ['id' => Str::uuid(), 'sub_header_name' => 'Thyroid Profile'],
-            ['id' => Str::uuid(), 'sub_header_name' => 'Diabetes Profile'],
-            ['id' => Str::uuid(), 'sub_header_name' => 'Urine Routine'],
-            ['id' => Str::uuid(), 'sub_header_name' => 'Stool Routine'],
+            'Empty',
+            'DLC',
+            'Renal Function Tests',
+            'Liver Function Tests',
+            'Lipid Profile',
+            'Morphology',
+            '1st Day Sample',
+            '2nd Day Sample',
+            '3rd Day Sample',
+            'Physical Examination',
+            'Chemical Examination',
+            'Microscopic Examination',
+            'Microscopy',
+            'Patient',
+            'Donor',
+            'Typhoid Test',
+            'Dengue Test',
+            'Widal Test',
+            'Anti Streptolysin O (ASO)',
+            'Rheumatoid Factor (RF)',
+            'Chemistry',
+            'Follow Up',
+            'Electrolytes',
+            'Coombs Test',
+            'Toxoplasmosis',
+            'Oral Glucose Tolerance Test (OGTT)',
+            'Motility',
+            'Progressive Motility',
+            'Thyroid Function Tests',
         ];
 
-        foreach ($subHeaders as $subHeader) {
-            LabSubHeader::create($subHeader);
+        foreach ($subHeaders as $name) {
+            LabSubHeader::create([
+                'id' => Str::uuid(),
+                'sub_header_name' => $name,
+            ]);
         }
     }
 }

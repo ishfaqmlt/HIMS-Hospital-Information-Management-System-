@@ -1,30 +1,28 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { ArrowUpDown } from "lucide-react";
 
-export const getColumns = ({ onEdit, onDelete }) => [
+export const getColumns = ({ onEdit }) => [
   {
     id: "sl",
     header: "Serial No.",
     cell: ({ row }) => <span className="text-xs">{row.index + 1}</span>,
   },
   {
-    accessorKey: "header_name",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Header Name
-          {/* <ArrowUpDown className="ml-2 h-4 w-4" /> */}
-        </Button>
-      );
-    },
+    accessorKey: "required_sample_name",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Required Sample Name
+        {/* <ArrowUpDown className="ml-2 h-4 w-4" /> */}
+      </Button>
+    ),
     cell: ({ row }) => (
-      <span className="text-xs font-medium">{row.getValue("header_name")}</span>
+      <span className="text-xs font-medium">{row.getValue("required_sample_name")}</span>
     ),
   },
   {

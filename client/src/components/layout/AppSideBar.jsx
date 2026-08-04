@@ -63,32 +63,33 @@ const sidebarItems = [
           
        {
             title: "Sub-Header",
-            url: "/laboratory/subHeader",
+            url: "/Modules/laboratory/subHeader",
             icon: Building2,
           },
+          {
+        title: "Required Samples",
+        url: "/Modules/laboratory/requiredSamples",
+        icon: FlaskConical,
+      },
       {
         title: "Master Tests",
-        url: "/laboratory/masterTests",
+        url: "/Modules/laboratory/masterTests",
         icon: FileText,
       },
-      {
-        title: "Master Parameters",
-        url: "/laboratory/masterParameters",
-        icon: FileText,
-      },
+      // {
+      //   title: "Master Parameters",
+      //   url: "/Modules/laboratory/masterParameters",
+      //   icon: FileText,
+      // },
       {
         title: "Sample Performs",
-        url: "/laboratory/samplePerforms",
+        url: "/Modules/laboratory/samplePerforms",
         icon: FlaskConical,
       },
-      {
-        title: "Required Samples",
-        url: "/laboratory/requiredSamples",
-        icon: FlaskConical,
-      },
+      
       {
         title: "Reported At",
-        url: "/laboratory/reportedAt",
+        url: "/Modules/laboratory/reportedAt",
         icon: FileText,
       },
          
@@ -97,7 +98,7 @@ const sidebarItems = [
       },
       {
         title: "Discount Management",
-        url: "/laboratory/discountMaster",
+        url: "/Modules/laboratory/discountMaster",
         icon: Users,
       },
     ],

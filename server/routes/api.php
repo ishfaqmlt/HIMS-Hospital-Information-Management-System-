@@ -32,6 +32,8 @@ use App\Http\Controllers\LabHeaderController;
 use App\Http\Controllers\LabSubHeaderController;
 use App\Http\Controllers\LabRequiredSampleController;
 use App\Http\Controllers\LabMasterTestController;
+use App\Http\Controllers\LabMasterTestParameterController;
+use App\Http\Controllers\LabBoundingController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -112,6 +114,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Lab Master Tests
     Route::apiResource('lab-master-tests', LabMasterTestController::class);
+
+    // Lab Master Test Parameters
+    Route::apiResource('lab-master-test-parameters', LabMasterTestParameterController::class);
+
+    // Lab Boundings
+    Route::apiResource('lab-boundings', LabBoundingController::class);
 
     // Insurance Companies
     Route::apiResource('insurance-companies', InsuranceCompanyController::class);

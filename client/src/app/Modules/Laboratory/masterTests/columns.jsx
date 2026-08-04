@@ -1,218 +1,118 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Pencil } from "lucide-react"
-import { ArrowUpDown } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import { Pencil, Settings2 } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 
-export const getColumns = ({ onEdit ,onParameter}) => [
-  
-  // {
-  //   accessorKey: "id",
-  //   header: () => (
-  //     <div className=" font-semibold">
-  //       ID
-  //     </div>
-  //   ),
-  //   cell: ({ row }) => (
-  //     <div className="">
-  //       {row.getValue("id")}
-  //     </div>
-  //   ),
-  //   size: 0, // Set column width to 100px
-  // },
+export const getColumns = ({ onEdit, onParameters }) => [
   {
-    accessorFn: (row) => row.department?.department_name,
-    id: "department_name",
-     header: ({ column }) => {
-      return (
-        <div className="flex font-semibold">
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Department Name
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
-      )
-    },
-      cell: ({ row }) => {
-        const departmentName = row.original.department?.department_name
-        return (
-          <div className="flex ml-2 ">
-            {departmentName}
-          </div>
-        )
-      },
-    size: 150, // Department name column width
-  },
-   {
-    accessorKey: "testName",
-     header: ({ column }) => {
-      return (
-        <div className="flex justify-center font-semibold">
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Test Name
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
-      )
-    },
-      cell: ({ row }) => {
-        const testName = row.getValue("testName")
-        return (
-          <div className="flex justify-center">
-            {testName}
-          </div>
-        )
-      },
+    id: "sl",
+    header: "SL",
+    cell: ({ row }) => <span className="text-xs">{row.index + 1}</span>,
   },
   {
-    accessorFn: (row) => row.required_sample?.required_sample_name,
-    id: "required_sample_name",
-     header: ({ column }) => {
-      return (
-        <div className="flex justify-center font-semibold">
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Required Sample
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
-      )
-    },
-      cell: ({ row }) => {
-        const requiredSample = row.original.required_sample?.required_sample_name
-        return (
-          <div className="flex justify-center">
-            {requiredSample}
-          </div>
-        )
-      },
-  },
-  {
-    accessorFn: (row) => row.sample_perform?.sample_perform,
-    id: "sample_perform",
-     header: ({ column }) => {
-      return (
-        <div className="flex justify-center font-semibold">
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Sample Perform
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
-      )
-    },
-      cell: ({ row }) => {
-        const samplePerform = row.original.sample_perform?.sample_perform
-        return (
-          <div className="flex justify-center">
-            {samplePerform}
-          </div>
-        )
-      },
-  },
-  {
-    accessorFn: (row) => row.reported_at?.reported_at,
-    id: "reported_at",
-     header: ({ column }) => {
-      return (
-        <div className="flex justify-center font-semibold">
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Reported At
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
-      )
-    },
-      cell: ({ row }) => {
-        const reportedAt = row.original.reported_at?.reported_at
-        return (
-          <div className="flex justify-center">
-            {reportedAt}
-          </div>
-        )
-      },
-  },
- 
-  {
-    accessorKey: "price",
-    header: () => (
-      <div className="flex justify-center font-semibold">
-        Price
-      </div>
+    accessorKey: "testCode",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Test Code
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
     ),
-    cell: ({ row }) => {
-      const price = row.getValue("price")
-      return (
-        <div className="flex justify-center">
-          {price.toFixed(0)}
-        </div>
-      )
-    }
+    cell: ({ row }) => (
+      <span className="text-xs font-medium">{row.getValue("testCode")}</span>
+    ),
   },
-          
+  {
+    accessorKey: "testName",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Test Name
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => (
+      <span className="text-xs font-medium">{row.getValue("testName")}</span>
+    ),
+  },
+  {
+    accessorFn: (row) => row.required_sample?.required_sample_name || "",
+    id: "required_sample_name",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Required Sample
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => (
+      <span className="text-xs">{row.original.required_sample?.required_sample_name || "-"}</span>
+    ),
+  },
+  {
+    accessorKey: "testSort",
+    header: () => <div className="text-center text-xs font-semibold">Sort</div>,
+    cell: ({ row }) => (
+      <div className="text-center text-xs">{row.getValue("testSort")}</div>
+    ),
+  },
+  {
+    accessorKey: "expectedTime",
+    header: () => <div className="text-center text-xs font-semibold">Time (min)</div>,
+    cell: ({ row }) => (
+      <div className="text-center text-xs">{row.getValue("expectedTime") || "-"}</div>
+    ),
+  },
   {
     accessorKey: "isActive",
-    header: () => (
-      <div className="flex justify-center font-semibold">
-        Status
-      </div>
-    ),
+    header: () => <div className="text-center text-xs font-semibold">Status</div>,
     cell: ({ row }) => {
-      const isActive = row.getValue("isActive")
+      const isActive = row.getValue("isActive");
       return (
         <span
-          className={` flex justify-center px-2 py-1 rounded-full text-sm  ${
-            isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+          className={`inline-flex justify-center px-2 py-0.5 rounded text-[10px] font-semibold ${
+            isActive ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
           }`}
         >
           {isActive ? "Active" : "Inactive"}
         </span>
-      )
-    }
+      );
+    },
   },
-    {
+  {
     id: "actions",
-    header: () => (
-      <div className="text-end">Actions</div>
-    ),
+    header: () => <div className="w-full text-right">Actions</div>,
     cell: ({ row }) => {
-      const rowData = row.original
-
+      const rowData = row.original;
       return (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-1">
           <Button
             size="sm"
-            variant="outline"
+            variant="ghost"
+            className="h-6 px-2 text-xs"
             onClick={() => onEdit(rowData)}
-            className="flex items-center gap-1"
           >
-            <Pencil className="h-4 w-4" />
+            <Pencil className="h-3 w-3 mr-1" />
             Edit
           </Button>
           <Button
             size="sm"
-            variant="outline"
-            onClick={() => onParameter(rowData)}
-            className="flex items-center gap-1 ml-2"
+            variant="ghost"
+            className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700"
+            onClick={() => onParameters(rowData)}
           >
-            <Pencil className="h-4 w-4" />
+            <Settings2 className="h-3 w-3 mr-1" />
             Parameters
           </Button>
         </div>
-      )
+      );
     },
   },
-]
+];

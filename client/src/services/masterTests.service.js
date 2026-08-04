@@ -1,17 +1,10 @@
 import api from "./axios";
 
-export const getMasterTests = async (params) => {
-  const res = await api.get("/master-tests", { params });
-  return res.data?.data || [];
+const masterTestService = {
+  getAll: (params) => api.get("/lab-master-tests", { params }),
+  getById: (id) => api.get(`/lab-master-tests/${id}`),
+  create: (data) => api.post("/lab-master-tests", data),
+  update: (id, data) => api.put(`/lab-master-tests/${id}`, data),
 };
 
-export const createMasterTest = async (data) => {
-  const res = await api.post("/master-tests", data);
-  return res.data?.data || {};
-};
-
-export const updateMasterTest = async (id, data) => {
-  const res = await api.put(`/master-tests/${id}`, data);
-  return res.data?.data || {};
-};
-
+export default masterTestService;
