@@ -81,26 +81,26 @@ const sidebarItems = [
       //   url: "/Modules/laboratory/masterParameters",
       //   icon: FileText,
       // },
-      {
-        title: "Sample Performs",
-        url: "/Modules/laboratory/samplePerforms",
-        icon: FlaskConical,
-      },
+      // {
+      //   title: "Sample Performs",
+      //   url: "/Modules/laboratory/samplePerforms",
+      //   icon: FlaskConical,
+      // },
       
-      {
-        title: "Reported At",
-        url: "/Modules/laboratory/reportedAt",
-        icon: FileText,
-      },
+      // {
+      //   title: "Reported At",
+      //   url: "/Modules/laboratory/reportedAt",
+      //   icon: FileText,
+      // },
          
           
         ],
       },
-      {
-        title: "Discount Management",
-        url: "/Modules/laboratory/discountMaster",
-        icon: Users,
-      },
+      // {
+      //   title: "Discount Management",
+      //   url: "/Modules/laboratory/discountMaster",
+      //   icon: Users,
+      // },
     ],
   },
 ];

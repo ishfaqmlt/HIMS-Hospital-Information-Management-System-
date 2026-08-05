@@ -402,3 +402,21 @@ export const billingFormSchema = z.object({
     flag: z.enum(["I", "U"]),
   })).default([]),
 });
+
+export const labCaseSchema = z.object({
+  visitId: z.string().min(1, "Patient visit is required"),
+  billingId: z.string().optional().nullable(),
+  caseDate: z.string().min(1, "Case date is required"),
+  analyzerReffno: z.string().optional().nullable(),
+  insuranceCompanyId: z.string().optional().nullable(),
+  doctorId: z.string().optional().nullable(),
+  orReffBy: z.string().optional().nullable(),
+  priority: z.enum(["Normal", "Urgent"]).default("Normal"),
+  remarks: z.string().optional().nullable(),
+  selectedTests: z.array(z.object({
+    id: z.string(),
+    testName: z.string(),
+    testCode: z.string(),
+    rate: z.coerce.number().default(0),
+  })).min(1, "Select at least one test"),
+});

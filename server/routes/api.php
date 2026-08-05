@@ -34,6 +34,7 @@ use App\Http\Controllers\LabRequiredSampleController;
 use App\Http\Controllers\LabMasterTestController;
 use App\Http\Controllers\LabMasterTestParameterController;
 use App\Http\Controllers\LabBoundingController;
+use App\Http\Controllers\LabCaseController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -120,6 +121,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Lab Boundings
     Route::apiResource('lab-boundings', LabBoundingController::class);
+
+    // Lab Cases
+    Route::get('/lab-cases/waiting-invoices', [LabCaseController::class, 'waitingInvoices']);
+    Route::post('/lab-cases/{testId}/results', [LabCaseController::class, 'storeResults']);
+    Route::get('/lab-cases/{testId}/results', [LabCaseController::class, 'getResults']);
+    Route::put('/lab-cases/tests/{testId}/status', [LabCaseController::class, 'updateTestStatus']);
+    Route::apiResource('lab-cases', LabCaseController::class);
 
     // Insurance Companies
     Route::apiResource('insurance-companies', InsuranceCompanyController::class);

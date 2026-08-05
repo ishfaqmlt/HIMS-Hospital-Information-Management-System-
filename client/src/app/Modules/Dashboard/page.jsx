@@ -59,7 +59,7 @@ const departments = [
   { name: "ICU", icon: HeartPulse, color: "bg-rose-500", href: "/Modules/ICU", permission: "view_icu" },
   { name: "Nursing", icon: ClipboardList, color: "bg-pink-500", href: "/Modules/Nursing", permission: "view_nursing" },
   { name: "Pharmacy", icon: Pill, color: "bg-green-500", href: "/Modules/Pharmacy", permission: "view_pharmacy" },
-  { name: "Laboratory", icon: FlaskConical, color: "bg-amber-500", href: "/Modules/laboratory", permission: "view_laboratory" },
+  { name: "Laboratory", icon: FlaskConical, color: "bg-amber-500", href: "/Modules/laboratory/labDashboard", permission: "view_laboratory" },
   { name: "Radiology", icon: Radiation, color: "bg-sky-500", href: "/Modules/Radiology", permission: "view_radiology" },
   { name: "Blood Bank", icon: Droplets, color: "bg-red-600", href: "/Modules/BloodBank", permission: "view_blood_bank" },
   { name: "Vaccination", icon: TestTube, color: "bg-lime-500", href: "/Modules/Vaccination", permission: "view_vaccination" },

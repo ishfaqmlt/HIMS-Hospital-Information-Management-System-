@@ -225,7 +225,7 @@ const Login = () => {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-slate-500">
+          {/* <p className="mt-6 text-center text-sm text-slate-500">
             Don&apos;t have an account?{" "}
             <Link
               href="/register"
@@ -233,7 +233,7 @@ const Login = () => {
             >
               Create an account
             </Link>
-          </p>
+          </p> */}
         </div>
       </div>
     </div>
