@@ -341,17 +341,6 @@ class LabCaseController extends Controller
                 ->update(['isServed' => false, 'updated_at' => now()]);
         }
 
-        $remainingTests = DB::table('lab_case_tests')->where('caseId', $caseId)->count();
-        if ($remainingTests === 0) {
-            DB::table('lab_cases')->where('id', $caseId)->update(['status' => 'Cancelled', 'updated_at' => now()]);
-            // Also set all billing_details for this billing as unserved
-            if (!empty($case->billingId)) {
-                DB::table('billing_details')
-                    ->where('BillingId', $case->billingId)
-                    ->update(['isServed' => false, 'updated_at' => now()]);
-            }
-        }
-
         $case = $this->getCaseById($caseId);
         return response()->json($case);
     }
