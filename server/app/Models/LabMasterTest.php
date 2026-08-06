@@ -13,6 +13,7 @@ class LabMasterTest extends Model
 
     protected $fillable = [
         'id',
+        'serviceId',
         'testCode',
         'testName',
         'lab_required_sample_id',
@@ -41,5 +42,10 @@ class LabMasterTest extends Model
     public function requiredSample()
     {
         return $this->belongsTo(LabRequiredSample::class, 'lab_required_sample_id');
+    }
+
+    public function service()
+    {
+        return $this->belongsTo(Service::class, 'serviceId');
     }
 }

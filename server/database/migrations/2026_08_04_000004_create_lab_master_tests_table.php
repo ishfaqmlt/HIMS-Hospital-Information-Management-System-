@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('lab_master_tests', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->foreignUuid('serviceId')->nullable()->constrained('services')->nullOnDelete();
             $table->string('testCode')->unique();
             $table->string('testName')->unique();
             $table->foreignUuid('lab_required_sample_id')->nullable()->constrained('lab_required_samples');

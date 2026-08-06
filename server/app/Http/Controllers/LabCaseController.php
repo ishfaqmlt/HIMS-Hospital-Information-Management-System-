@@ -148,9 +148,21 @@ class LabCaseController extends Controller
             'priority' => 'required|in:Normal,Urgent',
             'remarks' => 'nullable|string',
             'tests' => 'required|array|min:1',
-            'tests.*.masterTestId' => 'required|string|exists:lab_master_tests,id',
+            'tests.*.masterTestId' => 'nullable|string',
+            'tests.*.serviceId' => 'nullable|string|exists:services,id',
             'tests.*.rate' => 'required|numeric|min:0',
-        ])->validated();
+        ])->validate();
+
+        // Resolve masterTestId from serviceId if not provided
+        foreach ($validated['tests'] as &$test) {
+            if (empty($test['masterTestId']) && !empty($test['serviceId'])) {
+                $masterTest = DB::table('lab_master_tests')->where('serviceId', $test['serviceId'])->first();
+                if ($masterTest) {
+                    $test['masterTestId'] = $masterTest->id;
+                }
+            }
+        }
+        unset($test);
 
         $caseId = Str::uuid();
         $caseNo = $this->generateCaseNo();
@@ -174,10 +186,12 @@ class LabCaseController extends Controller
         ]);
 
         foreach ($validated['tests'] as $test) {
+            if (empty($test['masterTestId'])) continue;
             DB::table('lab_case_tests')->insert([
                 'id' => Str::uuid(),
                 'caseId' => $caseId,
                 'masterTestId' => $test['masterTestId'],
+                'serviceId' => $test['serviceId'] ?? null,
                 'rate' => $test['rate'],
                 'status' => 'Pending',
                 'created_at' => now(),

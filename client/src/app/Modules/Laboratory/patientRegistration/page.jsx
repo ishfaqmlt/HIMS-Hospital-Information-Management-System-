@@ -148,6 +148,7 @@ export default function PatientRegistrationPage() {
 
     const mappedTests = (invoice.tests || []).map((t) => ({
       id: t.serviceId,
+      serviceId: t.serviceId,
       testName: t.serviceName,
       testCode: t.serviceCode,
       rate: parseFloat(t.rate) || 0,
@@ -311,7 +312,8 @@ export default function PatientRegistrationPage() {
         priority: data.priority,
         remarks: data.remarks || null,
         tests: data.selectedTests.map((t) => ({
-          masterTestId: t.id,
+          masterTestId: t.masterTestId || null,
+          serviceId: t.serviceId || t.id,
           rate: t.rate,
         })),
       };
