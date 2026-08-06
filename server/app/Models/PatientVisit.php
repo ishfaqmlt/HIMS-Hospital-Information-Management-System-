@@ -43,19 +43,18 @@ class PatientVisit extends Model
 
     public static function generateVisitNo(): string
     {
-        $prefix = date('my');
-        $lastVisit = self::where('visitNo', 'like', "V-{$prefix}-%")
-            ->orderByRaw("SUBSTRING(visitNo, -3) DESC")
-            ->first();
+        $prefix = 'V-' . date('my') . '-';
+        $last = self::where('visitNo', 'like', "{$prefix}%")
+            ->orderByDesc('visitNo')
+            ->value('visitNo');
 
-        if ($lastVisit) {
-            $lastSeq = (int) substr($lastVisit->visitNo, -3);
-            $newSeq = str_pad($lastSeq + 1, 3, '0', STR_PAD_LEFT);
+        if ($last) {
+            $seq = intval(substr($last, strlen($prefix))) + 1;
         } else {
-            $newSeq = '001';
+            $seq = 0;
         }
 
-        return "V-{$prefix}-{$newSeq}";
+        return $prefix . $seq;
     }
 
     public function patient()

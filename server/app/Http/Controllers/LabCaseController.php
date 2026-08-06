@@ -198,6 +198,14 @@ class LabCaseController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            // Mark billing_detail as served
+            if (!empty($validated['billingId']) && !empty($test['serviceId'])) {
+                DB::table('billing_details')
+                    ->where('BillingId', $validated['billingId'])
+                    ->where('serviceId', $test['serviceId'])
+                    ->update(['isServed' => true, 'updated_at' => now()]);
+            }
         }
 
         $case = $this->getCaseById($caseId);
@@ -278,6 +286,22 @@ class LabCaseController extends Controller
             return response()->json(['message' => 'Lab case not found'], 404);
         }
 
+        // Set billing_details.isServed=0 before deleting
+        if (!empty($existing->billingId)) {
+            $serviceIds = DB::table('lab_case_tests')
+                ->where('caseId', $id)
+                ->whereNotNull('serviceId')
+                ->pluck('serviceId')
+                ->toArray();
+
+            if (count($serviceIds) > 0) {
+                DB::table('billing_details')
+                    ->where('BillingId', $existing->billingId)
+                    ->whereIn('serviceId', $serviceIds)
+                    ->update(['isServed' => false, 'updated_at' => now()]);
+            }
+        }
+
         DB::table('lab_case_tests')->where('caseId', $id)->delete();
         DB::table('lab_cases')->where('id', $id)->delete();
 
@@ -296,14 +320,36 @@ class LabCaseController extends Controller
             return response()->json(['message' => 'Lab case not found'], 404);
         }
 
+        // Get serviceIds of tests being removed
+        $removedServiceIds = DB::table('lab_case_tests')
+            ->where('caseId', $caseId)
+            ->whereIn('id', $validated['testIds'])
+            ->whereNotNull('serviceId')
+            ->pluck('serviceId')
+            ->toArray();
+
         DB::table('lab_case_tests')
             ->where('caseId', $caseId)
             ->whereIn('id', $validated['testIds'])
             ->delete();
 
+        // Set billing_details.isServed=0 for removed services
+        if (!empty($case->billingId) && count($removedServiceIds) > 0) {
+            DB::table('billing_details')
+                ->where('BillingId', $case->billingId)
+                ->whereIn('serviceId', $removedServiceIds)
+                ->update(['isServed' => false, 'updated_at' => now()]);
+        }
+
         $remainingTests = DB::table('lab_case_tests')->where('caseId', $caseId)->count();
         if ($remainingTests === 0) {
             DB::table('lab_cases')->where('id', $caseId)->update(['status' => 'Cancelled', 'updated_at' => now()]);
+            // Also set all billing_details for this billing as unserved
+            if (!empty($case->billingId)) {
+                DB::table('billing_details')
+                    ->where('BillingId', $case->billingId)
+                    ->update(['isServed' => false, 'updated_at' => now()]);
+            }
         }
 
         $case = $this->getCaseById($caseId);
@@ -536,12 +582,12 @@ class LabCaseController extends Controller
             ->value('caseNo');
 
         if ($last) {
-            $seq = intval(substr($last, -5)) + 1;
+            $seq = intval(substr($last, strlen($prefix))) + 1;
         } else {
-            $seq = 1;
+            $seq = 0;
         }
 
-        return $prefix . str_pad($seq, 5, '0', STR_PAD_LEFT);
+        return $prefix . $seq;
     }
 
     private function generateAnalyzerReffNo()
@@ -553,12 +599,12 @@ class LabCaseController extends Controller
             ->value('analyzerReffno');
 
         if ($last) {
-            $seq = intval(substr($last, -5)) + 1;
+            $seq = intval(substr($last, strlen($prefix))) + 1;
         } else {
-            $seq = 1;
+            $seq = 0;
         }
 
-        return $prefix . str_pad($seq, 5, '0', STR_PAD_LEFT);
+        return $prefix . $seq;
     }
 
     public function waitingInvoices(Request $request)

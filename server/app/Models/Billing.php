@@ -63,12 +63,18 @@ class Billing extends Model
 
     public static function generateInvoiceNo(): string
     {
-        $now = now();
-        $prefix = 'INV-' . $now->format('my');
+        $prefix = 'INV-' . now()->format('my') . '-';
+        $last = Billing::where('InvoiceNo', 'like', "{$prefix}%")
+            ->orderByDesc('InvoiceNo')
+            ->value('InvoiceNo');
 
-        $count = Billing::where('InvoiceNo', 'like', "{$prefix}-%")->count() + 1;
+        if ($last) {
+            $seq = intval(substr($last, strlen($prefix))) + 1;
+        } else {
+            $seq = 0;
+        }
 
-        return $prefix . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+        return $prefix . $seq;
     }
 
     public function patientVisit()

@@ -48,19 +48,18 @@ class Patient extends Model
 
     public static function generateMrn(): string
     {
-        $prefix = date('y');
-        $lastPatient = self::where('mrn', 'like', "MRN-{$prefix}-%")
-            ->orderByRaw("SUBSTRING(mrn, -5) DESC")
-            ->first();
+        $prefix = 'MRN-' . date('my') . '-';
+        $last = self::where('mrn', 'like', "{$prefix}%")
+            ->orderByDesc('mrn')
+            ->value('mrn');
 
-        if ($lastPatient) {
-            $lastSeq = (int) substr($lastPatient->mrn, -5);
-            $newSeq = str_pad($lastSeq + 1, 5, '0', STR_PAD_LEFT);
+        if ($last) {
+            $seq = intval(substr($last, strlen($prefix))) + 1;
         } else {
-            $newSeq = '00001';
+            $seq = 0;
         }
 
-        return "MRN-{$prefix}-{$newSeq}";
+        return $prefix . $seq;
     }
 
     public function visits()

@@ -24,6 +24,12 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Loader2,
   Save,
   Trash2,
@@ -34,6 +40,7 @@ import {
   RefreshCw,
   Pencil,
   X,
+  EllipsisVertical,
 } from "lucide-react";
 import { labCaseSchema } from "@/lib/zodeSchema";
 import patientVisitService from "@/services/patientVisitService";
@@ -318,6 +325,21 @@ export default function PatientRegistrationPage() {
   const handleCancelEdit = () => {
     setEditingCase(null);
     handleReset();
+  };
+
+  const handleDeleteCase = async (caseData) => {
+    if (!confirm(`Delete case ${caseData.caseNo}? This will also unserved the billing details.`)) return;
+    setLoading(true);
+    try {
+      await labCaseService.delete(caseData.id);
+      setMessage({ type: "success", text: `Case ${caseData.caseNo} deleted.` });
+      fetchTodayCases();
+      fetchWaitingInvoices();
+    } catch (error) {
+      setMessage({ type: "error", text: error.response?.data?.message || "Failed to delete case" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const totalAmount = (selectedTests || []).reduce((sum, t) => sum + parseFloat(t.rate || 0), 0);
@@ -759,16 +781,22 @@ export default function PatientRegistrationPage() {
                                 </span>
                               </TableCell>
                               <TableCell className="text-xs">
-                                {c.status === "Registered" && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0"
-                                    onClick={() => handleEditCase(c)}
-                                  >
-                                    <Pencil className="h-3 w-3" />
-                                  </Button>
+                                {(c.status === "Registered" || c.status === "Sampled") && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button type="button" variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                        <EllipsisVertical className="h-3 w-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => handleEditCase(c)}>
+                                        <Pencil className="h-3 w-3 mr-2" /> Edit
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleDeleteCase(c)} className="text-destructive">
+                                        <Trash2 className="h-3 w-3 mr-2" /> Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 )}
                               </TableCell>
                             </TableRow>
