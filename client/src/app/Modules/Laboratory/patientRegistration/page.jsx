@@ -303,7 +303,7 @@ export default function PatientRegistrationPage() {
     try {
       const payload = {
         visitId: data.visitId,
-        billingId: selectedInvoice ? selectedInvoice.invoiceNo : (data.billingId || null),
+        billingId: selectedInvoice ? selectedInvoice.billingId : (data.billingId || null),
         caseDate: data.caseDate,
         analyzerReffno: data.analyzerReffno || null,
         insuranceCompanyId: data.insuranceCompanyId || null,

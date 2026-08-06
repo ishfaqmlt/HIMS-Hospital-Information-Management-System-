@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('billing_details', function (Blueprint $table) {
             $table->uuid('Id')->primary();
-            $table->string('invoiceNo', 20)->constrained('billings', 'InvoiceNo')->onDelete('cascade');
+            $table->foreignUuid('BillingId')->constrained('billings')->onDelete('cascade');
             $table->foreignUuid('serviceId')->constrained('services')->onDelete('cascade');
             $table->integer('Qty')->default(1);
             $table->decimal('Rate', 10, 2)->default(0);

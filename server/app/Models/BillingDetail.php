@@ -13,7 +13,7 @@ class BillingDetail extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'invoiceNo',
+        'BillingId',
         'serviceId',
         'Qty',
         'Rate',
@@ -46,7 +46,7 @@ class BillingDetail extends Model
 
     public function billing()
     {
-        return $this->belongsTo(Billing::class, 'invoiceNo', 'InvoiceNo');
+        return $this->belongsTo(Billing::class, 'BillingId');
     }
 
     public function service()

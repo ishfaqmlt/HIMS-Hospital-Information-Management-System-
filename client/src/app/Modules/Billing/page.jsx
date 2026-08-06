@@ -558,7 +558,7 @@ export default function BillingPage() {
     handleNew();
     setLoading(true);
     try {
-      const detailsRes = await billingDetailService.getAll({ invoiceNo: invoice.InvoiceNo });
+      const detailsRes = await billingDetailService.getAll({ BillingId: invoice.id });
       const details = detailsRes.data || [];
 
       let payment = null;
@@ -706,6 +706,7 @@ export default function BillingPage() {
         });
       }
 
+      const billingId = billingRes.data.id || billingRes.data.Id;
       const invoiceNo = billingRes.data.InvoiceNo;
 
       for (const svc of formData.services) {
@@ -720,7 +721,7 @@ export default function BillingPage() {
           });
         } else if (svc.flag === "I") {
           await billingDetailService.create({
-            invoiceNo,
+            BillingId: billingId,
             serviceId: svc.serviceId,
             Qty: svc.qty,
             Rate: svc.fee,

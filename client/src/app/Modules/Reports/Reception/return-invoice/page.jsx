@@ -64,7 +64,7 @@ function ReturnInvoiceContent() {
       }
       setOriginalInvoice(invoice);
 
-      const detailsRes = await billingDetailService.getAll({ invoiceNo });
+      const detailsRes = await billingDetailService.getAll({ BillingId: invoice.id });
       const details = detailsRes.data || [];
 
       const loadedServices = details.map((d, idx) => ({

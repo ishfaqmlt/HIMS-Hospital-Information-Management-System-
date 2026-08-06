@@ -280,7 +280,7 @@ export const billingSchema = z.object({
 });
 
 export const billingDetailSchema = z.object({
-  invoiceNo: z.string().min(1, "Invoice number is required"),
+  BillingId: z.string().min(1, "Billing ID is required"),
   serviceId: z.string().min(1, "Service is required"),
   Qty: z.coerce.number().min(1, "Quantity must be at least 1"),
   Rate: z.coerce.number().min(0, "Rate must be positive"),

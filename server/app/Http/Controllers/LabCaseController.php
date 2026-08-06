@@ -139,7 +139,7 @@ class LabCaseController extends Controller
 
         $validated = \Validator::make($data, [
             'visitId' => 'required|string|exists:patient_visits,id',
-            'billingId' => 'nullable|string|exists:billings,InvoiceNo',
+            'billingId' => 'nullable|string|exists:billings,id',
             'caseDate' => 'required|date',
             'analyzerReffno' => 'nullable|string|max:255',
             'insuranceCompanyId' => 'nullable|string|exists:insurance_companies,id',
@@ -229,7 +229,7 @@ class LabCaseController extends Controller
 
         $validated = \Validator::make($data, [
             'visitId' => 'required|string|exists:patient_visits,id',
-            'billingId' => 'nullable|string|exists:billings,InvoiceNo',
+            'billingId' => 'nullable|string|exists:billings,id',
             'caseDate' => 'required|date',
             'analyzerReffno' => 'nullable|string|max:255',
             'insuranceCompanyId' => 'nullable|string|exists:insurance_companies,id',
@@ -530,7 +530,7 @@ class LabCaseController extends Controller
         }
 
         $rows = DB::table('billings as b')
-            ->join('billing_details as bd', 'b.InvoiceNo', '=', 'bd.invoiceNo', 'inner')
+            ->join('billing_details as bd', 'b.id', '=', 'bd.BillingId', 'inner')
             ->leftJoin('patient_visits as pv', 'b.visitId', '=', 'pv.id')
             ->leftJoin('patients as p', 'pv.patientId', '=', 'p.id')
             ->leftJoin('doctors as doc', 'b.DoctorId', '=', 'doc.id')
@@ -540,6 +540,7 @@ class LabCaseController extends Controller
             ->where('bd.isServed', false)
             ->where('b.PaymentStatus', '!=', 'Cancelled')
             ->select(
+                'b.id as billingId',
                 'b.InvoiceNo',
                 'b.InvoiceDate',
                 'b.TotalAmount',
@@ -575,6 +576,7 @@ class LabCaseController extends Controller
             $invNo = $row->InvoiceNo;
             if (!isset($grouped[$invNo])) {
                 $grouped[$invNo] = [
+                    'billingId' => $row->billingId,
                     'invoiceNo' => $row->InvoiceNo,
                     'invoiceDate' => $row->InvoiceDate,
                     'totalAmount' => $row->TotalAmount,

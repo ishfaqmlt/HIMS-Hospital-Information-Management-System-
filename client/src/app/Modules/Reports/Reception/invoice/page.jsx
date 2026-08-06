@@ -52,7 +52,7 @@ export async function printInvoiceSlip(invoice, format = "thermal", setMessage) 
   try {
     const [profileRes, detailsRes] = await Promise.all([
       hospitalProfileService.get(),
-      billingDetailService.getAll({ invoiceNo: invoice.InvoiceNo }),
+      billingDetailService.getAll({ BillingId: invoice.id }),
     ]);
 
     const profile = profileRes.data?.[0] || profileRes.data || {};

@@ -12,8 +12,8 @@ class BillingDetailController extends Controller
     {
         $query = BillingDetail::with(['billing', 'service', 'createdByUser']);
 
-        if ($request->has('invoiceNo') && $request->invoiceNo) {
-            $query->where('invoiceNo', $request->invoiceNo);
+        if ($request->has('BillingId') && $request->BillingId) {
+            $query->where('BillingId', $request->BillingId);
         }
 
         return response()->json($query->get());
@@ -22,7 +22,7 @@ class BillingDetailController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'invoiceNo' => 'required|string|exists:billings,InvoiceNo',
+            'BillingId' => 'required|string|exists:billings,id',
             'serviceId' => 'required|string|exists:services,id',
             'Qty' => 'required|integer|min:1',
             'Rate' => 'required|numeric|min:0',
