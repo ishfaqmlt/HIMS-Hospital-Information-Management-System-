@@ -32,6 +32,8 @@ import {
   FlaskConical,
   UserPlus,
   RefreshCw,
+  Pencil,
+  X,
 } from "lucide-react";
 import { labCaseSchema } from "@/lib/zodeSchema";
 import patientVisitService from "@/services/patientVisitService";
@@ -72,6 +74,7 @@ export default function PatientRegistrationPage() {
 
   const [todayCases, setTodayCases] = useState([]);
   const [todayCasesLoading, setTodayCasesLoading] = useState(false);
+  const [editingCase, setEditingCase] = useState(null);
 
   const {
     register,
@@ -254,13 +257,14 @@ export default function PatientRegistrationPage() {
   };
 
   const handleReset = () => {
+    setEditingCase(null);
+    setSelectedInvoice(null);
+    setSelectedPatient(null);
     setMrnSearch("");
     setMobileSearch("");
     setCnicSearch("");
     setVisitNoSearch("");
-    setSelectedPatient(null);
     setExistingVisitId(null);
-    setSelectedInvoice(null);
     reset({
       visitId: "",
       billingId: "",
@@ -287,6 +291,35 @@ export default function PatientRegistrationPage() {
     setValue("selectedTests", updated);
   };
 
+  const handleEditCase = (caseData) => {
+    setEditingCase(caseData);
+    setSelectedPatient(caseData.patient || null);
+    setMrnSearch(caseData.patient?.mrn?.replace("MRN-", "") || "");
+    setVisitNoSearch(caseData.visitNo?.replace("V-", "") || "");
+    setValue("visitId", caseData.visitId || "");
+    setValue("doctorId", caseData.doctorId || "");
+    setValue("caseDate", caseData.caseDate ? caseData.caseDate.replace(" ", "T").slice(0, 16) : toLocalISOString(new Date()));
+    setValue("analyzerReffno", caseData.analyzerReffno || "");
+    setValue("priority", caseData.priority || "Normal");
+    setValue("remarks", caseData.remarks || "");
+
+    const mappedTests = (caseData.tests || []).map((t) => ({
+      id: t.masterTestId || t.id,
+      masterTestId: t.masterTestId,
+      serviceId: t.serviceId || null,
+      testName: t.masterTest?.testName || t.testName || "",
+      testCode: t.masterTest?.testCode || t.testCode || "",
+      rate: parseFloat(t.rate) || 0,
+      caseTestId: t.id,
+    }));
+    setValue("selectedTests", mappedTests);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCase(null);
+    handleReset();
+  };
+
   const totalAmount = (selectedTests || []).reduce((sum, t) => sum + parseFloat(t.rate || 0), 0);
 
   const onSubmit = async (data) => {
@@ -301,25 +334,36 @@ export default function PatientRegistrationPage() {
 
     setLoading(true);
     try {
-      const payload = {
-        visitId: data.visitId,
-        billingId: selectedInvoice ? selectedInvoice.billingId : (data.billingId || null),
-        caseDate: data.caseDate,
-        analyzerReffno: data.analyzerReffno || null,
-        insuranceCompanyId: data.insuranceCompanyId || null,
-        doctorId: data.doctorId || null,
-        orReffBy: data.orReffBy || null,
-        priority: data.priority,
-        remarks: data.remarks || null,
-        tests: data.selectedTests.map((t) => ({
-          masterTestId: t.masterTestId || null,
-          serviceId: t.serviceId || t.id,
-          rate: t.rate,
-        })),
-      };
+      if (editingCase) {
+        const originalTestIds = (editingCase.tests || []).map((t) => t.id);
+        const currentTestIds = (data.selectedTests || []).map((t) => t.caseTestId).filter(Boolean);
+        const removedTestIds = originalTestIds.filter((id) => !currentTestIds.includes(id));
 
-      await labCaseService.create(payload);
-      setMessage({ type: "success", text: "Lab case registered successfully!" });
+        if (removedTestIds.length > 0) {
+          await labCaseService.removeTests(editingCase.id, removedTestIds);
+        }
+        setMessage({ type: "success", text: `Case updated. ${removedTestIds.length} test(s) removed.` });
+      } else {
+        const payload = {
+          visitId: data.visitId,
+          billingId: selectedInvoice ? selectedInvoice.billingId : (data.billingId || null),
+          caseDate: data.caseDate,
+          analyzerReffno: data.analyzerReffno || null,
+          insuranceCompanyId: data.insuranceCompanyId || null,
+          doctorId: data.doctorId || null,
+          orReffBy: data.orReffBy || null,
+          priority: data.priority,
+          remarks: data.remarks || null,
+          tests: data.selectedTests.map((t) => ({
+            masterTestId: t.masterTestId || null,
+            serviceId: t.serviceId || t.id,
+            rate: t.rate,
+          })),
+        };
+
+        await labCaseService.create(payload);
+        setMessage({ type: "success", text: "Lab case registered successfully!" });
+      }
       fetchWaitingInvoices();
       fetchTodayCases();
       handleReset();
@@ -463,6 +507,17 @@ export default function PatientRegistrationPage() {
 
         {/* Case Details */}
         <div className="lg:col-span-4 space-y-4">
+          {/* Edit Mode Banner */}
+          {editingCase && (
+            <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-md px-3 py-2">
+              <span className="text-sm font-medium text-blue-700">
+                Editing Case: {editingCase.caseNo}
+              </span>
+              <Button type="button" variant="ghost" size="sm" onClick={handleCancelEdit}>
+                <X className="h-3 w-3 mr-1" /> Cancel Edit
+              </Button>
+            </div>
+          )}
           {/* Case Details Form */}
           <form onSubmit={handleSubmit(onSubmit)}>
             <Card className="shadow-sm border border-border/50">
@@ -669,18 +724,19 @@ export default function PatientRegistrationPage() {
                           <TableHead className="text-xs">Patient</TableHead>
                           <TableHead className="text-xs">Tests</TableHead>
                           <TableHead className="text-xs">Status</TableHead>
+                          <TableHead className="text-xs w-10"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {todayCasesLoading ? (
                           <TableRow>
-                            <TableCell colSpan={4} className="text-center py-6">
+                            <TableCell colSpan={5} className="text-center py-6">
                               <Loader2 className="h-4 w-4 animate-spin mx-auto text-muted-foreground" />
                             </TableCell>
                           </TableRow>
                         ) : todayCases.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={4} className="text-center text-xs text-muted-foreground py-6">
+                            <TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-6">
                               No cases today
                             </TableCell>
                           </TableRow>
@@ -702,6 +758,19 @@ export default function PatientRegistrationPage() {
                                   {c.status}
                                 </span>
                               </TableCell>
+                              <TableCell className="text-xs">
+                                {c.status === "Registered" && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => handleEditCase(c)}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </TableCell>
                             </TableRow>
                           ))
                         )}
@@ -719,7 +788,7 @@ export default function PatientRegistrationPage() {
               </Button>
               <Button type="submit" size="sm" disabled={loading || !selectedPatient}>
                 {loading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
-                Register Case
+                {editingCase ? "Update" : "Register Case"}
               </Button>
             </div>
           </form>

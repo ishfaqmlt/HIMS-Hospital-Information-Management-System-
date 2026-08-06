@@ -166,6 +166,7 @@ class LabCaseController extends Controller
 
         $caseId = Str::uuid();
         $caseNo = $this->generateCaseNo();
+        $analyzerReffno = $validated['analyzerReffno'] ?: $this->generateAnalyzerReffNo();
 
         DB::table('lab_cases')->insert([
             'id' => $caseId,
@@ -173,7 +174,7 @@ class LabCaseController extends Controller
             'visitId' => $validated['visitId'],
             'billingId' => $validated['billingId'] ?? null,
             'caseDate' => $validated['caseDate'],
-            'analyzerReffno' => $validated['analyzerReffno'] ?? null,
+            'analyzerReffno' => $analyzerReffno,
             'insuranceCompanyId' => $validated['insuranceCompanyId'] ?? null,
             'doctorId' => $validated['doctorId'] ?? null,
             'orReffBy' => $validated['orReffBy'] ?? null,
@@ -281,6 +282,32 @@ class LabCaseController extends Controller
         DB::table('lab_cases')->where('id', $id)->delete();
 
         return response()->json(['message' => 'Lab case deleted successfully']);
+    }
+
+    public function removeTests(Request $request, $caseId)
+    {
+        $validated = $request->validate([
+            'testIds' => 'required|array|min:1',
+            'testIds.*' => 'required|string|exists:lab_case_tests,id',
+        ]);
+
+        $case = DB::table('lab_cases')->where('id', $caseId)->first();
+        if (!$case) {
+            return response()->json(['message' => 'Lab case not found'], 404);
+        }
+
+        DB::table('lab_case_tests')
+            ->where('caseId', $caseId)
+            ->whereIn('id', $validated['testIds'])
+            ->delete();
+
+        $remainingTests = DB::table('lab_case_tests')->where('caseId', $caseId)->count();
+        if ($remainingTests === 0) {
+            DB::table('lab_cases')->where('id', $caseId)->update(['status' => 'Cancelled', 'updated_at' => now()]);
+        }
+
+        $case = $this->getCaseById($caseId);
+        return response()->json($case);
     }
 
     public function updateTestStatus(Request $request, $testId)
@@ -509,12 +536,29 @@ class LabCaseController extends Controller
             ->value('caseNo');
 
         if ($last) {
-            $seq = intval(substr($last, -3)) + 1;
+            $seq = intval(substr($last, -5)) + 1;
         } else {
             $seq = 1;
         }
 
-        return $prefix . str_pad($seq, 3, '0', STR_PAD_LEFT);
+        return $prefix . str_pad($seq, 5, '0', STR_PAD_LEFT);
+    }
+
+    private function generateAnalyzerReffNo()
+    {
+        $prefix = date('my');
+        $last = DB::table('lab_cases')
+            ->where('analyzerReffno', 'like', $prefix . '%')
+            ->orderByDesc('analyzerReffno')
+            ->value('analyzerReffno');
+
+        if ($last) {
+            $seq = intval(substr($last, -5)) + 1;
+        } else {
+            $seq = 1;
+        }
+
+        return $prefix . str_pad($seq, 5, '0', STR_PAD_LEFT);
     }
 
     public function waitingInvoices(Request $request)
