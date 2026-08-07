@@ -543,8 +543,8 @@ export default function PatientRegistrationPage() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Waiting Invoices */}
         <Card className="shadow-sm border border-border/50 lg:col-span-1">
-          <CardHeader className="p-3 pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-semibold">Waiting Vouchers</CardTitle>
+          <CardHeader className="px-3 py-1.5 bg-sky-50 flex flex-row items-center justify-between">
+            <CardTitle className="text-xs font-semibold text-sky-700">Waiting Vouchers</CardTitle>
             <Button
               variant="ghost"
               size="sm"
@@ -641,13 +641,13 @@ export default function PatientRegistrationPage() {
           {/* Case Details Form */}
           <form onSubmit={handleSubmit(onSubmit)}>
             <Card className="shadow-sm border border-border/50">
-              <CardHeader className="px-2 py-1 bg-amber-500/10 border-b border-border/50">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <FlaskConical className="h-4 w-4" />
+              <CardHeader className="px-3 py-1.5 bg-sky-50">
+                <CardTitle className="text-xs font-semibold flex items-center gap-2 text-sky-700">
+                  <FlaskConical className="h-3.5 w-3.5" />
                   Case Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-2 pt-0">
+              <CardContent className="p-2 pt-1">
                 <div className="grid grid-cols-7 gap-3 items-end">
                   <div className="space-y-1.0">
                     <Label className="text-xs font-medium text-muted-foreground">Case Date</Label>
@@ -759,15 +759,15 @@ export default function PatientRegistrationPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
               {/* Selected Tests Table */}
               <Card className="shadow-sm border border-border/50">
-                <CardHeader className="p-2 pb-2 flex flex-row items-center justify-between">
-                  <CardTitle className="text-sm font-semibold">
+                <CardHeader className="px-3 py-1.5 bg-sky-50 flex flex-row items-center justify-between">
+                  <CardTitle className="text-xs font-semibold text-sky-700">
                     Selected Tests ({(selectedTests || []).length})
                   </CardTitle>
-                  <div className="text-sm font-semibold">
+                  <div className="text-xs font-semibold text-sky-700">
                     Total: Rs. {totalAmount.toLocaleString()}
                   </div>
                 </CardHeader>
-                <CardContent className="p-2 pt-0">
+                <CardContent className="p-2 pt-1">
                   {editingCase && (
                     <div className="mb-2 relative">
                       <Input
@@ -877,8 +877,8 @@ export default function PatientRegistrationPage() {
 
               {/* Today's Cases */}
               <Card className="shadow-sm border border-border/50">
-                <CardHeader className="p-3 pb-2 flex flex-row items-center justify-between">
-                  <CardTitle className="text-sm font-semibold">Today&apos;s Cases</CardTitle>
+                <CardHeader className="px-3 py-1.5 bg-sky-50 flex flex-row items-center justify-between">
+                  <CardTitle className="text-xs font-semibold text-sky-700">Today&apos;s Cases</CardTitle>
                   <Button
                     variant="ghost"
                     size="sm"
