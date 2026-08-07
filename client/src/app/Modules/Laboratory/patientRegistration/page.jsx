@@ -128,6 +128,12 @@ export default function PatientRegistrationPage() {
     fetchTodayCases();
   }, []);
 
+  useEffect(() => {
+    if (!message) return;
+    const t = setTimeout(() => setMessage(null), 4000);
+    return () => clearTimeout(t);
+  }, [message]);
+
   const fetchTodayCases = async () => {
     setTodayCasesLoading(true);
     try {
@@ -635,15 +641,15 @@ export default function PatientRegistrationPage() {
           {/* Case Details Form */}
           <form onSubmit={handleSubmit(onSubmit)}>
             <Card className="shadow-sm border border-border/50">
-              <CardHeader className="p-3 pb-2">
+              <CardHeader className="px-2 py-1 bg-amber-500/10 border-b border-border/50">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <FlaskConical className="h-4 w-4" />
                   Case Details
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-3 pt-0">
+              <CardContent className="p-2 pt-0">
                 <div className="grid grid-cols-7 gap-3 items-end">
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.0">
                     <Label className="text-xs font-medium text-muted-foreground">Case Date</Label>
                     <Input
                       type="datetime-local"
@@ -655,7 +661,7 @@ export default function PatientRegistrationPage() {
                     )}
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.0">
                     <Label className="text-xs font-medium text-muted-foreground">Analyzer Reff No</Label>
                     <Input
                       {...register("analyzerReffno")}
@@ -664,7 +670,7 @@ export default function PatientRegistrationPage() {
                     />
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.0">
                     <Label className="text-xs font-medium text-muted-foreground">Insurance</Label>
                     <Controller
                       name="insuranceCompanyId"
@@ -682,7 +688,7 @@ export default function PatientRegistrationPage() {
                     />
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.0">
                     <Label className="text-xs font-medium text-muted-foreground">Consultant</Label>
                     <Controller
                       name="doctorId"
@@ -705,7 +711,7 @@ export default function PatientRegistrationPage() {
                     />
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.0">
                     <Label className="text-xs font-medium text-muted-foreground">Ref By</Label>
                     <Input
                       {...register("orReffBy")}
@@ -714,7 +720,7 @@ export default function PatientRegistrationPage() {
                     />
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.0">
                     <Label className="text-xs font-medium text-muted-foreground">Priority</Label>
                     <Controller
                       name="priority"
@@ -733,7 +739,7 @@ export default function PatientRegistrationPage() {
                     />
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.0">
                     <Label className="text-xs font-medium text-muted-foreground">&nbsp;</Label>
                     <Button
                       type="button"
@@ -753,7 +759,7 @@ export default function PatientRegistrationPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
               {/* Selected Tests Table */}
               <Card className="shadow-sm border border-border/50">
-                <CardHeader className="p-3 pb-2 flex flex-row items-center justify-between">
+                <CardHeader className="p-2 pb-2 flex flex-row items-center justify-between">
                   <CardTitle className="text-sm font-semibold">
                     Selected Tests ({(selectedTests || []).length})
                   </CardTitle>
@@ -761,7 +767,7 @@ export default function PatientRegistrationPage() {
                     Total: Rs. {totalAmount.toLocaleString()}
                   </div>
                 </CardHeader>
-                <CardContent className="p-3 pt-0">
+                <CardContent className="p-2 pt-0">
                   {editingCase && (
                     <div className="mb-2 relative">
                       <Input
