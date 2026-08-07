@@ -345,6 +345,46 @@ class LabCaseController extends Controller
         return response()->json($case);
     }
 
+    public function addTests(Request $request, $caseId)
+    {
+        $validated = $request->validate([
+            'tests' => 'required|array|min:1',
+            'tests.*.masterTestId' => 'required|string|exists:lab_master_tests,id',
+            'tests.*.serviceId' => 'nullable|string|exists:services,id',
+            'tests.*.rate' => 'required|numeric|min:0',
+        ]);
+
+        $case = DB::table('lab_cases')->where('id', $caseId)->first();
+        if (!$case) {
+            return response()->json(['message' => 'Lab case not found'], 404);
+        }
+
+        foreach ($validated['tests'] as $test) {
+            $caseTestId = Str::uuid();
+            DB::table('lab_case_tests')->insert([
+                'id' => $caseTestId,
+                'caseId' => $caseId,
+                'masterTestId' => $test['masterTestId'],
+                'serviceId' => $test['serviceId'] ?? null,
+                'rate' => $test['rate'],
+                'status' => 'Pending',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Mark billing_detail as served
+            if (!empty($case->billingId) && !empty($test['serviceId'])) {
+                DB::table('billing_details')
+                    ->where('BillingId', $case->billingId)
+                    ->where('serviceId', $test['serviceId'])
+                    ->update(['isServed' => true, 'updated_at' => now()]);
+            }
+        }
+
+        $case = $this->getCaseById($caseId);
+        return response()->json($case, 201);
+    }
+
     public function updateTestStatus(Request $request, $testId)
     {
         $validated = $request->validate([

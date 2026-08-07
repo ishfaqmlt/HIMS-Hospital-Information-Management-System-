@@ -128,6 +128,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/lab-cases/{testId}/results', [LabCaseController::class, 'getResults']);
     Route::put('/lab-cases/tests/{testId}/status', [LabCaseController::class, 'updateTestStatus']);
     Route::delete('/lab-cases/{caseId}/tests', [LabCaseController::class, 'removeTests']);
+    Route::post('/lab-cases/{caseId}/tests', [LabCaseController::class, 'addTests']);
     Route::apiResource('lab-cases', LabCaseController::class);
 
     // Insurance Companies

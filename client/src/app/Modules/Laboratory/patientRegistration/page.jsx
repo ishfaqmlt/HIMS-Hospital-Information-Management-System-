@@ -47,6 +47,7 @@ import { labCaseSchema } from "@/lib/zodeSchema";
 import patientVisitService from "@/services/patientVisitService";
 import doctorService from "@/services/doctor.service";
 import labCaseService from "@/services/labCase.service";
+import masterTestService from "@/services/masterTests.service";
 import PatientDetailsCard from "@/components/patients/PatientDetailsCard";
 import AddPatientDialog from "@/components/patients/AddPatientDialog";
 
@@ -83,6 +84,9 @@ export default function PatientRegistrationPage() {
   const [todayCases, setTodayCases] = useState([]);
   const [todayCasesLoading, setTodayCasesLoading] = useState(false);
   const [editingCase, setEditingCase] = useState(null);
+  const [testSearch, setTestSearch] = useState("");
+  const [testSearchResults, setTestSearchResults] = useState([]);
+  const [testSearchLoading, setTestSearchLoading] = useState(false);
 
   const {
     register,
@@ -361,6 +365,41 @@ export default function PatientRegistrationPage() {
     }
   };
 
+  const handleTestSearch = async (q) => {
+    setTestSearch(q);
+    if (!q.trim()) { setTestSearchResults([]); return; }
+    setTestSearchLoading(true);
+    try {
+      const res = await masterTestService.getAll({ search: q });
+      const existingIds = (selectedTests || []).map((t) => t.masterTestId).filter(Boolean);
+      const results = (res.data?.data || res.data || []).filter((t) => !existingIds.includes(t.id));
+      setTestSearchResults(results);
+    } catch {
+      setTestSearchResults([]);
+    } finally {
+      setTestSearchLoading(false);
+    }
+  };
+
+  const handleAddTest = (masterTest) => {
+    const current = selectedTests || [];
+    setValue("selectedTests", [
+      ...current,
+      {
+        id: masterTest.id,
+        masterTestId: masterTest.id,
+        serviceId: masterTest.serviceId || null,
+        testName: masterTest.testName,
+        testCode: masterTest.testCode,
+        rate: 0,
+        flag: "I",
+        checked: true,
+      },
+    ]);
+    setTestSearch("");
+    setTestSearchResults([]);
+  };
+
   const totalAmount = (selectedTests || []).filter((t) => t.checked).reduce((sum, t) => sum + parseFloat(t.rate || 0), 0);
 
   const onSubmit = async (data) => {
@@ -386,11 +425,20 @@ export default function PatientRegistrationPage() {
       if (editingCase) {
         const uncheckedTests = tests.filter((t) => t.flag === "U" && !t.checked);
         const removedTestIds = uncheckedTests.map((t) => t.caseTestId).filter(Boolean);
+        const newTests = tests.filter((t) => t.flag === "I" && t.checked);
 
         if (removedTestIds.length > 0) {
           await labCaseService.removeTests(editingCase.id, removedTestIds);
         }
-        setMessage({ type: "success", text: `Case updated. ${removedTestIds.length} test(s) removed.` });
+        if (newTests.length > 0) {
+          await labCaseService.addTests(editingCase.id, newTests.map((t) => ({
+            masterTestId: t.masterTestId || t.id,
+            serviceId: t.serviceId || null,
+            rate: t.rate,
+          })));
+        }
+        const totalChanges = removedTestIds.length + newTests.length;
+        setMessage({ type: "success", text: `Case updated. ${newTests.length} added, ${removedTestIds.length} removed.` });
       } else {
         const payload = {
           visitId: data.visitId,
@@ -696,6 +744,30 @@ export default function PatientRegistrationPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-3 pt-0">
+                  {editingCase && (
+                    <div className="mb-2 relative">
+                      <Input
+                        value={testSearch}
+                        onChange={(e) => handleTestSearch(e.target.value)}
+                        placeholder="Search test to add..."
+                        className="h-8 text-xs"
+                      />
+                      {testSearchResults.length > 0 && (
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-[150px] overflow-auto">
+                          {testSearchResults.map((t) => (
+                            <div
+                              key={t.id}
+                              className="px-2 py-1.5 text-xs cursor-pointer hover:bg-muted flex justify-between"
+                              onClick={() => handleAddTest(t)}
+                            >
+                              <span className="font-medium">{t.testCode}</span>
+                              <span className="text-muted-foreground">{t.testName}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="max-h-[300px] overflow-auto">
                     <Table>
                       <TableHeader>
