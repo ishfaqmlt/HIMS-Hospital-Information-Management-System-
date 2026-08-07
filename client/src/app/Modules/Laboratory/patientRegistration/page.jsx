@@ -440,9 +440,31 @@ export default function PatientRegistrationPage() {
         const totalChanges = removedTestIds.length + newTests.length;
         setMessage({ type: "success", text: `Case updated. ${newTests.length} added, ${removedTestIds.length} removed.` });
       } else {
+        const billingId = selectedInvoice ? selectedInvoice.billingId : (data.billingId || null);
+        const testPayload = tests.map((t) => ({
+          masterTestId: t.masterTestId || null,
+          serviceId: t.serviceId || t.id,
+          rate: t.rate,
+        }));
+
+        if (billingId) {
+          const existingRes = await labCaseService.getAll({ billingId });
+          const existingCases = existingRes.data || [];
+          if (existingCases.length > 0) {
+            const existingCase = existingCases[0];
+            await labCaseService.addTests(existingCase.id, testPayload);
+            setMessage({ type: "success", text: `Tests added to existing case ${existingCase.caseNo}` });
+            fetchWaitingInvoices();
+            fetchTodayCases();
+            handleReset();
+            setLoading(false);
+            return;
+          }
+        }
+
         const payload = {
           visitId: data.visitId,
-          billingId: selectedInvoice ? selectedInvoice.billingId : (data.billingId || null),
+          billingId,
           caseDate: data.caseDate,
           analyzerReffno: data.analyzerReffno || null,
           insuranceCompanyId: data.insuranceCompanyId || null,
@@ -450,11 +472,7 @@ export default function PatientRegistrationPage() {
           orReffBy: data.orReffBy || null,
           priority: data.priority,
           remarks: data.remarks || null,
-          tests: tests.map((t) => ({
-            masterTestId: t.masterTestId || null,
-            serviceId: t.serviceId || t.id,
-            rate: t.rate,
-          })),
+          tests: testPayload,
         };
 
         await labCaseService.create(payload);

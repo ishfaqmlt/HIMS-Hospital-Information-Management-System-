@@ -72,6 +72,10 @@ class LabCaseController extends Controller
             $query->where('lab_cases.caseDate', '<=', $request->toDate);
         }
 
+        if ($request->has('billingId') && $request->billingId) {
+            $query->where('lab_cases.billingId', $request->billingId);
+        }
+
         $rows = $query->orderBy('lab_cases.created_at', 'desc')->get();
 
         $cases = $rows->map(function ($row) {
