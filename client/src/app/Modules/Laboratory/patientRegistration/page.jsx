@@ -368,12 +368,13 @@ export default function PatientRegistrationPage() {
       setMessage({ type: "error", text: "Please search and select a patient with a valid visit" });
       return;
     }
-    if (!data.selectedTests || data.selectedTests.length === 0) {
+    const tests = selectedTests || [];
+    if (tests.length === 0) {
       setMessage({ type: "error", text: "Please select at least one test" });
       return;
     }
     if (editingCase) {
-      const checkedTests = data.selectedTests.filter((t) => t.checked);
+      const checkedTests = tests.filter((t) => t.checked);
       if (checkedTests.length === 0) {
         setMessage({ type: "error", text: "All tests are unchecked. Delete the case instead." });
         return;
@@ -383,7 +384,7 @@ export default function PatientRegistrationPage() {
     setLoading(true);
     try {
       if (editingCase) {
-        const uncheckedTests = (data.selectedTests || []).filter((t) => t.flag === "U" && !t.checked);
+        const uncheckedTests = tests.filter((t) => t.flag === "U" && !t.checked);
         const removedTestIds = uncheckedTests.map((t) => t.caseTestId).filter(Boolean);
 
         if (removedTestIds.length > 0) {
@@ -401,7 +402,7 @@ export default function PatientRegistrationPage() {
           orReffBy: data.orReffBy || null,
           priority: data.priority,
           remarks: data.remarks || null,
-          tests: data.selectedTests.map((t) => ({
+          tests: tests.map((t) => ({
             masterTestId: t.masterTestId || null,
             serviceId: t.serviceId || t.id,
             rate: t.rate,
