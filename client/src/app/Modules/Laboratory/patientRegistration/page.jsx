@@ -289,14 +289,22 @@ export default function PatientRegistrationPage() {
     });
   };
 
-  const removeTest = (testId) => {
-    const updated = (selectedTests || []).map((t) => {
-      if (t.id !== testId) return t;
+  const removeTest = (testIdx) => {
+    const updated = (selectedTests || []).map((t, i) => {
+      if (i !== testIdx) return t;
       if (t.flag === "U") {
         return { ...t, checked: !t.checked };
       }
       return null;
     }).filter(Boolean);
+    setValue("selectedTests", updated);
+  };
+
+  const toggleTestCheck = (testIdx) => {
+    const updated = (selectedTests || []).map((t, i) => {
+      if (i !== testIdx) return t;
+      return { ...t, checked: !t.checked };
+    });
     setValue("selectedTests", updated);
   };
 
@@ -711,7 +719,7 @@ export default function PatientRegistrationPage() {
                           </TableRow>
                         ) : (
                           (selectedTests || []).map((test, idx) => (
-                            <TableRow key={test.id} className="h-8">
+                            <TableRow key={idx} className="h-8">
                               <TableCell className="text-xs">{idx + 1}</TableCell>
                               <TableCell className="text-xs text-center font-medium">
                                 <span className={test.flag === "I" ? "text-blue-600" : "text-orange-600"}>
@@ -720,8 +728,8 @@ export default function PatientRegistrationPage() {
                               </TableCell>
                               <TableCell className="text-center">
                                 <Checkbox
-                                  checked={test.checked}
-                                  onCheckedChange={() => removeTest(test.id)}
+                                  checked={!!test.checked}
+                                  onCheckedChange={() => toggleTestCheck(idx)}
                                   className="h-4 w-4"
                                 />
                               </TableCell>
@@ -744,7 +752,7 @@ export default function PatientRegistrationPage() {
                                     variant="ghost"
                                     size="sm"
                                     className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                                    onClick={() => removeTest(test.id)}
+                                    onClick={() => removeTest(idx)}
                                   >
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
@@ -754,7 +762,7 @@ export default function PatientRegistrationPage() {
                                     variant="ghost"
                                     size="sm"
                                     className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                                    onClick={() => removeTest(test.id)}
+                                    onClick={() => removeTest(idx)}
                                     title={test.checked ? "Uncheck to remove" : "Checked to keep"}
                                   >
                                     <Trash2 className={`h-3 w-3 ${!test.checked ? "text-destructive" : "text-muted-foreground"}`} />
