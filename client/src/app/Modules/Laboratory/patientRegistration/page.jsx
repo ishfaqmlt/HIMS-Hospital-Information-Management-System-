@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -162,6 +163,8 @@ export default function PatientRegistrationPage() {
       testName: t.serviceName,
       testCode: t.serviceCode,
       rate: parseFloat(t.rate) || 0,
+      flag: "I",
+      checked: true,
     }));
     setValue("selectedTests", mappedTests);
   };
@@ -287,7 +290,13 @@ export default function PatientRegistrationPage() {
   };
 
   const removeTest = (testId) => {
-    const updated = (selectedTests || []).filter((t) => t.id !== testId);
+    const updated = (selectedTests || []).map((t) => {
+      if (t.id !== testId) return t;
+      if (t.flag === "U") {
+        return { ...t, checked: !t.checked };
+      }
+      return null;
+    }).filter(Boolean);
     setValue("selectedTests", updated);
   };
 
@@ -318,6 +327,8 @@ export default function PatientRegistrationPage() {
       testCode: t.masterTest?.testCode || t.testCode || "",
       rate: parseFloat(t.rate) || 0,
       caseTestId: t.id,
+      flag: "U",
+      checked: true,
     }));
     setValue("selectedTests", mappedTests);
   };
@@ -353,13 +364,19 @@ export default function PatientRegistrationPage() {
       setMessage({ type: "error", text: "Please select at least one test" });
       return;
     }
+    if (editingCase) {
+      const checkedTests = data.selectedTests.filter((t) => t.checked);
+      if (checkedTests.length === 0) {
+        setMessage({ type: "error", text: "All tests are unchecked. Delete the case instead." });
+        return;
+      }
+    }
 
     setLoading(true);
     try {
       if (editingCase) {
-        const originalTestIds = (editingCase.tests || []).map((t) => t.id);
-        const currentTestIds = (data.selectedTests || []).map((t) => t.caseTestId).filter(Boolean);
-        const removedTestIds = originalTestIds.filter((id) => !currentTestIds.includes(id));
+        const uncheckedTests = (data.selectedTests || []).filter((t) => t.flag === "U" && !t.checked);
+        const removedTestIds = uncheckedTests.map((t) => t.caseTestId).filter(Boolean);
 
         if (removedTestIds.length > 0) {
           await labCaseService.removeTests(editingCase.id, removedTestIds);
@@ -675,6 +692,10 @@ export default function PatientRegistrationPage() {
                       <TableHeader>
                         <TableRow className="h-8">
                           <TableHead className="text-xs w-12">SL</TableHead>
+                          <TableHead className="text-xs w-10 text-center">Flag</TableHead>
+                          <TableHead className="text-xs w-10 text-center">
+                            <Checkbox defaultChecked disabled className="pointer-events-none" />
+                          </TableHead>
                           <TableHead className="text-xs">Test Code</TableHead>
                           <TableHead className="text-xs">Test Name</TableHead>
                           <TableHead className="text-xs w-28 text-right">Rate</TableHead>
@@ -684,7 +705,7 @@ export default function PatientRegistrationPage() {
                       <TableBody>
                         {(selectedTests || []).length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-8">
+                            <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-8">
                               No tests selected.
                             </TableCell>
                           </TableRow>
@@ -692,6 +713,18 @@ export default function PatientRegistrationPage() {
                           (selectedTests || []).map((test, idx) => (
                             <TableRow key={test.id} className="h-8">
                               <TableCell className="text-xs">{idx + 1}</TableCell>
+                              <TableCell className="text-xs text-center font-medium">
+                                <span className={test.flag === "I" ? "text-blue-600" : "text-orange-600"}>
+                                  {test.flag}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Checkbox
+                                  checked={test.checked}
+                                  onCheckedChange={() => removeTest(test.id)}
+                                  className="h-4 w-4"
+                                />
+                              </TableCell>
                               <TableCell className="text-xs font-medium">{test.testCode}</TableCell>
                               <TableCell className="text-xs">{test.testName}</TableCell>
                               <TableCell className="text-xs text-right">
@@ -705,15 +738,28 @@ export default function PatientRegistrationPage() {
                                 />
                               </TableCell>
                               <TableCell className="text-center">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                                  onClick={() => removeTest(test.id)}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
+                                {test.flag === "I" ? (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                    onClick={() => removeTest(test.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                    onClick={() => removeTest(test.id)}
+                                    title={test.checked ? "Uncheck to remove" : "Checked to keep"}
+                                  >
+                                    <Trash2 className={`h-3 w-3 ${!test.checked ? "text-destructive" : "text-muted-foreground"}`} />
+                                  </Button>
+                                )}
                               </TableCell>
                             </TableRow>
                           ))
