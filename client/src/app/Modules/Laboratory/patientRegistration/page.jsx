@@ -361,7 +361,7 @@ export default function PatientRegistrationPage() {
     }
   };
 
-  const totalAmount = (selectedTests || []).reduce((sum, t) => sum + parseFloat(t.rate || 0), 0);
+  const totalAmount = (selectedTests || []).filter((t) => t.checked).reduce((sum, t) => sum + parseFloat(t.rate || 0), 0);
 
   const onSubmit = async (data) => {
     if (!selectedPatient || !data.visitId) {
