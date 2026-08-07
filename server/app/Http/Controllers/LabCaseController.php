@@ -353,7 +353,7 @@ class LabCaseController extends Controller
     {
         $validated = $request->validate([
             'tests' => 'required|array|min:1',
-            'tests.*.masterTestId' => 'required|string|exists:lab_master_tests,id',
+            'tests.*.masterTestId' => 'nullable|string',
             'tests.*.serviceId' => 'nullable|string|exists:services,id',
             'tests.*.rate' => 'required|numeric|min:0',
         ]);
@@ -363,7 +363,19 @@ class LabCaseController extends Controller
             return response()->json(['message' => 'Lab case not found'], 404);
         }
 
+        // Resolve masterTestId from serviceId if not provided
+        foreach ($validated['tests'] as &$test) {
+            if (empty($test['masterTestId']) && !empty($test['serviceId'])) {
+                $masterTest = DB::table('lab_master_tests')->where('serviceId', $test['serviceId'])->first();
+                if ($masterTest) {
+                    $test['masterTestId'] = $masterTest->id;
+                }
+            }
+        }
+        unset($test);
+
         foreach ($validated['tests'] as $test) {
+            if (empty($test['masterTestId'])) continue;
             $caseTestId = Str::uuid();
             DB::table('lab_case_tests')->insert([
                 'id' => $caseTestId,
