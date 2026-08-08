@@ -736,8 +736,7 @@ export default function PatientRegistrationPage() {
                     />
                   </div>
 
-                </div>
-                <div className="flex justify-end gap-2 mt-3 pt-2 border-t border-border/50">
+                <div className="space-y-1.0 space-x-0.5">
                   <Button type="button" variant="outline" size="sm" onClick={handleReset}>
                     <RotateCcw className="h-3 w-3 mr-1" /> Clear
                   </Button>
@@ -745,6 +744,7 @@ export default function PatientRegistrationPage() {
                     {loading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
                     {editingCase ? "Update" : "Register Case"}
                   </Button>
+                </div>
                 </div>
               </CardContent>
             </Card>

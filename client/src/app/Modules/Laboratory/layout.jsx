@@ -28,14 +28,19 @@ const labMenuItems = [
     href: "/Modules/laboratory/labDashboard",
   },
   {
-    label: "Patient Registration",
+    label: "Case Registration",
     icon: UserPlus,
-    href: "/Modules/laboratory/patientRegistration",
+    href: "/Modules/laboratory/caseRegistration",
   },
   {
     label: "Sample Collection",
     icon: TestTube,
-    href: "/Modules/laboratory/collectionCenter",
+    href: "/Modules/laboratory/sampleCollection",
+  },
+  {
+    label: "Accept Sample",
+    icon: TestTube,
+    href: "/Modules/laboratory/acceptSample",
   },
   {
     label: "Test Perform",
