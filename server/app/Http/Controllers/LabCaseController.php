@@ -87,7 +87,7 @@ class LabCaseController extends Controller
                     'lab_case_tests.id',
                     'lab_case_tests.masterTestId',
                     'lab_case_tests.rate',
-                    'lab_case_tests.status',
+                    'lab_case_tests.testStatus',
                     'lab_case_tests.isPerformed',
                     'lab_case_tests.isApproved',
                     'lab_master_tests.testName',
@@ -209,7 +209,7 @@ class LabCaseController extends Controller
                 'masterTestId' => $test['masterTestId'],
                 'serviceId' => $test['serviceId'] ?? null,
                 'rate' => $test['rate'],
-                'status' => 'Pending',
+                'testStatus' => 'Pending',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -394,7 +394,7 @@ class LabCaseController extends Controller
                 'masterTestId' => $test['masterTestId'],
                 'serviceId' => $test['serviceId'] ?? null,
                 'rate' => $test['rate'],
-                'status' => 'Pending',
+                'testStatus' => 'Pending',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -428,7 +428,7 @@ class LabCaseController extends Controller
             return response()->json(['message' => 'Lab case test not found'], 404);
         }
 
-        $updateData = ['status' => $validated['status'], 'updated_at' => now()];
+        $updateData = ['testStatus' => $validated['status'], 'updated_at' => now()];
 
         if ($validated['status'] === 'Sampled') {
             $updateData['sampledAt'] = $validated['sampledAt'] ?? now();

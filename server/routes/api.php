@@ -35,6 +35,7 @@ use App\Http\Controllers\LabMasterTestController;
 use App\Http\Controllers\LabMasterTestParameterController;
 use App\Http\Controllers\LabBoundingController;
 use App\Http\Controllers\LabCaseController;
+use App\Http\Controllers\AcceptSampleController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -130,6 +131,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/lab-cases/{caseId}/tests', [LabCaseController::class, 'removeTests']);
     Route::post('/lab-cases/{caseId}/tests', [LabCaseController::class, 'addTests']);
     Route::apiResource('lab-cases', LabCaseController::class);
+
+    // Accept Sample
+    Route::get('/accept-sample', [AcceptSampleController::class, 'index']);
+    Route::put('/accept-sample/{testId}/accept', [AcceptSampleController::class, 'acceptSample']);
+    Route::put('/accept-sample/{testId}/reject', [AcceptSampleController::class, 'rejectSample']);
 
     // Insurance Companies
     Route::apiResource('insurance-companies', InsuranceCompanyController::class);

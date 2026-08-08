@@ -14,7 +14,9 @@ return new class extends Migration
             $table->foreignUuid('masterTestId')->constrained('lab_master_tests');
             $table->string('serviceId')->nullable();
             $table->decimal('rate', 10, 2)->default(0);
-            $table->enum('status', ['Pending', 'Sampled', 'InProcess', 'Completed', 'Approved', 'Cancelled'])->default('Pending');
+            $table->enum('testStatus', ['Pending', 'Sampled', 'InProcess', 'Completed', 'Approved', 'Cancelled'])->default('Pending');
+            $table->enum('sampleStatus', ['Accepted', 'Rejected'])->nullable();
+            $table->string('rejectReason', 100)->nullable();
             $table->dateTime('sampledAt')->nullable();
             $table->foreignId('sampledBy')->nullable()->constrained('users');
             $table->boolean('isPerformed')->default(false);
