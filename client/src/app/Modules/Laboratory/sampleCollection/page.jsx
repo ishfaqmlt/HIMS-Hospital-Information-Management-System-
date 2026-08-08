@@ -174,11 +174,12 @@ export default function SampleCollectionPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All">All</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
+              <SelectItem value="Registered">Registered</SelectItem>
               <SelectItem value="Sampled">Sampled</SelectItem>
               <SelectItem value="InProcess">In Process</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
+              <SelectItem value="Reported">Reported</SelectItem>
               <SelectItem value="Approved">Approved</SelectItem>
+              <SelectItem value="Cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
         </div>
