@@ -30,6 +30,10 @@ class AcceptSampleController extends Controller
                 'doctors.Name as doctor_name'
             );
 
+        if ($request->has('status') && $request->status && $request->status !== 'All') {
+            $query->where('lab_cases.status', $request->status);
+        }
+
         if ($request->has('fromDate') && $request->fromDate) {
             $query->where('lab_cases.caseDate', '>=', $request->fromDate);
         }
