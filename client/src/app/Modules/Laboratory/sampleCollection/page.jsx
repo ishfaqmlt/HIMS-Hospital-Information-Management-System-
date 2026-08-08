@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +39,8 @@ import {
   Printer,
   FileText,
 } from "lucide-react";
+import { DataTable } from "@/components/data-table/data-table";
+import { getColumns } from "./testColumns";
 import labCaseService from "@/services/labCase.service";
 import LabBarcode from "@/components/lab/LabBarcode";
 import { useReactToPrint } from "react-to-print";
@@ -68,15 +70,14 @@ export default function SampleCollectionPage() {
 
   // Barcode dialog state
   const [barcodeDialogOpen, setBarcodeDialogOpen] = useState(false);
-  const [barcodeTest, setBarcodeTest] = useState(null);
   const [barcodeQty, setBarcodeQty] = useState(1);
-  const [barcodeCase, setBarcodeCase] = useState(null);
   const barcodePrintRef = useRef(null);
 
   // Lab copy dialog state
   const [labCopyDialogOpen, setLabCopyDialogOpen] = useState(false);
-  const [labCopyCase, setLabCopyCase] = useState(null);
   const labCopyPrintRef = useRef(null);
+
+  const testColumns = useMemo(() => getColumns(), []);
 
   useEffect(() => {
     if (!message) return;
@@ -110,47 +111,33 @@ export default function SampleCollectionPage() {
   };
 
   // Print Barcode
-  const handleOpenBarcodeDialog = (test) => {
-    setBarcodeTest(test);
-    setBarcodeCase(selectedCase);
+  const handleOpenBarcodeDialog = () => {
+    if (!selectedCase?.tests?.length) return;
     setBarcodeQty(1);
     setBarcodeDialogOpen(true);
   };
 
   const handlePrintBarcode = useReactToPrint({
     contentRef: barcodePrintRef,
-    documentTitle: `Barcode-${barcodeTest?.testCode || ""}`,
+    documentTitle: `Barcode-${selectedCase?.caseNo || ""}`,
     onAfterPrint: () => {
       setBarcodeDialogOpen(false);
-      setBarcodeTest(null);
     },
   });
 
   // Print Lab Copy
   const handleOpenLabCopy = () => {
-    setLabCopyCase(selectedCase);
+    if (!selectedCase) return;
     setLabCopyDialogOpen(true);
   };
 
   const handlePrintLabCopy = useReactToPrint({
     contentRef: labCopyPrintRef,
-    documentTitle: `LabCopy-${labCopyCase?.caseNo || ""}`,
+    documentTitle: `LabCopy-${selectedCase?.caseNo || ""}`,
     onAfterPrint: () => {
       setLabCopyDialogOpen(false);
-      setLabCopyCase(null);
     },
   });
-
-  const statusColor = (s) => {
-    switch (s) {
-      case "Sampled": return "text-blue-600 bg-blue-50";
-      case "InProcess": return "text-yellow-600 bg-yellow-50";
-      case "Completed": return "text-green-600 bg-green-50";
-      case "Approved": return "text-emerald-600 bg-emerald-50";
-      case "Cancelled": return "text-red-600 bg-red-50";
-      default: return "text-gray-600 bg-gray-50";
-    }
-  };
 
   return (
     <div className="p-4 max-w-full mx-auto space-y-4">
@@ -299,66 +286,35 @@ export default function SampleCollectionPage() {
                     <span>Case: {selectedCase.caseNo}</span>
                     <span className="text-muted-foreground">|</span>
                     <span>Dr. {selectedCase.doctor?.Name || "-"}</span>
-                    <span className="text-muted-foreground">|</span>
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${statusColor(selectedCase.status)}`}>
-                      {selectedCase.status}
-                    </span>
                   </CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={handleOpenLabCopy}
-                  >
-                    <FileText className="h-3 w-3 mr-1" />
-                    Print Lab Copy
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={handleOpenBarcodeDialog}
+                      disabled={!selectedCase?.tests?.length}
+                    >
+                      <Printer className="h-3 w-3 mr-1" />
+                      Print Barcode
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={handleOpenLabCopy}
+                    >
+                      <FileText className="h-3 w-3 mr-1" />
+                      Print Lab Copy
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="p-2 pt-1">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="h-8">
-                        <TableHead className="text-xs w-10">SL</TableHead>
-                        <TableHead className="text-xs">Test Code</TableHead>
-                        <TableHead className="text-xs">Test Name</TableHead>
-                        <TableHead className="text-xs w-24 text-center">Status</TableHead>
-                        <TableHead className="text-xs w-28 text-center">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(selectedCase.tests || []).length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-6">
-                            No tests found.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        (selectedCase.tests || []).map((test, idx) => (
-                          <TableRow key={test.id} className="h-8">
-                            <TableCell className="text-xs">{idx + 1}</TableCell>
-                            <TableCell className="text-xs font-medium">{test.testCode}</TableCell>
-                            <TableCell className="text-xs">{test.testName}</TableCell>
-                            <TableCell className="text-center">
-                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${statusColor(test.status)}`}>
-                                {test.status}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700"
-                                onClick={() => handleOpenBarcodeDialog(test)}
-                              >
-                                <Printer className="h-3 w-3 mr-1" />
-                                Print Barcode
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                  <DataTable
+                    columns={testColumns}
+                    data={selectedCase.tests || []}
+                    filterColumn="testName"
+                  />
                 </CardContent>
               </Card>
             )}
@@ -374,7 +330,7 @@ export default function SampleCollectionPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <Label className="text-xs font-medium">Number of Barcodes</Label>
+              <Label className="text-xs font-medium">Number of Barcodes per Test</Label>
               <Input
                 type="number"
                 min={1}
@@ -384,25 +340,27 @@ export default function SampleCollectionPage() {
                 className="h-8 text-xs w-32"
               />
             </div>
-            <div className="border rounded p-3 bg-white">
+            <div className="border rounded p-3 bg-white max-h-96 overflow-auto">
               <div ref={barcodePrintRef} className="flex flex-wrap gap-2 justify-center">
-                {barcodeTest && barcodeCase && Array.from({ length: barcodeQty }).map((_, i) => (
-                  <div key={i} className="flex flex-col items-center p-1">
-                    <span className="text-[9px] font-medium mb-0.5">
-                      {barcodeCase.patient?.pName || ""}
-                    </span>
-                    <LabBarcode
-                      value={barcodeTest.testCode || barcodeTest.id}
-                      width={1.5}
-                      height={35}
-                      fontSize={10}
-                      margin={3}
-                    />
-                    <span className="text-[8px] text-muted-foreground mt-0.5">
-                      {barcodeCase.caseNo} | {barcodeTest.testCode}
-                    </span>
-                  </div>
-                ))}
+                {(selectedCase?.tests || []).map((test) =>
+                  Array.from({ length: barcodeQty }).map((_, i) => (
+                    <div key={`${test.id}-${i}`} className="flex flex-col items-center p-1">
+                      <span className="text-[9px] font-medium mb-0.5">
+                        {selectedCase.patient?.pName || ""}
+                      </span>
+                      <LabBarcode
+                        value={test.testCode || test.id}
+                        width={1.5}
+                        height={35}
+                        fontSize={10}
+                        margin={3}
+                      />
+                      <span className="text-[8px] text-muted-foreground mt-0.5">
+                        {selectedCase.caseNo} | {test.testCode}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -433,18 +391,18 @@ export default function SampleCollectionPage() {
           </DialogHeader>
           <div className="border rounded p-4 bg-white">
             <div ref={labCopyPrintRef} className="p-4">
-              {labCopyCase && (
+              {selectedCase && (
                 <div className="space-y-3 text-xs">
                   <div className="text-center font-bold text-sm border-b pb-2">
                     LABORATORY COPY
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <div><strong>Case No:</strong> {labCopyCase.caseNo}</div>
-                    <div><strong>Date:</strong> {labCopyCase.caseDate}</div>
-                    <div><strong>Patient:</strong> {labCopyCase.patient?.pName}</div>
-                    <div><strong>MRN:</strong> {labCopyCase.patient?.mrn}</div>
-                    <div><strong>Doctor:</strong> Dr. {labCopyCase.doctor?.Name}</div>
-                    <div><strong>Priority:</strong> {labCopyCase.priority}</div>
+                    <div><strong>Case No:</strong> {selectedCase.caseNo}</div>
+                    <div><strong>Date:</strong> {selectedCase.caseDate}</div>
+                    <div><strong>Patient:</strong> {selectedCase.patient?.pName}</div>
+                    <div><strong>MRN:</strong> {selectedCase.patient?.mrn}</div>
+                    <div><strong>Doctor:</strong> Dr. {selectedCase.doctor?.Name}</div>
+                    <div><strong>Priority:</strong> {selectedCase.priority}</div>
                   </div>
                   <div className="border-t pt-2">
                     <strong>Tests:</strong>
@@ -458,7 +416,7 @@ export default function SampleCollectionPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {(labCopyCase.tests || []).map((test, idx) => (
+                        {(selectedCase.tests || []).map((test, idx) => (
                           <TableRow key={test.id} className="h-6">
                             <TableCell className="text-xs">{idx + 1}</TableCell>
                             <TableCell className="text-xs">{test.testCode}</TableCell>
