@@ -41,6 +41,7 @@ class LabCaseController extends Controller
                 'patients.mobile as patient_mobile',
                 'patients.cnic as patient_cnic',
                 'patients.gender as patient_gender',
+                'patients.dob as patient_dob',
                 'patient_visits.visitNo',
                 'doctors.Name as doctor_name',
                 'insurance_companies.name as insurance_name',
@@ -94,6 +95,15 @@ class LabCaseController extends Controller
                 )
                 ->get();
 
+            $tests->each(function ($test) {
+                $test->parameters = DB::table('lab_master_test_parameters')
+                    ->where('master_test_id', $test->masterTestId)
+                    ->where('printOnReciept', true)
+                    ->orderBy('sortNo')
+                    ->select('parameterName', 'units', 'defaultValue', 'normalRange')
+                    ->get();
+            });
+
             return [
                 'id' => $row->id,
                 'caseNo' => $row->caseNo,
@@ -119,6 +129,7 @@ class LabCaseController extends Controller
                     'mobile' => $row->patient_mobile,
                     'cnic' => $row->patient_cnic,
                     'gender' => $row->patient_gender,
+                    'dob' => $row->patient_dob,
                 ] : null,
                 'visit' => $row->visitNo ? [
                     'id' => $row->visitId,

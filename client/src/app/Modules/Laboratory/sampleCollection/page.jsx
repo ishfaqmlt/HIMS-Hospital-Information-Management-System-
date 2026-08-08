@@ -20,27 +20,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  RefreshCw,
-  Loader2,
-  User,
-  Printer,
-  FileText,
-} from "lucide-react";
+import { RefreshCw, Loader2, Printer } from "lucide-react";
 import { DataTable } from "@/components/data-table/data-table";
-import { getColumns } from "./testColumns";
+import { getColumns } from "./columns";
 import labCaseService from "@/services/labCase.service";
 import LabBarcode from "@/components/lab/LabBarcode";
 import { useReactToPrint } from "react-to-print";
@@ -54,11 +42,24 @@ const toLocalISOString = (date) => {
   return `${y}-${m}-${d}T${h}:${min}`;
 };
 
+const calculateAge = (dob) => {
+  if (!dob) return "-";
+  const birth = new Date(dob);
+  const today = new Date();
+  let years = today.getFullYear() - birth.getFullYear();
+  let months = today.getMonth() - birth.getMonth();
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  if (years > 0) return `${years} Years ${months} Months`;
+  return `${months} Months`;
+};
+
 export default function SampleCollectionPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [cases, setCases] = useState([]);
-  const [selectedCase, setSelectedCase] = useState(null);
 
   const today = new Date();
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0);
@@ -68,16 +69,15 @@ export default function SampleCollectionPage() {
   const [dtTo, setDtTo] = useState(toLocalISOString(todayEnd));
   const [statusFilter, setStatusFilter] = useState("All");
 
-  // Barcode dialog state
+  // Barcode dialog
   const [barcodeDialogOpen, setBarcodeDialogOpen] = useState(false);
-  const [barcodeQty, setBarcodeQty] = useState(1);
+  const [barcodeCase, setBarcodeCase] = useState(null);
   const barcodePrintRef = useRef(null);
 
-  // Lab copy dialog state
+  // Lab copy dialog
   const [labCopyDialogOpen, setLabCopyDialogOpen] = useState(false);
+  const [labCopyCase, setLabCopyCase] = useState(null);
   const labCopyPrintRef = useRef(null);
-
-  const testColumns = useMemo(() => getColumns(), []);
 
   useEffect(() => {
     if (!message) return;
@@ -88,16 +88,12 @@ export default function SampleCollectionPage() {
   const fetchCases = async () => {
     try {
       setLoading(true);
-      const params = {
-        fromDate: dtFrom,
-        toDate: dtTo,
-      };
+      const params = { fromDate: dtFrom, toDate: dtTo };
       if (statusFilter && statusFilter !== "All") {
         params.status = statusFilter;
       }
       const res = await labCaseService.getAll(params);
       setCases(res.data || []);
-      setSelectedCase(null);
     } catch (err) {
       console.error(err);
       setMessage({ type: "error", text: "Failed to load cases." });
@@ -106,38 +102,34 @@ export default function SampleCollectionPage() {
     }
   };
 
-  const handleSelectCase = (c) => {
-    setSelectedCase(c);
-  };
-
   // Print Barcode
-  const handleOpenBarcodeDialog = () => {
-    if (!selectedCase?.tests?.length) return;
-    setBarcodeQty(1);
+  const handleOpenBarcode = (c) => {
+    setBarcodeCase(c);
     setBarcodeDialogOpen(true);
   };
 
   const handlePrintBarcode = useReactToPrint({
     contentRef: barcodePrintRef,
-    documentTitle: `Barcode-${selectedCase?.caseNo || ""}`,
-    onAfterPrint: () => {
-      setBarcodeDialogOpen(false);
-    },
+    documentTitle: `Barcode-${barcodeCase?.caseNo || ""}`,
+    onAfterPrint: () => setBarcodeDialogOpen(false),
   });
 
   // Print Lab Copy
-  const handleOpenLabCopy = () => {
-    if (!selectedCase) return;
+  const handleOpenLabCopy = (c) => {
+    setLabCopyCase(c);
     setLabCopyDialogOpen(true);
   };
 
   const handlePrintLabCopy = useReactToPrint({
     contentRef: labCopyPrintRef,
-    documentTitle: `LabCopy-${selectedCase?.caseNo || ""}`,
-    onAfterPrint: () => {
-      setLabCopyDialogOpen(false);
-    },
+    documentTitle: `LabCopy-${labCopyCase?.caseNo || ""}`,
+    onAfterPrint: () => setLabCopyDialogOpen(false),
   });
+
+  const columns = useMemo(
+    () => getColumns({ onPrintBarcode: handleOpenBarcode, onPrintLabCopy: handleOpenLabCopy }),
+    []
+  );
 
   return (
     <div className="p-4 max-w-full mx-auto space-y-4">
@@ -199,183 +191,44 @@ export default function SampleCollectionPage() {
         </Button>
       </div>
 
-      {/* Two Panel Layout */}
-      <div className="flex gap-4" style={{ height: "calc(100vh - 220px)" }}>
-        {/* Left Panel - Patients List */}
-        <div className="w-1/4 border rounded-md flex flex-col overflow-hidden">
-          <div className="px-3 py-1.5 bg-sky-50 border-b">
-            <h3 className="text-xs font-semibold text-sky-700">
-              Patients List ({cases.length})
-            </h3>
-          </div>
-          <div className="flex-1 overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="h-8">
-                  <TableHead className="text-xs">SL</TableHead>
-                  <TableHead className="text-xs">Patient</TableHead>
-                  <TableHead className="text-xs">Case No</TableHead>
-                  <TableHead className="text-xs text-center">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {cases.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-xs text-muted-foreground py-8">
-                      {loading ? "Loading..." : "No cases found. Click Refresh List."}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  cases.map((c, idx) => (
-                    <TableRow
-                      key={c.id}
-                      className={`h-8 cursor-pointer hover:bg-muted/50 ${
-                        selectedCase?.id === c.id ? "bg-sky-100" : ""
-                      }`}
-                      onClick={() => handleSelectCase(c)}
-                    >
-                      <TableCell className="text-xs">{idx + 1}</TableCell>
-                      <TableCell className="text-xs font-medium">
-                        {c.patient?.pName || "-"}
-                      </TableCell>
-                      <TableCell className="text-xs">{c.caseNo}</TableCell>
-                      <TableCell className="text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectCase(c);
-                          }}
-                        >
-                          Select
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-
-        {/* Right Panel - Patient Tests */}
-        <div className="w-3/4 border rounded-md flex flex-col overflow-hidden">
-          <div className="px-3 py-1.5 bg-sky-50 border-b">
-            <h3 className="text-xs font-semibold text-sky-700">
-              {selectedCase ? "Patient Tests" : "Select a patient from the list"}
-            </h3>
-          </div>
-          <div className="flex-1 overflow-auto p-3">
-            {!selectedCase ? (
-              <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
-                Click &quot;Select&quot; on a patient to view their tests.
-              </div>
-            ) : (
-              <Card className="shadow-sm border border-border/50">
-                <CardHeader className="px-3 py-1.5 bg-sky-50 flex flex-row items-center justify-between">
-                  <CardTitle className="text-xs font-semibold text-sky-700 flex items-center gap-4">
-                    <span className="flex items-center gap-1">
-                      <User className="h-3.5 w-3.5" />
-                      {selectedCase.patient?.pName || "-"}
-                    </span>
-                    <span className="text-muted-foreground">|</span>
-                    <span>MRN: {selectedCase.patient?.mrn || "-"}</span>
-                    <span className="text-muted-foreground">|</span>
-                    <span>Case: {selectedCase.caseNo}</span>
-                    <span className="text-muted-foreground">|</span>
-                    <span>Dr. {selectedCase.doctor?.Name || "-"}</span>
-                  </CardTitle>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={handleOpenBarcodeDialog}
-                      disabled={!selectedCase?.tests?.length}
-                    >
-                      <Printer className="h-3 w-3 mr-1" />
-                      Print Barcode
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={handleOpenLabCopy}
-                    >
-                      <FileText className="h-3 w-3 mr-1" />
-                      Print Lab Copy
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-2 pt-1">
-                  <DataTable
-                    columns={testColumns}
-                    data={selectedCase.tests || []}
-                    filterColumn="testName"
-                  />
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-      </div>
+      {/* Cases DataTable */}
+      <DataTable columns={columns} data={cases} filterColumn="patientName" />
 
       {/* Print Barcode Dialog */}
       <Dialog open={barcodeDialogOpen} onOpenChange={setBarcodeDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-sm">Print Barcode</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <Label className="text-xs font-medium">Number of Barcodes per Test</Label>
-              <Input
-                type="number"
-                min={1}
-                max={50}
-                value={barcodeQty}
-                onChange={(e) => setBarcodeQty(Math.max(1, parseInt(e.target.value) || 1))}
-                className="h-8 text-xs w-32"
-              />
-            </div>
-            <div className="border rounded p-3 bg-white max-h-96 overflow-auto">
-              <div ref={barcodePrintRef} className="flex flex-wrap gap-2 justify-center">
-                {(selectedCase?.tests || []).map((test) =>
-                  Array.from({ length: barcodeQty }).map((_, i) => (
-                    <div key={`${test.id}-${i}`} className="flex flex-col items-center p-1">
-                      <span className="text-[9px] font-medium mb-0.5">
-                        {selectedCase.patient?.pName || ""}
-                      </span>
-                      <LabBarcode
-                        value={test.testCode || test.id}
-                        width={1.5}
-                        height={35}
-                        fontSize={10}
-                        margin={3}
-                      />
-                      <span className="text-[8px] text-muted-foreground mt-0.5">
-                        {selectedCase.caseNo} | {test.testCode}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
+          <div className="border rounded p-4 bg-white">
+            <div ref={barcodePrintRef} className="flex flex-col items-center gap-1">
+              {barcodeCase && (
+                <>
+                  <span className="text-xs font-bold">{barcodeCase.patient?.pName || ""}</span>
+                  <span className="text-[10px] text-gray-600">
+                    Age: {calculateAge(barcodeCase.patient?.dob)}
+                  </span>
+                  <LabBarcode
+                    value={barcodeCase.caseNo}
+                    width={2}
+                    height={50}
+                    fontSize={12}
+                    margin={5}
+                  />
+                  <span className="text-[10px] text-gray-600">
+                    Date: {barcodeCase.caseDate
+                      ? new Date(barcodeCase.caseDate).toLocaleDateString("en-GB")
+                      : ""}
+                  </span>
+                </>
+              )}
             </div>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setBarcodeDialogOpen(false)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setBarcodeDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
-              size="sm"
-              onClick={() => handlePrintBarcode()}
-            >
+            <Button size="sm" onClick={() => handlePrintBarcode()}>
               <Printer className="h-3 w-3 mr-1" />
               Print
             </Button>
@@ -389,60 +242,69 @@ export default function SampleCollectionPage() {
           <DialogHeader>
             <DialogTitle className="text-sm">Lab Copy</DialogTitle>
           </DialogHeader>
-          <div className="border rounded p-4 bg-white">
-            <div ref={labCopyPrintRef} className="p-4">
-              {selectedCase && (
+          <div className="border rounded p-4 bg-white max-h-[60vh] overflow-auto">
+            <div ref={labCopyPrintRef} className="p-2">
+              {labCopyCase && (
                 <div className="space-y-3 text-xs">
                   <div className="text-center font-bold text-sm border-b pb-2">
                     LABORATORY COPY
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <div><strong>Case No:</strong> {selectedCase.caseNo}</div>
-                    <div><strong>Date:</strong> {selectedCase.caseDate}</div>
-                    <div><strong>Patient:</strong> {selectedCase.patient?.pName}</div>
-                    <div><strong>MRN:</strong> {selectedCase.patient?.mrn}</div>
-                    <div><strong>Doctor:</strong> Dr. {selectedCase.doctor?.Name}</div>
-                    <div><strong>Priority:</strong> {selectedCase.priority}</div>
+                    <div><strong>Case No:</strong> {labCopyCase.caseNo}</div>
+                    <div><strong>Date:</strong> {labCopyCase.caseDate
+                      ? new Date(labCopyCase.caseDate).toLocaleDateString("en-GB")
+                      : "-"}</div>
+                    <div><strong>Patient:</strong> {labCopyCase.patient?.pName}</div>
+                    <div><strong>MRN:</strong> {labCopyCase.patient?.mrn}</div>
+                    <div><strong>Age:</strong> {calculateAge(labCopyCase.patient?.dob)}</div>
+                    <div><strong>Gender:</strong> {labCopyCase.patient?.gender}</div>
+                    <div><strong>Doctor:</strong> Dr. {labCopyCase.doctor?.Name}</div>
+                    <div><strong>Priority:</strong> {labCopyCase.priority}</div>
                   </div>
                   <div className="border-t pt-2">
-                    <strong>Tests:</strong>
-                    <Table className="mt-1">
-                      <TableHeader>
-                        <TableRow className="h-6">
-                          <TableHead className="text-xs">SL</TableHead>
-                          <TableHead className="text-xs">Code</TableHead>
-                          <TableHead className="text-xs">Test Name</TableHead>
-                          <TableHead className="text-xs">Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(selectedCase.tests || []).map((test, idx) => (
-                          <TableRow key={test.id} className="h-6">
-                            <TableCell className="text-xs">{idx + 1}</TableCell>
-                            <TableCell className="text-xs">{test.testCode}</TableCell>
-                            <TableCell className="text-xs">{test.testName}</TableCell>
-                            <TableCell className="text-xs">{test.status}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    {(labCopyCase.tests || []).map((test, tIdx) => (
+                      <div key={test.id} className="mb-3">
+                        <div className="font-bold text-xs mb-1">
+                          {tIdx + 1}. {test.testName} ({test.testCode})
+                        </div>
+                        {test.parameters && test.parameters.length > 0 ? (
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="h-6">
+                                <TableHead className="text-xs">Parameter</TableHead>
+                                <TableHead className="text-xs">Result</TableHead>
+                                <TableHead className="text-xs">Unit</TableHead>
+                                <TableHead className="text-xs">Normal Range</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {test.parameters.map((param, pIdx) => (
+                                <TableRow key={pIdx} className="h-6">
+                                  <TableCell className="text-xs">{param.parameterName}</TableCell>
+                                  <TableCell className="text-xs">{param.defaultValue || ""}</TableCell>
+                                  <TableCell className="text-xs">{param.units || ""}</TableCell>
+                                  <TableCell className="text-xs">{param.normalRange || ""}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <div className="text-[10px] text-muted-foreground italic ml-2">
+                            No printable parameters
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setLabCopyDialogOpen(false)}
-            >
+            <Button variant="outline" size="sm" onClick={() => setLabCopyDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
-              size="sm"
-              onClick={() => handlePrintLabCopy()}
-            >
+            <Button size="sm" onClick={() => handlePrintLabCopy()}>
               <Printer className="h-3 w-3 mr-1" />
               Print
             </Button>
