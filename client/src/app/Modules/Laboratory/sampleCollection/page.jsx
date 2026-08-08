@@ -123,6 +123,7 @@ export default function SampleCollectionPage() {
   const handlePrintLabCopy = useReactToPrint({
     contentRef: labCopyPrintRef,
     documentTitle: `LabCopy-${labCopyCase?.caseNo || ""}`,
+    contentStyle: "@page { size: 80mm auto; margin: 0; } @media print { body { margin: 0; } }",
     onAfterPrint: () => setLabCopyDialogOpen(false),
   });
 
@@ -238,65 +239,85 @@ export default function SampleCollectionPage() {
 
       {/* Print Lab Copy Dialog */}
       <Dialog open={labCopyDialogOpen} onOpenChange={setLabCopyDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-sm">Lab Copy</DialogTitle>
+            <DialogTitle className="text-sm">Lab Copy (Thermal)</DialogTitle>
           </DialogHeader>
-          <div className="border rounded p-4 bg-white max-h-[60vh] overflow-auto">
-            <div ref={labCopyPrintRef} className="p-2">
+          <div className="border rounded p-2 bg-white max-h-[60vh] overflow-auto flex justify-center">
+            <div
+              ref={labCopyPrintRef}
+              style={{
+                width: "280px",
+                fontFamily: "'Courier New', monospace",
+                fontSize: "11px",
+                lineHeight: "1.4",
+                color: "#000",
+                padding: "10px",
+              }}
+            >
               {labCopyCase && (
-                <div className="space-y-3 text-xs">
-                  <div className="text-center font-bold text-sm border-b pb-2">
-                    LABORATORY COPY
+                <>
+                  {/* Header */}
+                  <div style={{ textAlign: "center", borderBottom: "1px dashed #000", paddingBottom: "6px", marginBottom: "6px" }}>
+                    <div style={{ fontWeight: "bold", fontSize: "13px" }}>LABORATORY COPY</div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div><strong>Case No:</strong> {labCopyCase.caseNo}</div>
-                    <div><strong>Date:</strong> {labCopyCase.caseDate
+
+                  {/* Case Info */}
+                  <div style={{ marginBottom: "6px" }}>
+                    <div><b>Case:</b> {labCopyCase.caseNo}</div>
+                    <div><b>Date:</b> {labCopyCase.caseDate
                       ? new Date(labCopyCase.caseDate).toLocaleDateString("en-GB")
                       : "-"}</div>
-                    <div><strong>Patient:</strong> {labCopyCase.patient?.pName}</div>
-                    <div><strong>MRN:</strong> {labCopyCase.patient?.mrn}</div>
-                    <div><strong>Age:</strong> {calculateAge(labCopyCase.patient?.dob)}</div>
-                    <div><strong>Gender:</strong> {labCopyCase.patient?.gender}</div>
-                    <div><strong>Doctor:</strong> Dr. {labCopyCase.doctor?.Name}</div>
-                    <div><strong>Priority:</strong> {labCopyCase.priority}</div>
                   </div>
-                  <div className="border-t pt-2">
-                    {(labCopyCase.tests || []).map((test, tIdx) => (
-                      <div key={test.id} className="mb-3">
-                        <div className="font-bold text-xs mb-1">
-                          {tIdx + 1}. {test.testName} ({test.testCode})
-                        </div>
-                        {test.parameters && test.parameters.length > 0 ? (
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="h-6">
-                                <TableHead className="text-xs">Parameter</TableHead>
-                                <TableHead className="text-xs">Result</TableHead>
-                                <TableHead className="text-xs">Unit</TableHead>
-                                <TableHead className="text-xs">Normal Range</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {test.parameters.map((param, pIdx) => (
-                                <TableRow key={pIdx} className="h-6">
-                                  <TableCell className="text-xs">{param.parameterName}</TableCell>
-                                  <TableCell className="text-xs">{param.defaultValue || ""}</TableCell>
-                                  <TableCell className="text-xs">{param.units || ""}</TableCell>
-                                  <TableCell className="text-xs">{param.normalRange || ""}</TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        ) : (
-                          <div className="text-[10px] text-muted-foreground italic ml-2">
-                            No printable parameters
-                          </div>
-                        )}
+
+                  {/* Patient Info */}
+                  <div style={{ borderBottom: "1px dashed #000", paddingBottom: "6px", marginBottom: "6px" }}>
+                    <div><b>Patient:</b> {labCopyCase.patient?.pName}</div>
+                    <div><b>MRN:</b> {labCopyCase.patient?.mrn}</div>
+                    <div><b>Age:</b> {calculateAge(labCopyCase.patient?.dob)}</div>
+                    <div><b>Gender:</b> {labCopyCase.patient?.gender}</div>
+                    <div><b>Doctor:</b> Dr. {labCopyCase.doctor?.Name}</div>
+                    <div><b>Priority:</b> {labCopyCase.priority}</div>
+                  </div>
+
+                  {/* Tests */}
+                  <div style={{ fontWeight: "bold", fontSize: "12px", marginBottom: "4px" }}>TESTS:</div>
+                  {(labCopyCase.tests || []).map((test, tIdx) => (
+                    <div key={test.id} style={{ marginBottom: "6px" }}>
+                      <div style={{ fontWeight: "bold" }}>
+                        {tIdx + 1}. {test.testName}
                       </div>
-                    ))}
+                      <div style={{ fontSize: "10px", color: "#555" }}>({test.testCode})</div>
+                      {test.parameters && test.parameters.length > 0 ? (
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px", marginTop: "2px" }}>
+                          <thead>
+                            <tr style={{ borderBottom: "1px solid #ccc" }}>
+                              <th style={{ textAlign: "left", padding: "1px 2px" }}>Parameter</th>
+                              <th style={{ textAlign: "right", padding: "1px 2px" }}>Ref</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {test.parameters.map((param, pIdx) => (
+                              <tr key={pIdx}>
+                                <td style={{ padding: "1px 2px" }}>{param.parameterName}</td>
+                                <td style={{ textAlign: "right", padding: "1px 2px" }}>{param.normalRange || "-"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div style={{ fontSize: "9px", color: "#999", fontStyle: "italic", marginLeft: "4px" }}>
+                          No parameters
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Footer */}
+                  <div style={{ borderTop: "1px dashed #000", paddingTop: "6px", marginTop: "6px", textAlign: "center", fontSize: "10px" }}>
+                    Thank you
                   </div>
-                </div>
+                </>
               )}
             </div>
           </div>
