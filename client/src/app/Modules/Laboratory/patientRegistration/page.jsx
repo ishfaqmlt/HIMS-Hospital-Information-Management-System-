@@ -736,18 +736,15 @@ export default function PatientRegistrationPage() {
                     />
                   </div>
 
-                  <div className="space-y-1.0">
-                    <Label className="text-xs font-medium text-muted-foreground">&nbsp;</Label>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-9 px-3"
-                      onClick={() => setShowAddPatient(true)}
-                    >
-                      <UserPlus className="h-3 w-3 mr-1" /> New
-                    </Button>
-                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-3 pt-2 border-t border-border/50">
+                  <Button type="button" variant="outline" size="sm" onClick={handleReset}>
+                    <RotateCcw className="h-3 w-3 mr-1" /> Clear
+                  </Button>
+                  <Button type="submit" size="sm" disabled={loading || !selectedPatient}>
+                    {loading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
+                    {editingCase ? "Update" : "Register Case"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -930,15 +927,6 @@ export default function PatientRegistrationPage() {
             </div>
 
             {/* Submit */}
-            <div className="flex justify-end gap-2 mt-4">
-              <Button type="button" variant="outline" size="sm" onClick={handleReset}>
-                <RotateCcw className="h-3 w-3 mr-1" /> Clear
-              </Button>
-              <Button type="submit" size="sm" disabled={loading || !selectedPatient}>
-                {loading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Save className="h-3 w-3 mr-1" />}
-                {editingCase ? "Update" : "Register Case"}
-              </Button>
-            </div>
           </form>
         </div>
       </div>
