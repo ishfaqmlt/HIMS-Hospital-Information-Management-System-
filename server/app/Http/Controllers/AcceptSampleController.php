@@ -32,6 +32,8 @@ class AcceptSampleController extends Controller
 
         if ($request->has('status') && $request->status && $request->status !== 'All') {
             $query->where('lab_cases.status', $request->status);
+        } else {
+            $query->whereIn('lab_cases.status', ['Sampled', 'Registered']);
         }
 
         if ($request->has('fromDate') && $request->fromDate) {

@@ -60,7 +60,6 @@ export default function AcceptSamplePage() {
       const res = await acceptSampleService.getAll({
         fromDate: dtFrom,
         toDate: dtTo,
-        status: "Sampled",
       });
       setCases(res.data || []);
       setSelectedCase(null);
@@ -129,6 +128,15 @@ export default function AcceptSamplePage() {
     return "text-gray-400 bg-gray-50";
   };
 
+  const testStatusColor = (s) => {
+    if (s === "Registered") return "text-blue-600 bg-blue-50";
+    if (s === "Sampled") return "text-amber-600 bg-amber-50";
+    if (s === "InProcess") return "text-purple-600 bg-purple-50";
+    if (s === "Reported") return "text-cyan-600 bg-cyan-50";
+    if (s === "Approved") return "text-green-600 bg-green-50";
+    return "text-gray-400 bg-gray-50";
+  };
+
   return (
     <div className="p-4 max-w-full mx-auto space-y-4">
       {message && (
@@ -161,14 +169,6 @@ export default function AcceptSamplePage() {
             value={dtTo}
             onChange={(e) => setDtTo(e.target.value)}
             className="h-8 text-xs w-48"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs font-medium text-muted-foreground">Case Status</Label>
-          <Input
-            value="Sampled"
-            disabled
-            className="h-8 text-xs w-36 bg-muted"
           />
         </div>
         <Button size="sm" className="h-8" onClick={fetchCases} disabled={loading}>
@@ -279,14 +279,15 @@ export default function AcceptSamplePage() {
                         <TableHead className="text-xs w-10">SL</TableHead>
                         <TableHead className="text-xs">Test Code</TableHead>
                         <TableHead className="text-xs">Test Name</TableHead>
-                        <TableHead className="text-xs w-24 text-center">Status</TableHead>
+                        <TableHead className="text-xs w-24 text-center">Test Status</TableHead>
+                        <TableHead className="text-xs w-24 text-center">Sample Status</TableHead>
                         <TableHead className="text-xs w-28 text-center">Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {(selectedCase.tests || []).length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-6">
+                          <TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-6">
                             No tests found.
                           </TableCell>
                         </TableRow>
@@ -296,6 +297,11 @@ export default function AcceptSamplePage() {
                             <TableCell className="text-xs">{idx + 1}</TableCell>
                             <TableCell className="text-xs font-medium">{test.testCode}</TableCell>
                             <TableCell className="text-xs">{test.testName}</TableCell>
+                            <TableCell className="text-center">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${testStatusColor(test.testStatus)}`}>
+                                {test.testStatus || "-"}
+                              </span>
+                            </TableCell>
                             <TableCell className="text-center">
                               <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${sampleStatusColor(test.sampleStatus)}`}>
                                 {test.sampleStatus || "Pending"}
