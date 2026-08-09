@@ -36,6 +36,7 @@ use App\Http\Controllers\LabMasterTestParameterController;
 use App\Http\Controllers\LabBoundingController;
 use App\Http\Controllers\LabCaseController;
 use App\Http\Controllers\AcceptSampleController;
+use App\Http\Controllers\TestPerformController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -136,6 +137,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/accept-sample', [AcceptSampleController::class, 'index']);
     Route::put('/accept-sample/{testId}/accept', [AcceptSampleController::class, 'acceptSample']);
     Route::put('/accept-sample/{testId}/reject', [AcceptSampleController::class, 'rejectSample']);
+
+    // Test Perform
+    Route::get('/test-perform', [TestPerformController::class, 'index']);
 
     // Insurance Companies
     Route::apiResource('insurance-companies', InsuranceCompanyController::class);
