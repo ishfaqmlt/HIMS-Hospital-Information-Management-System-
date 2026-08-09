@@ -418,6 +418,19 @@ export default function PatientRegistrationPage() {
     setLoading(true);
     try {
       if (editingCase) {
+        await labCaseService.update(editingCase.id, {
+          visitId: data.visitId,
+          billingId: data.billingId || null,
+          caseDate: data.caseDate,
+          analyzerReffno: data.analyzerReffno || null,
+          insuranceCompanyId: data.insuranceCompanyId || null,
+          doctorId: data.doctorId || null,
+          orReffBy: data.orReffBy || null,
+          priority: data.priority,
+          status: data.status || editingCase.status,
+          remarks: data.remarks || null,
+        });
+
         const uncheckedTests = tests.filter((t) => t.flag === "U" && !t.checked);
         const removedTestIds = uncheckedTests.map((t) => t.caseTestId).filter(Boolean);
         const newTests = tests.filter((t) => t.flag === "I" && t.checked);
