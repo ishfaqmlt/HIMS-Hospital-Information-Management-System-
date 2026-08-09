@@ -58,25 +58,27 @@ export default function PatientDetailsCard({
           <div className="space-y-1.0">
             <Label className="text-xs font-medium text-muted-foreground">Visit No</Label>
             <div className="flex gap-1">
-              <div className="flex items-center h-8 px-2 text-xs bg-muted/50 border border-input rounded-md text-muted-foreground shrink-0 font-medium">
-                V-
+              <div className="flex items-center">
+                <span className="h-8 px-2 flex items-center text-xs bg-muted border border-r-0 border-input rounded-l-md text-muted-foreground font-medium">
+                  V-
+                </span>
+                {selectedPatient ? (
+                  <Input
+                    value={visitNoSearch || ""}
+                    disabled
+                    className="h-8 text-xs bg-muted/50 rounded-l-none"
+                  />
+                ) : (
+                  <Input
+                    value={visitNoSearch}
+                    onChange={(e) => onVisitNoSearchChange(formatVisitNoCode(e.target.value))}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onVisitNoSearch(); } }}
+                    className="h-8 text-xs rounded-l-none"
+                    placeholder=""
+                    maxLength={11}
+                  />
+                )}
               </div>
-              {selectedPatient ? (
-                <Input
-                  value={visitNoSearch || ""}
-                  disabled
-                  className="h-8 text-xs bg-muted/50"
-                />
-              ) : (
-                <Input
-                  value={visitNoSearch}
-                  onChange={(e) => onVisitNoSearchChange(formatVisitNoCode(e.target.value))}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onVisitNoSearch(); } }}
-                  className="h-8 text-xs"
-                  placeholder=""
-                  maxLength={11}
-                />
-              )}
               <Button size="sm" variant="outline" className="h-8 px-2" onClick={onVisitNoSearch} disabled={!!selectedPatient}>
                 <Search className="h-3 w-3" />
               </Button>
@@ -86,25 +88,27 @@ export default function PatientDetailsCard({
           <div className="space-y-1.0">
             <Label className="text-xs font-medium text-muted-foreground">MRN</Label>
             <div className="flex gap-1">
-              <div className="flex items-center h-8 px-2 text-xs bg-muted/50 border border-input rounded-md text-muted-foreground shrink-0 font-medium">
-                MRN-
+              <div className="flex items-center">
+                <span className="h-8 px-2 flex items-center text-xs bg-muted border border-r-0 border-input rounded-l-md text-muted-foreground font-medium">
+                  MRN-
+                </span>
+                {selectedPatient ? (
+                  <Input
+                    value={mrnSearch || ""}
+                    disabled
+                    className="h-8 text-xs bg-muted/50 rounded-l-none flex-1"
+                  />
+                ) : (
+                  <Input
+                    value={mrnSearch}
+                    onChange={(e) => onMrnSearchChange(formatMrnCode(e.target.value))}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onMrnSearch(); } }}
+                    className="h-8 text-xs rounded-l-none flex-1"
+                    placeholder=""
+                    maxLength={8}
+                  />
+                )}
               </div>
-              {selectedPatient ? (
-                <Input
-                  value={mrnSearch || ""}
-                  disabled
-                  className="h-8 text-xs bg-muted/50 flex-1"
-                />
-              ) : (
-                <Input
-                  value={mrnSearch}
-                  onChange={(e) => onMrnSearchChange(formatMrnCode(e.target.value))}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onMrnSearch(); } }}
-                  className="h-8 text-xs flex-1"
-                  placeholder=""
-                  maxLength={8}
-                />
-              )}
               <Button size="sm" variant="outline" className="h-8 px-2" onClick={onMrnSearch} disabled={!!selectedPatient}>
                 <Search className="h-3 w-3" />
               </Button>
