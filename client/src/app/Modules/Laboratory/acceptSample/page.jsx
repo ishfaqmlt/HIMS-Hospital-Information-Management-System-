@@ -81,7 +81,7 @@ export default function AcceptSamplePage() {
       setSelectedCase((prev) => ({
         ...prev,
         tests: prev.tests.map((t) =>
-          t.id === testId ? { ...t, sampleStatus: "Accepted" } : t
+          t.id === testId ? { ...t, sampleStatus: "Accepted", rejectReason: null } : t
         ),
       }));
       setMessage({ type: "success", text: "Sample accepted." });
@@ -314,7 +314,7 @@ export default function AcceptSamplePage() {
                               {test.rejectReason || "-"}
                             </TableCell>
                             <TableCell className="text-center">
-                              {!test.sampleStatus ? (
+                              {test.sampleStatus !== "Accepted" ? (
                                 <div className="flex gap-1 justify-center">
                                   <Button
                                     variant="ghost"

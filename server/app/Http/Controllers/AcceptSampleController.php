@@ -101,6 +101,7 @@ class AcceptSampleController extends Controller
 
         DB::table('lab_case_tests')->where('id', $testId)->update([
             'sampleStatus' => 'Accepted',
+            'rejectReason' => null,
             'updated_at' => now(),
         ]);
 
