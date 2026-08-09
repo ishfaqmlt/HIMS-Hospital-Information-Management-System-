@@ -489,11 +489,12 @@ export default function PatientVisitsPage() {
 
             <div className="space-y-2">
               <Label>Doctor</Label>
-              <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
+              <Select value={selectedDoctor || "none"} onValueChange={(val) => setSelectedDoctor(val === "none" ? "" : val)}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select doctor" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
                   {doctors.map((doc) => (
                     <SelectItem key={doc.id} value={doc.id}>
                       {doc.Name}
