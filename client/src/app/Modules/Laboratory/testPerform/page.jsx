@@ -4,7 +4,7 @@ import {
   Loader2,
   RefreshCw,
   User,
-  Printer,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ const TestPerform = () => {
   const [loading, setLoading] = useState(false);
   const [cases, setCases] = useState([]);
   const [selectedCase, setSelectedCase] = useState(null);
+  const [selectedTest, setSelectedTest] = useState(null);
   const [dtFrom, setDtFrom] = useState(
     toLocalISOString(new Date(new Date().setHours(0, 0, 0, 0)))
   );
@@ -42,12 +43,15 @@ const TestPerform = () => {
   );
   const [statusFilter, setStatusFilter] = useState("InProcess");
 
-  const [selectedTest, setSelectedTest] = useState(null);
   const [testParameters, setTestParameters] = useState([]);
   const [results, setResults] = useState({});
   const [resultsLoading, setResultsLoading] = useState(false);
   const [savingResults, setSavingResults] = useState(false);
-  const [printAll, setPrintAll] = useState(false);
+
+  const [analyzerReffno, setAnalyzerReffno] = useState("");
+  const [sampledAt, setSampledAt] = useState("");
+  const [performedAt, setPerformedAt] = useState("");
+  const [orReffBy, setOrReffBy] = useState("");
 
   useEffect(() => {
     if (!message) return;
@@ -68,6 +72,10 @@ const TestPerform = () => {
       setSelectedTest(null);
       setTestParameters([]);
       setResults({});
+      setAnalyzerReffno("");
+      setSampledAt("");
+      setPerformedAt("");
+      setOrReffBy("");
     } catch (err) {
       console.error(err);
       setMessage({ type: "error", text: "Failed to load cases." });
@@ -85,6 +93,11 @@ const TestPerform = () => {
     setSelectedTest(null);
     setTestParameters([]);
     setResults({});
+    setAnalyzerReffno(c.analyzerReffno || "");
+    const firstTest = (c.tests || [])[0];
+    setSampledAt(firstTest?.sampledAt || "");
+    setPerformedAt(firstTest?.performedAt || "");
+    setOrReffBy(c.orReffBy || "");
   };
 
   const handleOpenInterpretation = async (test) => {
@@ -109,7 +122,7 @@ const TestPerform = () => {
         resultMap[param.id] = {
           parameterId: param.id,
           pCode: param.analyzerCode || "",
-          subHeaderName: param.subHeader?.name || "",
+          subHeaderName: param.subHeader?.sub_header_name || "",
           parameterName: param.parameterName,
           units: existing?.units || param.units || "",
           result: existing?.result || "",
@@ -175,83 +188,85 @@ const TestPerform = () => {
         </div>
       )}
 
-      {/* Top Filters */}
-      <div className="flex items-end gap-3 flex-wrap">
-        <div className="space-y-1">
-          <Label className="text-xs font-medium text-muted-foreground">
-            From Date
-          </Label>
-          <Input
-            type="datetime-local"
-            value={dtFrom}
-            onChange={(e) => setDtFrom(e.target.value)}
-            className="h-8 text-xs w-48"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs font-medium text-muted-foreground">
-            To Date
-          </Label>
-          <Input
-            type="datetime-local"
-            value={dtTo}
-            onChange={(e) => setDtTo(e.target.value)}
-            className="h-8 text-xs w-48"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs font-medium text-muted-foreground">
-            Case Status
-          </Label>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-8 text-xs w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="InProcess">InProcess</SelectItem>
-              <SelectItem value="Sampled">Sampled</SelectItem>
-              <SelectItem value="Registered">Registered</SelectItem>
-              <SelectItem value="All">All</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Button
-          size="sm"
-          className="h-8"
-          onClick={fetchCases}
-          disabled={loading}
-        >
-          {loading ? (
-            <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-          ) : (
-            <RefreshCw className="h-3.5 w-3.5 mr-1" />
-          )}
-          Refresh List
-        </Button>
-      </div>
-
       {/* Two Panel Layout */}
-      <div className="flex gap-4" style={{ height: "calc(100vh - 220px)" }}>
+      <div className="flex gap-4" style={{ height: "calc(100vh - 140px)" }}>
         {/* Left Panel - 35% */}
         <div className="w-[35%] flex flex-col gap-4">
-          {/* Patients List - 50% height */}
-          <div
-            className="border rounded-md flex flex-col overflow-hidden"
-            style={{ height: "50%" }}
-          >
-            <div className="px-3 py-1.5 bg-sky-50 border-b">
-              <h3 className="text-xs font-semibold text-sky-700">
-                Patients List ({cases.length})
-              </h3>
+          {/* Filters + Patients List */}
+          <div className="border rounded-md flex flex-col overflow-hidden flex-1">
+            {/* Filters */}
+            <div className="px-3 py-2 bg-sky-50 border-b space-y-2">
+              <div className="flex items-end gap-2 flex-wrap">
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-medium text-muted-foreground">
+                    From Date
+                  </Label>
+                  <Input
+                    type="datetime-local"
+                    value={dtFrom}
+                    onChange={(e) => setDtFrom(e.target.value)}
+                    className="h-7 text-xs w-40"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-medium text-muted-foreground">
+                    To Date
+                  </Label>
+                  <Input
+                    type="datetime-local"
+                    value={dtTo}
+                    onChange={(e) => setDtTo(e.target.value)}
+                    className="h-7 text-xs w-40"
+                  />
+                </div>
+              </div>
+              <div className="flex items-end gap-2">
+                <div className="space-y-1 flex-1">
+                  <Label className="text-[10px] font-medium text-muted-foreground">
+                    Case Status
+                  </Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="h-7 text-xs w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="InProcess">InProcess</SelectItem>
+                      <SelectItem value="Sampled">Sampled</SelectItem>
+                      <SelectItem value="Registered">Registered</SelectItem>
+                      <SelectItem value="All">All</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  size="sm"
+                  className="h-7"
+                  onClick={fetchCases}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                  )}
+                  Refresh
+                </Button>
+              </div>
             </div>
+
+            {/* Patients List */}
             <div className="flex-1 overflow-auto">
+              <div className="px-3 py-1 bg-sky-50/50 border-b">
+                <h3 className="text-[10px] font-semibold text-sky-700">
+                  Patients List ({cases.length})
+                </h3>
+              </div>
               <Table>
                 <TableHeader>
-                  <TableRow className="h-8">
-                    <TableHead className="text-xs w-10">SL</TableHead>
-                    <TableHead className="text-xs">Patient</TableHead>
-                    <TableHead className="text-xs">Case No</TableHead>
-                    <TableHead className="text-xs text-center">
+                  <TableRow className="h-7">
+                    <TableHead className="text-[10px] w-8">SL</TableHead>
+                    <TableHead className="text-[10px]">Patient</TableHead>
+                    <TableHead className="text-[10px]">Case No</TableHead>
+                    <TableHead className="text-[10px] text-center">
                       Action
                     </TableHead>
                   </TableRow>
@@ -261,32 +276,36 @@ const TestPerform = () => {
                     <TableRow>
                       <TableCell
                         colSpan={4}
-                        className="text-center text-xs text-muted-foreground py-8"
+                        className="text-center text-[10px] text-muted-foreground py-8"
                       >
                         {loading
                           ? "Loading..."
-                          : "No cases found. Click Refresh List."}
+                          : "No cases found. Click Refresh."}
                       </TableCell>
                     </TableRow>
                   ) : (
                     cases.map((c, idx) => (
                       <TableRow
                         key={c.id}
-                        className={`h-8 cursor-pointer hover:bg-muted/50 ${
+                        className={`h-7 cursor-pointer hover:bg-muted/50 ${
                           selectedCase?.id === c.id ? "bg-sky-100" : ""
                         }`}
                         onClick={() => handleSelectCase(c)}
                       >
-                        <TableCell className="text-xs">{idx + 1}</TableCell>
-                        <TableCell className="text-xs font-medium">
+                        <TableCell className="text-[10px]">
+                          {idx + 1}
+                        </TableCell>
+                        <TableCell className="text-[10px] font-medium">
                           {c.patient?.pName || "-"}
                         </TableCell>
-                        <TableCell className="text-xs">{c.caseNo}</TableCell>
+                        <TableCell className="text-[10px]">
+                          {c.caseNo}
+                        </TableCell>
                         <TableCell className="text-center">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 px-2 text-xs"
+                            className="h-5 px-1.5 text-[10px]"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleSelectCase(c);
@@ -303,30 +322,27 @@ const TestPerform = () => {
             </div>
           </div>
 
-          {/* Selected Tests - 50% height */}
-          <div
-            className="border rounded-md flex flex-col overflow-hidden"
-            style={{ height: "50%" }}
-          >
-            <div className="px-3 py-1.5 bg-sky-50 border-b">
-              <h3 className="text-xs font-semibold text-sky-700">
+          {/* Selected Tests */}
+          <div className="border rounded-md flex flex-col overflow-hidden" style={{ height: "40%" }}>
+            <div className="px-3 py-1 bg-sky-50 border-b">
+              <h3 className="text-[10px] font-semibold text-sky-700">
                 {selectedCase
                   ? `Selected Tests (${(selectedCase.tests || []).length})`
-                  : "Select a patient from the list"}
+                  : "Select a patient"}
               </h3>
             </div>
             <div className="flex-1 overflow-auto">
               {!selectedCase ? (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
-                  Click &quot;Select&quot; on a patient to view their tests.
+                <div className="flex items-center justify-center h-full text-muted-foreground text-[10px]">
+                  Select a patient to view tests.
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="h-8">
-                      <TableHead className="text-xs w-10">SL</TableHead>
-                      <TableHead className="text-xs">Test Name</TableHead>
-                      <TableHead className="text-xs text-center">
+                    <TableRow className="h-7">
+                      <TableHead className="text-[10px] w-8">SL</TableHead>
+                      <TableHead className="text-[10px]">Test Name</TableHead>
+                      <TableHead className="text-[10px] text-center">
                         Action
                       </TableHead>
                     </TableRow>
@@ -336,7 +352,7 @@ const TestPerform = () => {
                       <TableRow>
                         <TableCell
                           colSpan={3}
-                          className="text-center text-xs text-muted-foreground py-6"
+                          className="text-center text-[10px] text-muted-foreground py-6"
                         >
                           No tests found.
                         </TableCell>
@@ -345,20 +361,22 @@ const TestPerform = () => {
                       (selectedCase.tests || []).map((test, idx) => (
                         <TableRow
                           key={test.id}
-                          className={`h-8 cursor-pointer hover:bg-muted/50 ${
+                          className={`h-7 cursor-pointer hover:bg-muted/50 ${
                             selectedTest?.id === test.id ? "bg-sky-100" : ""
                           }`}
                           onClick={() => handleOpenInterpretation(test)}
                         >
-                          <TableCell className="text-xs">{idx + 1}</TableCell>
-                          <TableCell className="text-xs font-medium">
+                          <TableCell className="text-[10px]">
+                            {idx + 1}
+                          </TableCell>
+                          <TableCell className="text-[10px] font-medium">
                             {test.testName}
                           </TableCell>
                           <TableCell className="text-center">
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700"
+                              className="h-5 px-1.5 text-[10px] text-blue-600 hover:text-blue-700"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleOpenInterpretation(test);
@@ -387,6 +405,15 @@ const TestPerform = () => {
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => {}}
+                >
+                  <Download className="h-3 w-3 mr-1" />
+                  Fetch Analyzer
+                </Button>
+                <Button
+                  size="sm"
                   className="h-7 text-xs"
                   onClick={handleSaveResults}
                   disabled={savingResults}
@@ -405,174 +432,229 @@ const TestPerform = () => {
                 Select a patient from the list to enter results.
               </div>
             ) : (
-              <Card className="shadow-sm border border-border/50">
-                <CardHeader className="px-3 py-1.5 bg-sky-50">
-                  <CardTitle className="text-xs font-semibold text-sky-700 flex items-center gap-4">
-                    <span className="flex items-center gap-1">
-                      <User className="h-3.5 w-3.5" />
-                      {selectedCase.patient?.pName || "-"}
-                    </span>
-                    <span className="text-muted-foreground">|</span>
-                    <span>MRN: {selectedCase.patient?.mrn || "-"}</span>
-                    <span className="text-muted-foreground">|</span>
-                    <span>
-                      Age: {calculateAge(selectedCase.patient?.dob)}
-                    </span>
-                    <span className="text-muted-foreground">|</span>
-                    <span>Case: {selectedCase.caseNo}</span>
-                    <span className="text-muted-foreground">|</span>
-                    <span>Dr. {selectedCase.doctor?.Name || "-"}</span>
-                    {selectedTest && (
-                      <>
-                        <span className="text-muted-foreground">|</span>
-                        <span className="text-blue-600">
-                          Test: {selectedTest.testName} ({selectedTest.testCode})
-                        </span>
-                      </>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {!selectedTest ? (
-                    <div className="flex items-center justify-center h-32 text-muted-foreground text-xs">
-                      Click &quot;Enter Results&quot; on a test to enter
-                      results.
+              <div className="space-y-3">
+                {/* Patient Details Card */}
+                <Card className="shadow-sm border border-border/50">
+                  <CardHeader className="px-3 py-1.5 bg-sky-50">
+                    <CardTitle className="text-xs font-semibold text-sky-700 flex items-center gap-4">
+                      <span className="flex items-center gap-1">
+                        <User className="h-3.5 w-3.5" />
+                        {selectedCase.patient?.pName || "-"}
+                      </span>
+                      <span className="text-muted-foreground">|</span>
+                      <span>MRN: {selectedCase.patient?.mrn || "-"}</span>
+                      <span className="text-muted-foreground">|</span>
+                      <span>
+                        Age: {calculateAge(selectedCase.patient?.dob)}
+                      </span>
+                      <span className="text-muted-foreground">|</span>
+                      <span>Case: {selectedCase.caseNo}</span>
+                      <span className="text-muted-foreground">|</span>
+                      <span>Dr. {selectedCase.doctor?.Name || "-"}</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-3 py-2">
+                    <div className="grid grid-cols-4 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">
+                          Analyzer Reff No
+                        </Label>
+                        <Input
+                          value={analyzerReffno}
+                          onChange={(e) => setAnalyzerReffno(e.target.value)}
+                          className="h-7 text-xs"
+                          placeholder=""
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">
+                          Sampled At
+                        </Label>
+                        <Input
+                          type="datetime-local"
+                          value={sampledAt}
+                          onChange={(e) => setSampledAt(e.target.value)}
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">
+                          Performed At
+                        </Label>
+                        <Input
+                          type="datetime-local"
+                          value={performedAt}
+                          onChange={(e) => setPerformedAt(e.target.value)}
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">
+                          Or Reff By
+                        </Label>
+                        <Input
+                          value={orReffBy}
+                          onChange={(e) => setOrReffBy(e.target.value)}
+                          className="h-7 text-xs"
+                          placeholder=""
+                        />
+                      </div>
                     </div>
-                  ) : resultsLoading ? (
-                    <div className="flex items-center justify-center h-32">
-                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : (
-                    <div className="overflow-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="h-8">
-                            <TableHead className="text-xs w-10">ID</TableHead>
-                            <TableHead className="text-xs w-20">
-                              PCode
-                            </TableHead>
-                            <TableHead className="text-xs">
-                              Sub Header
-                            </TableHead>
-                            <TableHead className="text-xs">Parameter</TableHead>
-                            <TableHead className="text-xs w-28">
-                              Result
-                            </TableHead>
-                            <TableHead className="text-xs w-20">
-                              Units
-                            </TableHead>
-                            <TableHead className="text-xs w-28">
-                              Reff. Value
-                            </TableHead>
-                            <TableHead className="text-xs w-24">
-                              Status
-                            </TableHead>
-                            <TableHead className="text-xs w-12 text-center">
-                              Print
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {testParameters.length === 0 ? (
-                            <TableRow>
-                              <TableCell
-                                colSpan={9}
-                                className="text-center text-xs text-muted-foreground py-6"
-                              >
-                                No parameters found for this test.
-                              </TableCell>
+                  </CardContent>
+                </Card>
+
+                {/* Results Table */}
+                {!selectedTest ? (
+                  <div className="flex items-center justify-center h-32 text-muted-foreground text-xs">
+                    Click &quot;Enter Results&quot; on a test to enter results.
+                  </div>
+                ) : resultsLoading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <Card className="shadow-sm border border-border/50">
+                    <CardContent className="p-0">
+                      <div className="overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="h-8">
+                              <TableHead className="text-xs w-10">
+                                ID
+                              </TableHead>
+                              <TableHead className="text-xs w-20">
+                                PCode
+                              </TableHead>
+                              <TableHead className="text-xs">
+                                Sub Header
+                              </TableHead>
+                              <TableHead className="text-xs">
+                                Parameter
+                              </TableHead>
+                              <TableHead className="text-xs w-28">
+                                Result
+                              </TableHead>
+                              <TableHead className="text-xs w-20">
+                                Units
+                              </TableHead>
+                              <TableHead className="text-xs w-28">
+                                Reff. Value
+                              </TableHead>
+                              <TableHead className="text-xs w-24">
+                                Status
+                              </TableHead>
+                              <TableHead className="text-xs w-12 text-center">
+                                Print
+                              </TableHead>
                             </TableRow>
-                          ) : (
-                            testParameters.map((param, idx) => (
-                              <TableRow key={param.parameterId} className="h-8">
-                                <TableCell className="text-xs">
-                                  {idx + 1}
-                                </TableCell>
-                                <TableCell className="text-xs text-muted-foreground">
-                                  {param.pCode || "-"}
-                                </TableCell>
-                                <TableCell className="text-xs text-muted-foreground">
-                                  {param.subHeaderName || "-"}
-                                </TableCell>
-                                <TableCell className="text-xs font-medium">
-                                  {param.parameterName}
-                                </TableCell>
-                                <TableCell>
-                                  <Input
-                                    value={param.result}
-                                    onChange={(e) =>
-                                      handleResultChange(
-                                        param.parameterId,
-                                        "result",
-                                        e.target.value
-                                      )
-                                    }
-                                    className="h-7 text-xs"
-                                    placeholder=""
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <Input
-                                    value={param.units}
-                                    onChange={(e) =>
-                                      handleResultChange(
-                                        param.parameterId,
-                                        "units",
-                                        e.target.value
-                                      )
-                                    }
-                                    className="h-7 text-xs"
-                                  />
-                                </TableCell>
-                                <TableCell className="text-xs text-muted-foreground">
-                                  {param.normalRange || "-"}
-                                </TableCell>
-                                <TableCell>
-                                  <Select
-                                    value={param.paramStatus}
-                                    onValueChange={(val) =>
-                                      handleResultChange(
-                                        param.parameterId,
-                                        "paramStatus",
-                                        val
-                                      )
-                                    }
-                                  >
-                                    <SelectTrigger className="h-7 text-xs w-full">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="N">Normal</SelectItem>
-                                      <SelectItem value="A">
-                                        Abnormal
-                                      </SelectItem>
-                                      <SelectItem value="C">
-                                        Critical
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </TableCell>
-                                <TableCell className="text-center">
-                                  <Checkbox
-                                    checked={param.print}
-                                    onCheckedChange={(checked) =>
-                                      handleResultChange(
-                                        param.parameterId,
-                                        "print",
-                                        checked
-                                      )
-                                    }
-                                  />
+                          </TableHeader>
+                          <TableBody>
+                            {testParameters.length === 0 ? (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={9}
+                                  className="text-center text-xs text-muted-foreground py-6"
+                                >
+                                  No parameters found for this test.
                                 </TableCell>
                               </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                            ) : (
+                              testParameters.map((param, idx) => (
+                                <TableRow
+                                  key={param.parameterId}
+                                  className="h-8"
+                                >
+                                  <TableCell className="text-xs">
+                                    {idx + 1}
+                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground">
+                                    {param.pCode || "-"}
+                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground">
+                                    {param.subHeaderName || "-"}
+                                  </TableCell>
+                                  <TableCell className="text-xs font-medium">
+                                    {param.parameterName}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Input
+                                      value={param.result}
+                                      onChange={(e) =>
+                                        handleResultChange(
+                                          param.parameterId,
+                                          "result",
+                                          e.target.value
+                                        )
+                                      }
+                                      className="h-7 text-xs"
+                                      placeholder=""
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Input
+                                      value={param.units}
+                                      onChange={(e) =>
+                                        handleResultChange(
+                                          param.parameterId,
+                                          "units",
+                                          e.target.value
+                                        )
+                                      }
+                                      className="h-7 text-xs"
+                                    />
+                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground">
+                                    {param.normalRange || "-"}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Select
+                                      value={param.paramStatus}
+                                      onValueChange={(val) =>
+                                        handleResultChange(
+                                          param.parameterId,
+                                          "paramStatus",
+                                          val
+                                        )
+                                      }
+                                    >
+                                      <SelectTrigger className="h-7 text-xs w-full">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="N">
+                                          Normal
+                                        </SelectItem>
+                                        <SelectItem value="A">
+                                          Abnormal
+                                        </SelectItem>
+                                        <SelectItem value="C">
+                                          Critical
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    <Checkbox
+                                      checked={param.print}
+                                      onCheckedChange={(checked) =>
+                                        handleResultChange(
+                                          param.parameterId,
+                                          "print",
+                                          checked
+                                        )
+                                      }
+                                    />
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             )}
           </div>
         </div>
