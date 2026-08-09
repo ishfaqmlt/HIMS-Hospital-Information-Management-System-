@@ -61,7 +61,7 @@ class AcceptSampleController extends Controller
                     'lab_case_tests.rejectReason',
                     'lab_master_tests.testName',
                     'lab_master_tests.testCode',
-                    'lab_required_samples.name as requiredSampleName'
+                    'lab_required_samples.required_sample_name as requiredSampleName'
                 )
                 ->get();
 
