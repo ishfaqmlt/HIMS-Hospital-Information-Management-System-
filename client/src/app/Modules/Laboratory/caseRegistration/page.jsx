@@ -697,7 +697,14 @@ export default function PatientRegistrationPage() {
                       name="doctorId"
                       control={control}
                       render={({ field }) => (
-                        <Select value={field.value || ""} onValueChange={field.onChange}>
+                        <Select
+                          value={field.value || ""}
+                          onValueChange={(val) => {
+                            field.onChange(val === "none" ? "" : val);
+                            const doc = doctors.find((d) => d.id === val);
+                            setValue("orReffBy", doc ? doc.Name : "");
+                          }}
+                        >
                           <SelectTrigger className="w-full h-9 text-xs">
                             <SelectValue placeholder="Select" />
                           </SelectTrigger>
