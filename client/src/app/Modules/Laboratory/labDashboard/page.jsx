@@ -33,7 +33,7 @@ const labMenuItems = [
   {
     label: "Patient Registration",
     icon: UserPlus,
-    href: "/Modules/laboratory/patientRegistration",
+    href: "/Modules/laboratory/caseRegistration",
     color: "from-emerald-500 to-emerald-600",
     bgColor: "bg-emerald-50",
     iconColor: "text-emerald-600",
@@ -41,7 +41,7 @@ const labMenuItems = [
   {
     label: "Sample Collection",
     icon: TestTube,
-    href: "/Modules/laboratory/collectionCenter",
+    href: "/Modules/laboratory/sampleCollection",
     color: "from-blue-500 to-blue-600",
     bgColor: "bg-blue-50",
     iconColor: "text-blue-600",
@@ -49,7 +49,7 @@ const labMenuItems = [
   {
     label: "Test Perform",
     icon: FlaskConical,
-    href: "/Modules/laboratory/samplePerforms",
+    href: "/Modules/laboratory/testPerform",
     color: "from-purple-500 to-purple-600",
     bgColor: "bg-purple-50",
     iconColor: "text-purple-600",

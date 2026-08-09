@@ -45,7 +45,7 @@ const labMenuItems = [
   {
     label: "Test Perform",
     icon: FlaskConical,
-    href: "/Modules/laboratory/samplePerforms",
+    href: "/Modules/laboratory/testPerform",
   },
   {
     label: "Test Approval",
