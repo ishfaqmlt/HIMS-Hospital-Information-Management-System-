@@ -65,6 +65,11 @@ class LabCaseController extends Controller
             $query->where('lab_cases.priority', $request->priority);
         }
 
+        if ($request->has('today') && $request->today) {
+            $today = now()->toDateString();
+            $query->whereDate('lab_cases.caseDate', $today);
+        }
+
         if ($request->has('fromDate') && $request->fromDate) {
             $query->where('lab_cases.caseDate', '>=', $request->fromDate);
         }
