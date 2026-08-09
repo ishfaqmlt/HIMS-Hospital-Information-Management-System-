@@ -21,6 +21,7 @@ class AcceptSampleController extends Controller
                 'lab_cases.caseDate',
                 'lab_cases.priority',
                 'lab_cases.status',
+                'lab_cases.doctorId',
                 'patients.pName as patient_name',
                 'patients.mrn as patient_mrn',
                 'patients.mobile as patient_mobile',
