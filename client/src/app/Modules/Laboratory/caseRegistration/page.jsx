@@ -323,6 +323,7 @@ export default function PatientRegistrationPage() {
     setValue("doctorId", caseData.doctorId || "");
     setValue("caseDate", caseData.caseDate ? caseData.caseDate.replace(" ", "T").slice(0, 16) : toLocalISOString(new Date()));
     setValue("analyzerReffno", caseData.analyzerReffno || "");
+    setValue("orReffBy", caseData.orReffBy || "");
     setValue("priority", caseData.priority || "Normal");
     setValue("remarks", caseData.remarks || "");
 
