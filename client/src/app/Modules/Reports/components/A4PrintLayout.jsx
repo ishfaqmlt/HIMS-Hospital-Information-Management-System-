@@ -1,8 +1,9 @@
 import React, { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
+import { formatDate } from "@/lib/utils";
 
 function A4Receipt({ title, hospitalProfile, invoice, services, payment, showSignature }) {
-  const date = new Date(invoice.InvoiceDate).toLocaleDateString("en-GB");
+  const date = formatDate(invoice.InvoiceDate);
 
   return (
     <div style={{ fontFamily: "Arial, sans-serif", fontSize: "12px", color: "#333" }}>

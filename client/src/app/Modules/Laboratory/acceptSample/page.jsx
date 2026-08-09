@@ -27,29 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { RefreshCw, Loader2, User, CheckCircle2, XCircle } from "lucide-react";
 import acceptSampleService from "@/services/acceptSample.service";
-
-const toLocalISOString = (date) => {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  const h = String(date.getHours()).padStart(2, "0");
-  const min = String(date.getMinutes()).padStart(2, "0");
-  return `${y}-${m}-${d}T${h}:${min}`;
-};
-
-const calculateAge = (dob) => {
-  if (!dob) return "-";
-  const birth = new Date(dob);
-  const today = new Date();
-  let years = today.getFullYear() - birth.getFullYear();
-  let months = today.getMonth() - birth.getMonth();
-  if (months < 0) {
-    years--;
-    months += 12;
-  }
-  if (years > 0) return `${years}Y ${months}M`;
-  return `${months}M`;
-};
+import { toLocalISOString, calculateAge } from "@/lib/utils";
 
 export default function AcceptSamplePage() {
   const [loading, setLoading] = useState(false);

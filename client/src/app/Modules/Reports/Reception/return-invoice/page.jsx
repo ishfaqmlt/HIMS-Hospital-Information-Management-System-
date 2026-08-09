@@ -26,6 +26,7 @@ import billingService from "@/services/billing.service";
 import billingDetailService from "@/services/billingDetailService";
 import patientPaymentService from "@/services/patientPaymentService";
 import { printInvoiceSlip } from "../invoice/page";
+import { formatDate } from "@/lib/utils";
 
 function ReturnInvoiceContent() {
   const searchParams = useSearchParams();
@@ -233,7 +234,7 @@ function ReturnInvoiceContent() {
             <div className="grid grid-cols-4 gap-3 text-xs">
               <div><strong>MRN:</strong> {originalInvoice.patientVisit?.patient?.mrn || "-"}</div>
               <div><strong>Patient:</strong> {originalInvoice.patientVisit?.patient?.pName || "-"}</div>
-              <div><strong>Date:</strong> {new Date(originalInvoice.InvoiceDate).toLocaleDateString("en-GB")}</div>
+              <div><strong>Date:</strong> {formatDate(originalInvoice.InvoiceDate)}</div>
               <div><strong>Total:</strong> {Number(originalInvoice.TotalAmount).toFixed(2)}</div>
             </div>
           </CardContent>

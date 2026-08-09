@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash2, Eye, AlertTriangle } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 export const getColumns = ({ onEdit, onDelete, onView }) => [
   {
@@ -89,7 +90,7 @@ export const getColumns = ({ onEdit, onDelete, onView }) => [
       const isNearExpiry = expiry < new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
       return (
         <span className={`text-sm ${isExpired ? "text-red-600 font-bold" : isNearExpiry ? "text-orange-600" : ""}`}>
-          {expiry.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })}
+          {formatDate(date)}
         </span>
       );
     },

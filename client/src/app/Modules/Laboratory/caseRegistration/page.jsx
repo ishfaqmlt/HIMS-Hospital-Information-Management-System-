@@ -50,15 +50,7 @@ import labCaseService from "@/services/labCase.service";
 import masterTestService from "@/services/masterTests.service";
 import PatientDetailsCard from "@/components/patients/PatientDetailsCard";
 import AddPatientDialog from "@/components/patients/AddPatientDialog";
-
-function toLocalISOString(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  const h = String(date.getHours()).padStart(2, "0");
-  const min = String(date.getMinutes()).padStart(2, "0");
-  return `${y}-${m}-${d}T${h}:${min}`;
-}
+import { toLocalISOString } from "@/lib/utils";
 
 export default function PatientRegistrationPage() {
   const { user } = useSelector((state) => state.auth);

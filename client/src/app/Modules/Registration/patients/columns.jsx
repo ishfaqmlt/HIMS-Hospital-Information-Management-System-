@@ -3,6 +3,7 @@
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { formatDate } from "@/lib/utils";
 
 export const getColumns = ({ onEdit }) => [
   {
@@ -35,11 +36,7 @@ export const getColumns = ({ onEdit }) => [
     cell: ({ row }) => {
       const dob = row.getValue("dob");
       if (!dob) return "-";
-      return new Date(dob).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
+      return formatDate(dob);
     },
   },
   {

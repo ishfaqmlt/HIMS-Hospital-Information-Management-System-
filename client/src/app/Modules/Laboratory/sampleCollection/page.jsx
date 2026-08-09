@@ -32,29 +32,7 @@ import { getColumns } from "./columns";
 import labCaseService from "@/services/labCase.service";
 import LabBarcode from "@/components/lab/LabBarcode";
 import { useReactToPrint } from "react-to-print";
-
-const toLocalISOString = (date) => {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  const h = String(date.getHours()).padStart(2, "0");
-  const min = String(date.getMinutes()).padStart(2, "0");
-  return `${y}-${m}-${d}T${h}:${min}`;
-};
-
-const calculateAge = (dob) => {
-  if (!dob) return "-";
-  const birth = new Date(dob);
-  const today = new Date();
-  let years = today.getFullYear() - birth.getFullYear();
-  let months = today.getMonth() - birth.getMonth();
-  if (months < 0) {
-    years--;
-    months += 12;
-  }
-  if (years > 0) return `${years} Years ${months} Months`;
-  return `${months} Months`;
-};
+import { toLocalISOString, calculateAge, formatDate } from "@/lib/utils";
 
 export default function SampleCollectionPage() {
   const [loading, setLoading] = useState(false);
@@ -219,7 +197,7 @@ export default function SampleCollectionPage() {
                   />
                   <span className="text-[10px] text-gray-600">
                     Date: {barcodeCase.caseDate
-                      ? new Date(barcodeCase.caseDate).toLocaleDateString("en-GB")
+                      ? formatDate(barcodeCase.caseDate)
                       : ""}
                   </span>
                 </>
@@ -267,7 +245,7 @@ export default function SampleCollectionPage() {
                   <div style={{ marginBottom: "6px" }}>
                     <div><b>Case:</b> {labCopyCase.caseNo}</div>
                     <div><b>Date:</b> {labCopyCase.caseDate
-                      ? new Date(labCopyCase.caseDate).toLocaleDateString("en-GB")
+                      ? formatDate(labCopyCase.caseDate)
                       : "-"}</div>
                   </div>
 

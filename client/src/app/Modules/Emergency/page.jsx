@@ -29,6 +29,7 @@ import doctorService from "@/services/doctor.service";
 import departmentService from "@/services/department.service";
 import AddPatientDialog from "@/components/patients/AddPatientDialog";
 import { Loader2, Plus, Search, CalendarDays, Eye, UserPlus } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 export default function EmergencyPage() {
   const [loading, setLoading] = useState(false);
@@ -532,7 +533,7 @@ export default function EmergencyPage() {
                 <div>
                   <p className="text-muted-foreground">Arrival Date</p>
                   <p className="font-medium">
-                    {new Date(viewingCase.ArrivalDate).toLocaleDateString("en-GB")}
+                    {formatDate(viewingCase.ArrivalDate)}
                   </p>
                 </div>
                 <div>

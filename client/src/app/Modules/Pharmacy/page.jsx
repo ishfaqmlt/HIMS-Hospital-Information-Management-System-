@@ -23,6 +23,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import pharmacyItemService from "@/services/pharmacyItem.service";
 import { Loader2, Plus, Search, AlertTriangle } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 const pharmacySchema = {
   ItemCode: "",
@@ -370,7 +371,7 @@ export default function PharmacyPage() {
                 <div>
                   <p className="text-muted-foreground">Expiry Date</p>
                   <p className="font-medium">
-                    {viewingItem.ExpiryDate ? new Date(viewingItem.ExpiryDate).toLocaleDateString("en-GB") : "-"}
+                    {viewingItem.ExpiryDate ? formatDate(viewingItem.ExpiryDate) : "-"}
                   </p>
                 </div>
               </div>

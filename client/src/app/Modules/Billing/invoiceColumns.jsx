@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Printer, FileText, Pencil, RotateCcw } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 export const getColumns = ({ onPrint, onPrintA4, onEdit, onReturn }) => [
   {
@@ -29,14 +30,7 @@ export const getColumns = ({ onPrint, onPrintA4, onEdit, onReturn }) => [
   {
     accessorKey: "InvoiceDate",
     header: "Date",
-    cell: ({ row }) => {
-      const date = new Date(row.getValue("InvoiceDate"));
-      return date.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
-    },
+    cell: ({ row }) => formatDate(row.getValue("InvoiceDate")),
   },
   {
     id: "doctorName",

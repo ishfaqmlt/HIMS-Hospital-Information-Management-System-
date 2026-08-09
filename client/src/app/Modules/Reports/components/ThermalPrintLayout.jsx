@@ -3,9 +3,10 @@ import { useReactToPrint } from "react-to-print";
 import PrintHeader from "./PrintHeader";
 import PrintFooter from "./PrintFooter";
 import Image from "next/image";
+import { formatDate } from "@/lib/utils";
 
 function ThermalReceipt({ title, hospitalProfile, invoice, services, payment, showSignature }) {
-  const date = new Date(invoice.InvoiceDate).toLocaleDateString("en-GB");
+  const date = formatDate(invoice.InvoiceDate);
 
   return (
     <div style={{ fontFamily: "'Courier New', monospace", width: "280px", padding: "10px", fontSize: "12px" }}>

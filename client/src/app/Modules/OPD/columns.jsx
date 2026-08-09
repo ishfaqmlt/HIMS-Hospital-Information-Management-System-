@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 const statusColors = {
   Waiting: "bg-yellow-100 text-yellow-800 border-yellow-300",
@@ -44,10 +45,7 @@ export const getColumns = ({ onEdit, onDelete, onView }) => [
   {
     accessorKey: "VisitDate",
     header: "Visit Date",
-    cell: ({ row }) => {
-      const date = new Date(row.original.VisitDate);
-      return date.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
-    },
+    cell: ({ row }) => formatDate(row.original.VisitDate),
   },
   {
     accessorKey: "VisitType",

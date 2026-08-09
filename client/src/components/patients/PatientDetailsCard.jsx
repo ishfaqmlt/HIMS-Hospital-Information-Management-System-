@@ -49,7 +49,7 @@ export default function PatientDetailsCard({
     <Card className="shadow-sm border border-border/50 w-full">
       <CardContent className="p-4">
         <div className="grid grid-cols-9 gap-3 items-end w-full">
-          <div className="space-y-1.5">
+          <div className="space-y-1.0">
             <Label className="text-xs font-medium text-muted-foreground">Visit No</Label>
             <div className="flex gap-1">
               <div className="flex items-center h-9 px-2 text-xs bg-muted/50 border border-input rounded-md text-muted-foreground shrink-0 font-medium">
@@ -77,7 +77,7 @@ export default function PatientDetailsCard({
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.0">
             <Label className="text-xs font-medium text-muted-foreground">MRN</Label>
             <div className="flex gap-1">
               <div className="flex items-center h-9 px-2 text-xs bg-muted/50 border border-input rounded-md text-muted-foreground shrink-0 font-medium">
@@ -105,7 +105,7 @@ export default function PatientDetailsCard({
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.0">
             <Label className="text-xs font-medium text-muted-foreground">CNIC</Label>
             <div className="flex gap-1">
               {selectedPatient ? (
@@ -129,7 +129,7 @@ export default function PatientDetailsCard({
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.0">
             <Label className="text-xs font-medium text-muted-foreground">Mobile No.</Label>
             <div className="flex gap-1">
               {selectedPatient ? (
@@ -153,7 +153,7 @@ export default function PatientDetailsCard({
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.0">
             <Label className="text-xs font-medium text-muted-foreground">Patient</Label>
             <Input
               value={selectedPatient?.pName || ""}
@@ -162,7 +162,7 @@ export default function PatientDetailsCard({
             />
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.0">
             <Label className="text-xs font-medium text-muted-foreground">Guardian</Label>
             <Input
               value={selectedPatient?.gName || ""}
@@ -171,7 +171,7 @@ export default function PatientDetailsCard({
             />
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.0 ">
             <Label className="text-xs font-medium text-muted-foreground">Gender</Label>
             <Input
               value={selectedPatient?.gender || ""}
@@ -180,7 +180,7 @@ export default function PatientDetailsCard({
             />
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.0 ">
             <Label className="text-xs font-medium text-muted-foreground">Patient Type</Label>
             <Select value={patientType} onValueChange={onPatientTypeChange}>
               <SelectTrigger className="w-full h-9 text-xs">
@@ -194,7 +194,7 @@ export default function PatientDetailsCard({
             </Select>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.0">
             <Label className="text-xs font-medium text-muted-foreground">&nbsp;</Label>
             <Button size="sm" variant="outline" className="h-9 px-3" onClick={onReset}>
               <RotateCcw className="h-3 w-3 mr-1" />Reset

@@ -29,6 +29,7 @@ import doctorService from "@/services/doctor.service";
 import departmentService from "@/services/department.service";
 import AddPatientDialog from "@/components/patients/AddPatientDialog";
 import { Loader2, Plus, Search, CalendarDays, Eye, UserPlus } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 export default function OPDPage() {
   const [loading, setLoading] = useState(false);
@@ -507,7 +508,7 @@ export default function OPDPage() {
                 <div>
                   <p className="text-muted-foreground">Date</p>
                   <p className="font-medium">
-                    {new Date(viewingVisit.VisitDate).toLocaleDateString("en-GB")}
+                    {formatDate(viewingVisit.VisitDate)}
                   </p>
                 </div>
                 <div>

@@ -33,6 +33,7 @@ import { DataTable } from "@/components/data-table/data-table";
 import patientPaymentService from "@/services/patientPaymentService";
 import patientVisitService from "@/services/patientVisitService";
 import { patientPaymentSchema } from "@/lib/zodeSchema";
+import { toLocalISOString, formatDate } from "@/lib/utils";
 
 const PAYMENT_MODES = ["Cash", "Card", "BankTransfer", "Cheque", "Other"];
 
@@ -62,15 +63,6 @@ export default function PatientPaymentsPage() {
   const [refundAmount, setRefundAmount] = useState(0);
   const [refundMode, setRefundMode] = useState("Cash");
   const [refundRemarks, setRefundRemarks] = useState("");
-
-  const toLocalISOString = (date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    const h = String(date.getHours()).padStart(2, "0");
-    const min = String(date.getMinutes()).padStart(2, "0");
-    return `${y}-${m}-${d}T${h}:${min}`;
-  };
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -330,7 +322,7 @@ export default function PatientPaymentsPage() {
       header: "Date",
       cell: ({ row }) => {
         const d = row.original.created_at;
-        return d ? <span className="text-xs">{new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })}</span> : <span className="text-xs text-muted-foreground">N/A</span>;
+        return d ? <span className="text-xs">{formatDate(d)}</span> : <span className="text-xs text-muted-foreground">N/A</span>;
       },
     },
     {

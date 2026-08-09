@@ -4,6 +4,7 @@ import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 export const getColumns = ({ onEdit, onBill }) => [
   {
@@ -61,11 +62,7 @@ export const getColumns = ({ onEdit, onBill }) => [
     cell: ({ row }) => {
       const date = row.getValue("visitDate");
       if (!date) return "-";
-      return new Date(date).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
+      return formatDate(date);
     },
   },
   {

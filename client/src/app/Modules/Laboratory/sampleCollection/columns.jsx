@@ -2,20 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Printer, FileText } from "lucide-react";
-
-const calculateAge = (dob) => {
-  if (!dob) return "-";
-  const birth = new Date(dob);
-  const today = new Date();
-  let years = today.getFullYear() - birth.getFullYear();
-  let months = today.getMonth() - birth.getMonth();
-  if (months < 0) {
-    years--;
-    months += 12;
-  }
-  if (years > 0) return `${years}Y ${months}M`;
-  return `${months}M`;
-};
+import { calculateAge, formatDate } from "@/lib/utils";
 
 const statusColor = (s) => {
   switch (s) {
@@ -72,11 +59,7 @@ export const getColumns = ({ onPrintBarcode, onPrintLabCopy }) => [
     cell: ({ row }) => {
       const d = row.getValue("caseDate");
       if (!d) return "-";
-      return new Date(d).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
+      return formatDate(d);
     },
   },
   {
