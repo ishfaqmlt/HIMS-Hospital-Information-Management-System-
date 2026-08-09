@@ -107,6 +107,17 @@ class AcceptSampleController extends Controller
             'updated_at' => now(),
         ]);
 
+        $caseId = $existing->caseId;
+        $totalTests = DB::table('lab_case_tests')->where('caseId', $caseId)->count();
+        $acceptedTests = DB::table('lab_case_tests')->where('caseId', $caseId)->where('sampleStatus', 'Accepted')->count();
+
+        if ($totalTests > 0 && $totalTests === $acceptedTests) {
+            DB::table('lab_cases')->where('id', $caseId)->update([
+                'status' => 'InProcess',
+                'updated_at' => now(),
+            ]);
+        }
+
         return response()->json(['message' => 'Sample accepted successfully']);
     }
 
