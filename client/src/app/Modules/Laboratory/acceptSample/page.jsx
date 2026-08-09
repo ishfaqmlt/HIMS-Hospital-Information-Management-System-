@@ -279,15 +279,17 @@ export default function AcceptSamplePage() {
                         <TableHead className="text-xs w-10">SL</TableHead>
                         <TableHead className="text-xs">Test Code</TableHead>
                         <TableHead className="text-xs">Test Name</TableHead>
+                        <TableHead className="text-xs">Required Sample</TableHead>
                         <TableHead className="text-xs w-24 text-center">Test Status</TableHead>
                         <TableHead className="text-xs w-24 text-center">Sample Status</TableHead>
+                        <TableHead className="text-xs">Reason</TableHead>
                         <TableHead className="text-xs w-28 text-center">Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {(selectedCase.tests || []).length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-6">
+                          <TableCell colSpan={8} className="text-center text-xs text-muted-foreground py-6">
                             No tests found.
                           </TableCell>
                         </TableRow>
@@ -297,6 +299,7 @@ export default function AcceptSamplePage() {
                             <TableCell className="text-xs">{idx + 1}</TableCell>
                             <TableCell className="text-xs font-medium">{test.testCode}</TableCell>
                             <TableCell className="text-xs">{test.testName}</TableCell>
+                            <TableCell className="text-xs">{test.requiredSampleName || "-"}</TableCell>
                             <TableCell className="text-center">
                               <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${testStatusColor(test.testStatus)}`}>
                                 {test.testStatus || "-"}
@@ -306,13 +309,9 @@ export default function AcceptSamplePage() {
                               <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${sampleStatusColor(test.sampleStatus)}`}>
                                 {test.sampleStatus || "Pending"}
                               </span>
-                              {test.rejectReason && (
-                                <div className="text-[9px] text-red-500 mt-0.5" title={test.rejectReason}>
-                                  {test.rejectReason.length > 20
-                                    ? test.rejectReason.substring(0, 20) + "..."
-                                    : test.rejectReason}
-                                </div>
-                              )}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {test.rejectReason || "-"}
                             </TableCell>
                             <TableCell className="text-center">
                               {!test.sampleStatus ? (

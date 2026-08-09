@@ -50,6 +50,7 @@ class AcceptSampleController extends Controller
         $cases = $rows->map(function ($row) {
             $tests = DB::table('lab_case_tests')
                 ->leftJoin('lab_master_tests', 'lab_case_tests.masterTestId', '=', 'lab_master_tests.id')
+                ->leftJoin('lab_required_samples', 'lab_master_tests.lab_required_sample_id', '=', 'lab_required_samples.id')
                 ->where('lab_case_tests.caseId', $row->id)
                 ->select(
                     'lab_case_tests.id',
@@ -59,7 +60,8 @@ class AcceptSampleController extends Controller
                     'lab_case_tests.sampleStatus',
                     'lab_case_tests.rejectReason',
                     'lab_master_tests.testName',
-                    'lab_master_tests.testCode'
+                    'lab_master_tests.testCode',
+                    'lab_required_samples.name as requiredSampleName'
                 )
                 ->get();
 
