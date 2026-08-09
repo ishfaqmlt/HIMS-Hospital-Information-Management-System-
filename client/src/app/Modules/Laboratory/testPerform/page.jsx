@@ -29,6 +29,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import testPerformService from "@/services/testPerform.service";
 import { calculateAge, toLocalISOString } from "@/lib/utils";
 
+const stripHtml = (str) => {
+  if (!str) return "";
+  return str.replace(/<[^>]*>/g, "").trim();
+};
+
 const TestPerform = () => {
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -44,7 +49,6 @@ const TestPerform = () => {
   const [statusFilter, setStatusFilter] = useState("InProcess");
 
   const [testParameters, setTestParameters] = useState([]);
-  const [results, setResults] = useState({});
   const [resultsLoading, setResultsLoading] = useState(false);
   const [savingResults, setSavingResults] = useState(false);
 
@@ -71,7 +75,6 @@ const TestPerform = () => {
       setSelectedCase(null);
       setSelectedTest(null);
       setTestParameters([]);
-      setResults({});
       setAnalyzerReffno("");
       setSampledAt("");
       setPerformedAt("");
@@ -88,16 +91,42 @@ const TestPerform = () => {
     fetchCases();
   }, []);
 
-  const handleSelectCase = (c) => {
+  const handleSelectCase = async (c) => {
     setSelectedCase(c);
     setSelectedTest(null);
-    setTestParameters([]);
-    setResults({});
     setAnalyzerReffno(c.analyzerReffno || "");
-    const firstTest = (c.tests || [])[0];
-    setSampledAt(firstTest?.sampledAt || "");
-    setPerformedAt(firstTest?.performedAt || "");
     setOrReffBy(c.orReffBy || "");
+    setSampledAt("");
+    setPerformedAt("");
+
+    const tests = c.tests || [];
+    if (tests.length === 0) {
+      setTestParameters([]);
+      return;
+    }
+
+    setResultsLoading(true);
+    try {
+      const allParams = [];
+      for (const test of tests) {
+        const res = await testPerformService.getParameters(test.id);
+        const params = (res.data || []).map((p) => ({
+          ...p,
+          _testId: test.id,
+          _testName: test.testName,
+        }));
+        allParams.push(...params);
+      }
+      setTestParameters(allParams);
+
+      if (tests[0]?.sampledAt) setSampledAt(tests[0].sampledAt);
+      if (tests[0]?.performedAt) setPerformedAt(tests[0].performedAt);
+    } catch (err) {
+      console.error(err);
+      setMessage({ type: "error", text: "Failed to load parameters." });
+    } finally {
+      setResultsLoading(false);
+    }
   };
 
   const handleOpenInterpretation = async (test) => {
@@ -105,50 +134,23 @@ const TestPerform = () => {
     setResultsLoading(true);
 
     try {
-      const paramRes = await import("@/lib/axios").then((m) =>
-        m.default.get("/lab-master-test-parameters", {
-          params: { master_test_id: test.masterTestId },
-        })
-      );
+      const res = await testPerformService.getParameters(test.id);
+      setTestParameters(res.data || []);
 
-      const existingRes = await testPerformService.getResults(test.id);
-      const existingResults = existingRes.data || [];
-
-      const resultMap = {};
-      (paramRes.data || []).forEach((param) => {
-        const existing = existingResults.find(
-          (r) => r.parameterId === param.id
-        );
-        resultMap[param.id] = {
-          parameterId: param.id,
-          pCode: param.analyzerCode || "",
-          subHeaderName: param.subHeader?.sub_header_name || "",
-          parameterName: param.parameterName,
-          units: existing?.units || param.units || "",
-          result: existing?.result || "",
-          paramStatus: existing?.paramStatus || "N",
-          normalRange: existing?.normalRange || param.normalRange || "",
-          decimal: param.decimal || 0,
-          sortNo: param.sortNo || 0,
-          print: true,
-        };
-      });
-
-      setTestParameters(Object.values(resultMap));
-      setResults(resultMap);
+      if (test.sampledAt) setSampledAt(test.sampledAt);
+      if (test.performedAt) setPerformedAt(test.performedAt);
     } catch (err) {
       console.error(err);
-      setMessage({ type: "error", text: "Failed to load test parameters." });
+      setMessage({ type: "error", text: "Failed to load parameters." });
     } finally {
       setResultsLoading(false);
     }
   };
 
   const handleResultChange = (paramId, field, value) => {
-    setResults((prev) => ({
-      ...prev,
-      [paramId]: { ...prev[paramId], [field]: value },
-    }));
+    setTestParameters((prev) =>
+      prev.map((p) => (p.id === paramId ? { ...p, [field]: value } : p))
+    );
   };
 
   const handleSaveResults = async () => {
@@ -156,13 +158,15 @@ const TestPerform = () => {
     try {
       setSavingResults(true);
       const payload = {
-        results: Object.values(results).map((r) => ({
-          parameterId: r.parameterId,
-          result: r.result || null,
-          units: r.units || null,
-          paramStatus: r.paramStatus,
-          normalRange: r.normalRange || null,
-        })),
+        results: testParameters
+          .filter((r) => r._testId === selectedTest.id)
+          .map((r) => ({
+            parameterId: r.id,
+            result: r.result || null,
+            units: r.units || null,
+            paramStatus: r.paramStatus,
+            normalRange: r.normalRange || null,
+          })),
       };
       await testPerformService.storeResults(selectedTest.id, payload);
       setMessage({ type: "success", text: "Results saved successfully." });
@@ -173,6 +177,10 @@ const TestPerform = () => {
       setSavingResults(false);
     }
   };
+
+  const displayParams = selectedTest
+    ? testParameters.filter((p) => p._testId === selectedTest.id)
+    : testParameters;
 
   return (
     <div className="p-4 max-w-full mx-auto space-y-4">
@@ -188,13 +196,11 @@ const TestPerform = () => {
         </div>
       )}
 
-      {/* Two Panel Layout */}
       <div className="flex gap-4" style={{ height: "calc(100vh - 140px)" }}>
         {/* Left Panel - 35% */}
         <div className="w-[35%] flex flex-col gap-4">
           {/* Filters + Patients List */}
           <div className="border rounded-md flex flex-col overflow-hidden flex-1">
-            {/* Filters */}
             <div className="px-3 py-2 bg-sky-50 border-b space-y-2">
               <div className="flex items-end gap-2 flex-wrap">
                 <div className="space-y-1">
@@ -253,7 +259,6 @@ const TestPerform = () => {
               </div>
             </div>
 
-            {/* Patients List */}
             <div className="flex-1 overflow-auto">
               <div className="px-3 py-1 bg-sky-50/50 border-b">
                 <h3 className="text-[10px] font-semibold text-sky-700">
@@ -323,7 +328,10 @@ const TestPerform = () => {
           </div>
 
           {/* Selected Tests */}
-          <div className="border rounded-md flex flex-col overflow-hidden" style={{ height: "40%" }}>
+          <div
+            className="border rounded-md flex flex-col overflow-hidden"
+            style={{ height: "40%" }}
+          >
             <div className="px-3 py-1 bg-sky-50 border-b">
               <h3 className="text-[10px] font-semibold text-sky-700">
                 {selectedCase
@@ -463,7 +471,6 @@ const TestPerform = () => {
                           value={analyzerReffno}
                           onChange={(e) => setAnalyzerReffno(e.target.value)}
                           className="h-7 text-xs"
-                          placeholder=""
                         />
                       </div>
                       <div className="space-y-1">
@@ -473,8 +480,8 @@ const TestPerform = () => {
                         <Input
                           type="datetime-local"
                           value={sampledAt}
-                          onChange={(e) => setSampledAt(e.target.value)}
-                          className="h-7 text-xs"
+                          readOnly
+                          className="h-7 text-xs bg-muted cursor-not-allowed"
                         />
                       </div>
                       <div className="space-y-1">
@@ -484,8 +491,8 @@ const TestPerform = () => {
                         <Input
                           type="datetime-local"
                           value={performedAt}
-                          onChange={(e) => setPerformedAt(e.target.value)}
-                          className="h-7 text-xs"
+                          readOnly
+                          className="h-7 text-xs bg-muted cursor-not-allowed"
                         />
                       </div>
                       <div className="space-y-1">
@@ -496,7 +503,6 @@ const TestPerform = () => {
                           value={orReffBy}
                           onChange={(e) => setOrReffBy(e.target.value)}
                           className="h-7 text-xs"
-                          placeholder=""
                         />
                       </div>
                     </div>
@@ -504,9 +510,10 @@ const TestPerform = () => {
                 </Card>
 
                 {/* Results Table */}
-                {!selectedTest ? (
+                {!selectedTest && testParameters.length === 0 ? (
                   <div className="flex items-center justify-center h-32 text-muted-foreground text-xs">
-                    Click &quot;Enter Results&quot; on a test to enter results.
+                    Click &quot;Enter Results&quot; on a test to view
+                    parameters.
                   </div>
                 ) : resultsLoading ? (
                   <div className="flex items-center justify-center h-32">
@@ -549,19 +556,19 @@ const TestPerform = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {testParameters.length === 0 ? (
+                            {displayParams.length === 0 ? (
                               <TableRow>
                                 <TableCell
                                   colSpan={9}
                                   className="text-center text-xs text-muted-foreground py-6"
                                 >
-                                  No parameters found for this test.
+                                  No parameters found.
                                 </TableCell>
                               </TableRow>
                             ) : (
-                              testParameters.map((param, idx) => (
+                              displayParams.map((param, idx) => (
                                 <TableRow
-                                  key={param.parameterId}
+                                  key={param.id}
                                   className="h-8"
                                 >
                                   <TableCell className="text-xs">
@@ -578,24 +585,23 @@ const TestPerform = () => {
                                   </TableCell>
                                   <TableCell>
                                     <Input
-                                      value={param.result}
+                                      value={param.result || ""}
                                       onChange={(e) =>
                                         handleResultChange(
-                                          param.parameterId,
+                                          param.id,
                                           "result",
                                           e.target.value
                                         )
                                       }
                                       className="h-7 text-xs"
-                                      placeholder=""
                                     />
                                   </TableCell>
                                   <TableCell>
                                     <Input
-                                      value={param.units}
+                                      value={param.units || ""}
                                       onChange={(e) =>
                                         handleResultChange(
-                                          param.parameterId,
+                                          param.id,
                                           "units",
                                           e.target.value
                                         )
@@ -604,14 +610,14 @@ const TestPerform = () => {
                                     />
                                   </TableCell>
                                   <TableCell className="text-xs text-muted-foreground">
-                                    {param.normalRange || "-"}
+                                    {stripHtml(param.normalRange) || "-"}
                                   </TableCell>
                                   <TableCell>
                                     <Select
                                       value={param.paramStatus}
                                       onValueChange={(val) =>
                                         handleResultChange(
-                                          param.parameterId,
+                                          param.id,
                                           "paramStatus",
                                           val
                                         )
@@ -638,7 +644,7 @@ const TestPerform = () => {
                                       checked={param.print}
                                       onCheckedChange={(checked) =>
                                         handleResultChange(
-                                          param.parameterId,
+                                          param.id,
                                           "print",
                                           checked
                                         )

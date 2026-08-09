@@ -140,6 +140,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Test Perform
     Route::get('/test-perform', [TestPerformController::class, 'index']);
+    Route::get('/test-perform/{testId}/parameters', [TestPerformController::class, 'getParameters']);
 
     // Insurance Companies
     Route::apiResource('insurance-companies', InsuranceCompanyController::class);

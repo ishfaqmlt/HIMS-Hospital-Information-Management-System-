@@ -99,4 +99,62 @@ class TestPerformController extends Controller
 
         return response()->json($cases);
     }
+
+    public function getParameters(Request $request, $testId)
+    {
+        $masterTestId = $request->input('master_test_id');
+
+        if (!$masterTestId) {
+            $caseTest = DB::table('lab_case_tests')->where('id', $testId)->first();
+            if ($caseTest) {
+                $masterTestId = $caseTest->masterTestId;
+            }
+        }
+
+        if (!$masterTestId) {
+            return response()->json([]);
+        }
+
+        $parameters = DB::table('lab_master_test_parameters')
+            ->leftJoin('lab_sub_headers', 'lab_master_test_parameters.sub_headers_id', '=', 'lab_sub_headers.id')
+            ->where('lab_master_test_parameters.master_test_id', $masterTestId)
+            ->select(
+                'lab_master_test_parameters.id',
+                'lab_master_test_parameters.parameterName',
+                'lab_master_test_parameters.defaultValue',
+                'lab_master_test_parameters.units',
+                'lab_master_test_parameters.decimal',
+                'lab_master_test_parameters.normalRange',
+                'lab_master_test_parameters.analyzerCode',
+                'lab_master_test_parameters.sortNo',
+                'lab_master_test_parameters.printOnReciept',
+                'lab_sub_headers.sub_header_name'
+            )
+            ->orderBy('lab_master_test_parameters.sortNo')
+            ->get();
+
+        $existingResults = DB::table('lab_case_test_results')
+            ->where('caseTestId', $testId)
+            ->get()
+            ->keyBy('parameterId');
+
+        $data = $parameters->map(function ($param) use ($existingResults) {
+            $existing = $existingResults->get($param->id);
+            return [
+                'id' => $param->id,
+                'parameterName' => $param->parameterName,
+                'pCode' => $param->analyzerCode ?? '',
+                'subHeaderName' => $param->sub_header_name ?? '',
+                'units' => $existing ? $existing->units : ($param->units ?? ''),
+                'result' => $existing ? $existing->result : '',
+                'paramStatus' => $existing ? $existing->paramStatus : 'N',
+                'normalRange' => $existing ? $existing->normalRange : ($param->normalRange ?? ''),
+                'decimal' => $param->decimal ?? 0,
+                'sortNo' => $param->sortNo ?? 0,
+                'print' => true,
+            ];
+        });
+
+        return response()->json($data);
+    }
 }
