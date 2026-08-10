@@ -15,6 +15,10 @@ class ServiceController extends Controller
             $query->where('DepartmentId', $request->departmentId);
         }
 
+        if ($request->has('DepartmentName') && $request->DepartmentName) {
+            $query->where('DepartmentName', $request->DepartmentName);
+        }
+
         return response()->json($query->latest()->get());
     }
 
