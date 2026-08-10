@@ -50,15 +50,9 @@ export const departmentSchema = z.object({
 });
 
 export const masterTestSchema = z.object({
-  testCode: z
-    .string({ required_error: "Test code is required" })
-    .min(1, "Test code is required")
-    .max(50, "Test code too long"),
-
-  testName: z
-    .string({ required_error: "Test name is required" })
-    .min(1, "Test name is required")
-    .max(255, "Test name too long"),
+  serviceId: z
+    .string({ required_error: "Service is required" })
+    .min(1, "Service is required"),
 
   lab_required_sample_id: z
     .string()

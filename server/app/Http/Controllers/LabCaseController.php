@@ -87,6 +87,7 @@ class LabCaseController extends Controller
         $cases = $rows->map(function ($row) {
             $tests = DB::table('lab_case_tests')
                 ->leftJoin('lab_master_tests', 'lab_case_tests.masterTestId', '=', 'lab_master_tests.id')
+                ->leftJoin('services', 'lab_master_tests.serviceId', '=', 'services.id')
                 ->where('lab_case_tests.caseId', $row->id)
                 ->select(
                     'lab_case_tests.id',
@@ -95,8 +96,8 @@ class LabCaseController extends Controller
                     'lab_case_tests.testStatus',
                     'lab_case_tests.isPerformed',
                     'lab_case_tests.isApproved',
-                    'lab_master_tests.testName',
-                    'lab_master_tests.testCode'
+                    'services.ServiceName as testName',
+                    'services.Code as testCode'
                 )
                 ->get();
 
@@ -466,8 +467,9 @@ class LabCaseController extends Controller
 
         $test = DB::table('lab_case_tests')
             ->leftJoin('lab_master_tests', 'lab_case_tests.masterTestId', '=', 'lab_master_tests.id')
+            ->leftJoin('services', 'lab_master_tests.serviceId', '=', 'services.id')
             ->where('lab_case_tests.id', $testId)
-            ->select('lab_case_tests.*', 'lab_master_tests.testName', 'lab_master_tests.testCode')
+            ->select('lab_case_tests.*', 'services.ServiceName as testName', 'services.Code as testCode')
             ->first();
 
         return response()->json($test);
@@ -567,12 +569,13 @@ class LabCaseController extends Controller
 
         $tests = DB::table('lab_case_tests')
             ->leftJoin('lab_master_tests', 'lab_case_tests.masterTestId', '=', 'lab_master_tests.id')
+            ->leftJoin('services', 'lab_master_tests.serviceId', '=', 'services.id')
             ->leftJoin('lab_required_samples', 'lab_master_tests.lab_required_sample_id', '=', 'lab_required_samples.id')
             ->where('lab_case_tests.caseId', $id)
             ->select(
                 'lab_case_tests.*',
-                'lab_master_tests.testName',
-                'lab_master_tests.testCode',
+                'services.ServiceName as testName',
+                'services.Code as testCode',
                 'lab_master_tests.expectedTime',
                 'lab_master_tests.interpretation',
                 'lab_required_samples.required_sample_name'

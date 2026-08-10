@@ -11,37 +11,37 @@ export const getColumns = ({ onEdit, onParameters }) => [
     cell: ({ row }) => <span className="text-xs">{row.index + 1}</span>,
   },
   {
-    accessorKey: "testCode",
+    accessorKey: "serviceCode",
     header: ({ column }) => (
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Test Code
+        Code
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
     cell: ({ row }) => (
-      <span className="text-xs font-medium">{row.getValue("testCode")}</span>
+      <span className="text-xs font-medium">{row.getValue("serviceCode")}</span>
     ),
   },
   {
-    accessorKey: "testName",
+    accessorKey: "serviceName",
     header: ({ column }) => (
       <Button
         variant="ghost"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Test Name
+        Service Name
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
     cell: ({ row }) => (
-      <span className="text-xs font-medium">{row.getValue("testName")}</span>
+      <span className="text-xs font-medium">{row.getValue("serviceName")}</span>
     ),
   },
   {
-    accessorFn: (row) => row.required_sample?.required_sample_name || "",
+    accessorFn: (row) => row.required_sample_name || "",
     id: "required_sample_name",
     header: ({ column }) => (
       <Button
@@ -53,7 +53,7 @@ export const getColumns = ({ onEdit, onParameters }) => [
       </Button>
     ),
     cell: ({ row }) => (
-      <span className="text-xs">{row.original.required_sample?.required_sample_name || "-"}</span>
+      <span className="text-xs">{row.original.required_sample_name || "-"}</span>
     ),
   },
   {

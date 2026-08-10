@@ -28,6 +28,7 @@ import {
 import { Loader2, Plus, Save, X, Check, FlaskConical } from "lucide-react";
 import masterTestService from "@/services/masterTests.service";
 import labRequiredSampleService from "@/services/labRequiredSample.service";
+import serviceService from "@/services/serviceService";
 
 export default function MasterTestsPage() {
   const router = useRouter();
@@ -38,6 +39,7 @@ export default function MasterTestsPage() {
   const [tests, setTests] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [requiredSamples, setRequiredSamples] = useState([]);
+  const [services, setServices] = useState([]);
 
   const {
     register,
@@ -48,8 +50,7 @@ export default function MasterTestsPage() {
   } = useForm({
     resolver: zodResolver(masterTestSchema),
     defaultValues: {
-      testCode: "",
-      testName: "",
+      serviceId: "",
       lab_required_sample_id: "",
       testSort: 1,
       expectedTime: 60,
@@ -76,9 +77,19 @@ export default function MasterTestsPage() {
     }
   };
 
+  const loadServices = async () => {
+    try {
+      const res = await serviceService.getAll({ DepartmentName: "Laboratory" });
+      setServices(res.data || []);
+    } catch (error) {
+      console.error("Failed to load services:", error);
+    }
+  };
+
   useEffect(() => {
     loadTests();
     loadRequiredSamples();
+    loadServices();
   }, []);
 
   useEffect(() => {
@@ -92,8 +103,7 @@ export default function MasterTestsPage() {
     setDialogError(null);
     const maxSort = tests.length > 0 ? Math.max(...tests.map((t) => t.testSort || 0)) : 0;
     reset({
-      testCode: "",
-      testName: "",
+      serviceId: "",
       lab_required_sample_id: "",
       testSort: maxSort + 1,
       expectedTime: 60,
@@ -111,8 +121,7 @@ export default function MasterTestsPage() {
       const data = res.data;
       setEditingId(data.id);
       reset({
-        testCode: data.testCode || "",
-        testName: data.testName || "",
+        serviceId: data.serviceId || "",
         lab_required_sample_id: data.lab_required_sample_id || "",
         testSort: data.testSort || 1,
         expectedTime: data.expectedTime || 60,
@@ -160,7 +169,7 @@ export default function MasterTestsPage() {
       onEdit: openEdit,
       onParameters: (rowData) => {
         router.push(
-          `/Modules/laboratory/masterParameters?id=${rowData.id}&testName=${encodeURIComponent(rowData.testName)}`
+          `/Modules/laboratory/masterParameters?id=${rowData.id}&testName=${encodeURIComponent(rowData.serviceName)}`
         );
       },
     });
@@ -202,7 +211,7 @@ export default function MasterTestsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4">
-          <DataTable columns={columns} data={tests} filterColumn="testName" />
+          <DataTable columns={columns} data={tests} filterColumn="serviceName" />
         </CardContent>
       </Card>
 
@@ -223,25 +232,27 @@ export default function MasterTestsPage() {
             )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs">Test Code</Label>
-                <Input
-                  {...register("testCode")}
-                  className="h-9 text-xs"
-                  placeholder="e.g. CBC001"
+                <Label className="text-xs">Service (Laboratory)</Label>
+                <Controller
+                  name="serviceId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <SelectTrigger className="w-full h-9 text-xs">
+                        <SelectValue placeholder="Select service" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {services.map((svc) => (
+                          <SelectItem key={svc.id} value={svc.id}>
+                            {svc.Code} - {svc.ServiceName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
-                {errors.testCode && (
-                  <p className="text-xs text-destructive">{errors.testCode.message}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Test Name</Label>
-                <Input
-                  {...register("testName")}
-                  className="h-9 text-xs"
-                  placeholder="e.g. Complete Blood Count"
-                />
-                {errors.testName && (
-                  <p className="text-xs text-destructive">{errors.testName.message}</p>
+                {errors.serviceId && (
+                  <p className="text-xs text-destructive">{errors.serviceId.message}</p>
                 )}
               </div>
               <div className="space-y-2">
