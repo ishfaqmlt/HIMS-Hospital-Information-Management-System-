@@ -536,9 +536,6 @@ export default function PatientRegistrationPage() {
         onVisitNoSearchChange={setVisitNoSearch}
         onVisitNoSearch={handleSearchByVisitNo}
         selectedPatient={selectedPatient}
-        patientType=""
-        onPatientTypeChange={() => {}}
-        patientTypes={[]}
         onReset={handleReset}
       />
 

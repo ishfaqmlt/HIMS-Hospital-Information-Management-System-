@@ -48,18 +48,41 @@ class Patient extends Model
 
     public static function generateMrn(): string
     {
-        $prefix = 'MRN-' . date('my') . '-';
-        $last = self::where('mrn', 'like', "{$prefix}%")
-            ->orderByDesc('mrn')
-            ->value('mrn');
+        $prefix = 'mrn-' . date('my') . '-';
 
-        if ($last) {
-            $seq = intval(substr($last, strlen($prefix))) + 1;
-        } else {
-            $seq = 0;
-        }
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($prefix) {
+            $sequence = \Illuminate\Support\Facades\DB::table('system_sequences')
+                ->where('prefix', $prefix)
+                ->lockForUpdate()
+                ->first();
 
-        return $prefix . $seq;
+            if (!$sequence) {
+                $last = \Illuminate\Support\Facades\DB::table('patients')
+                    ->where('mrn', 'like', "{$prefix}%")
+                    ->orderByDesc('mrn')
+                    ->value('mrn');
+
+                $startVal = $last ? intval(substr($last, strlen($prefix))) + 1 : 1;
+
+                \Illuminate\Support\Facades\DB::table('system_sequences')->insert([
+                    'prefix' => $prefix,
+                    'current_value' => $startVal,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $nextVal = $startVal;
+            } else {
+                $nextVal = $sequence->current_value + 1;
+                \Illuminate\Support\Facades\DB::table('system_sequences')
+                    ->where('prefix', $prefix)
+                    ->update([
+                        'current_value' => $nextVal,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            return $prefix . str_pad($nextVal, 3, '0', STR_PAD_LEFT);
+        });
     }
 
     public function visits()

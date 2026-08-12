@@ -4,13 +4,6 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, RotateCcw, User } from "lucide-react";
 
@@ -40,9 +33,6 @@ export default function PatientDetailsCard({
   onVisitNoSearchChange,
   onVisitNoSearch,
   selectedPatient = null,
-  patientType = "",
-  onPatientTypeChange,
-  patientTypes = [],
   onReset,
 }) {
   return (
@@ -54,7 +44,7 @@ export default function PatientDetailsCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="px-3 py-2">
-        <div className="grid grid-cols-9 gap-2 items-end w-full">
+        <div className="grid grid-cols-8 gap-2 items-end w-full">
           <div className="space-y-1.0">
             <Label className="text-xs font-medium text-muted-foreground">Visit No</Label>
             <div className="flex gap-1">
@@ -188,20 +178,6 @@ export default function PatientDetailsCard({
               disabled
               className="h-8 text-xs bg-muted/50"
             />
-          </div>
-
-          <div className="space-y-1.0 ">
-            <Label className="text-xs font-medium text-muted-foreground">Patient Type</Label>
-            <Select value={patientType} onValueChange={onPatientTypeChange}>
-              <SelectTrigger className="w-full h-8 text-xs">
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                {patientTypes.map((pt) => (
-                  <SelectItem key={pt.id} value={pt.id}>{pt.patientType}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="space-y-1.0">

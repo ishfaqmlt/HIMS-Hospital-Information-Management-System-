@@ -131,15 +131,17 @@ class BillingController extends Controller
             'Notes' => 'nullable|string',
         ]);
 
-        $validated['createdBy'] = Auth::id();
-        $validated['Id'] = Str::uuid();
-        $validated['InvoiceNo'] = Billing::generateInvoiceNo();
+        return DB::transaction(function () use ($validated) {
+            $validated['createdBy'] = Auth::id();
+            $validated['Id'] = (string) Str::uuid();
+            $validated['InvoiceNo'] = Billing::generateInvoiceNo();
 
-        DB::table('billings')->insert($validated);
+            DB::table('billings')->insert($validated);
 
-        $billing = DB::table('billings')->where('id', $validated['Id'])->first();
+            $billing = DB::table('billings')->where('id', $validated['Id'])->first();
 
-        return response()->json($billing, 201);
+            return response()->json($billing, 201);
+        });
     }
 
     public function show(Billing $billing)
@@ -163,47 +165,52 @@ class BillingController extends Controller
             'Notes' => 'nullable|string',
         ]);
 
-        $oldTotal = DB::table('billings')->where('id', $billing->id)->value('TotalAmount');
-        $newTotal = $validated['TotalAmount'];
+        return DB::transaction(function () use ($validated, $billing) {
+            $oldTotal = DB::table('billings')->where('id', $billing->id)->lockForUpdate()->value('TotalAmount');
+            $newTotal = $validated['TotalAmount'];
 
-        DB::table('billings')->where('id', $billing->id)->update($validated);
+            DB::table('billings')->where('id', $billing->id)->update($validated);
 
-        // Sync payment amounts when TotalAmount changes
-        if ($oldTotal != $newTotal) {
-            $linkedPayments = DB::table('billing_payments')
-                ->join('patient_payments', 'billing_payments.paymentId', '=', 'patient_payments.id')
-                ->where('billing_payments.billingId', $billing->id)
-                ->where('patient_payments.status', 'Active')
-                ->select('billing_payments.id as bpId', 'patient_payments.id as ppId')
-                ->get();
+            // Sync payment amounts when TotalAmount changes
+            if ($oldTotal != $newTotal) {
+                $linkedPayments = DB::table('billing_payments')
+                    ->join('patient_payments', 'billing_payments.paymentId', '=', 'patient_payments.id')
+                    ->where('billing_payments.billingId', $billing->id)
+                    ->where('patient_payments.status', 'Active')
+                    ->select('billing_payments.id as bpId', 'patient_payments.id as ppId')
+                    ->get();
 
-            foreach ($linkedPayments as $linked) {
-                DB::table('billing_payments')->where('id', $linked->bpId)->update([
-                    'amount' => $newTotal,
-                    'updated_at' => now(),
-                ]);
+                foreach ($linkedPayments as $linked) {
+                    DB::table('billing_payments')->where('id', $linked->bpId)->update([
+                        'amount' => $newTotal,
+                        'updated_at' => now(),
+                    ]);
 
-                DB::table('patient_payments')->where('id', $linked->ppId)->update([
-                    'debit' => $newTotal,
-                    'updated_at' => now(),
-                ]);
+                    DB::table('patient_payments')->where('id', $linked->ppId)->update([
+                        'debit' => $newTotal,
+                        'updated_at' => now(),
+                    ]);
 
-                DB::table('payment_details')->where('paymentId', $linked->ppId)->update([
-                    'amount' => $newTotal,
-                    'updated_at' => now(),
-                ]);
+                    DB::table('payment_details')->where('paymentId', $linked->ppId)->update([
+                        'amount' => $newTotal,
+                        'updated_at' => now(),
+                    ]);
+                }
             }
-        }
 
-        $updated = DB::table('billings')->where('id', $billing->id)->first();
+            $updated = DB::table('billings')->where('id', $billing->id)->first();
 
-        return response()->json($updated);
+            return response()->json($updated);
+        });
     }
 
     public function destroy(Billing $billing)
     {
-        $billing->delete();
+        return DB::transaction(function () use ($billing) {
+            DB::table('billing_payments')->where('billingId', $billing->id)->delete();
+            $billing->delete();
 
-        return response()->json(['message' => 'Billing deleted successfully']);
+            return response()->json(['message' => 'Billing deleted successfully']);
+        });
     }
 }

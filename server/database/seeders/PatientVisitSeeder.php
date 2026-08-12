@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\PatientVisit;
 use App\Models\Patient;
-use App\Models\PatientType;
 use App\Models\Doctor;
 use Illuminate\Support\Facades\DB;
 
@@ -14,10 +13,9 @@ class PatientVisitSeeder extends Seeder
     public function run(): void
     {
         $patients = Patient::all();
-        $patientTypes = PatientType::all();
         $doctors = Doctor::where('Name', '!=', 'Self')->get();
 
-        if ($patients->isEmpty() || $patientTypes->isEmpty()) {
+        if ($patients->isEmpty()) {
             return;
         }
 
@@ -29,12 +27,10 @@ class PatientVisitSeeder extends Seeder
 
         for ($i = 0; $i < 15; $i++) {
             $patient = $patients->random();
-            $patientType = $patientTypes->random();
             $doctor = $doctors->isNotEmpty() ? $doctors->random() : null;
 
             PatientVisit::create([
                 'patientId' => $patient->id,
-                'patientTypeId' => $patientType->id,
                 'doctorId' => $doctor?->id,
                 'userId' => 1,
                 'visitDate' => now()->subDays(rand(0, 30)),

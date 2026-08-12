@@ -64,6 +64,9 @@ class TestPerformController extends Controller
                     'lab_case_tests.rejectReason',
                     'lab_case_tests.sampledAt',
                     'lab_case_tests.isPerformed',
+                    'lab_case_tests.isApproved',
+                    'lab_case_tests.isPrinted',
+                    'lab_case_tests.printedAt',
                     'lab_case_tests.performedBy',
                     'lab_case_tests.performedAt',
                     'services.ServiceName as testName',
@@ -152,7 +155,7 @@ class TestPerformController extends Controller
                 'normalRange' => $existing ? $existing->normalRange : ($param->normalRange ?? ''),
                 'decimal' => $param->decimal ?? 0,
                 'sortNo' => $param->sortNo ?? 0,
-                'print' => true,
+                'print' => false,
             ];
         });
 

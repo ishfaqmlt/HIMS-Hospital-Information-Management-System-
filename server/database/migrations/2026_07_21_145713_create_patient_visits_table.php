@@ -12,7 +12,6 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('visitNo', 20)->unique();
             $table->foreignUuid('patientId')->constrained('patients')->cascadeOnDelete();
-            $table->foreignUuid('patientTypeId')->constrained('patient_types')->cascadeOnDelete();
             $table->foreignUuid('insuranceCompanyId')->nullable()->constrained('insurance_companies')->nullOnDelete();
             $table->foreignUuid('doctorId')->nullable()->constrained('doctors')->nullOnDelete();
             $table->foreignId('userId')->constrained('users');

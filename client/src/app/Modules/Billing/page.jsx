@@ -60,7 +60,6 @@ import {
   fetchBillingDepartments,
   fetchBillingServices,
   fetchBillingServiceCharges,
-  fetchBillingPatientTypes,
 } from "@/reduxToolKit/slices/billingDataSlice";
 import { billingFormSchema } from "@/lib/zodeSchema";
 import { toLocalISOString } from "@/lib/utils";
@@ -70,7 +69,7 @@ export default function BillingPage() {
   const dispatch = useDispatch();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { doctors, departments, services, serviceCharges, patientTypes } = useSelector((state) => state.billingData);
+  const { doctors, departments, services, serviceCharges } = useSelector((state) => state.billingData);
   const fromVisit = searchParams.get("fromVisit") === "1";
 
   const { register, handleSubmit, watch, setValue, getValues, reset, control, formState: { errors } } = useForm({
@@ -114,7 +113,6 @@ export default function BillingPage() {
   const [cnicSearchResults, setCnicSearchResults] = useState([]);
   const [isCnicSelectDialogOpen, setIsCnicSelectDialogOpen] = useState(false);
 
-  const [patientType, setPatientType] = useState("");
   const [existingPaymentId, setExistingPaymentId] = useState(null);
   const [advanceBalance, setAdvanceBalance] = useState(0);
   const [applyAdvance, setApplyAdvance] = useState(false);
@@ -145,8 +143,6 @@ export default function BillingPage() {
   const watchedDiscountPercent = watch("discountPercent");
   const watchedDiscount = watch("discount");
   const watchedPaid = watch("paid");
-
-  const effectivePatientType = patientType || patientTypes.find((pt) => pt.patientType === "General")?.id || patientTypes[0]?.id || "";
 
   const totalBill = useMemo(() => {
     return (watchedServices || []).reduce((sum, s) => sum + (Number(s.fee) || 0) * (Number(s.qty) || 0), 0);
@@ -339,7 +335,6 @@ export default function BillingPage() {
         setSelectedPatient(visit.patient);
         setMrnSearch(visit.patient?.mrn?.replace("MRN-", "") || "");
         setVisitNoSearch(visit.visitNo?.replace("V-", "") || "");
-        setPatientType(visit.patientTypeId || "");
         setValue("selectedConsultant", visit.doctorId || "");
       } else {
         setMessage({ type: "error", text: "No visit found for this MRN" });
@@ -364,7 +359,6 @@ export default function BillingPage() {
         setExistingVisitId(res.data.id);
         setSelectedPatient(res.data.patient);
         setMrnSearch(res.data.patient?.mrn?.replace("MRN-", "") || "");
-        setPatientType(res.data.patientTypeId || "");
         setValue("selectedConsultant", res.data.doctorId || "");
       }
     } catch {
@@ -381,7 +375,6 @@ export default function BillingPage() {
     setVisitNoSearch("");
     setSelectedPatient(null);
     setExistingVisitId(null);
-    setPatientType("");
     setAdvanceBalance(0);
     setApplyAdvance(false);
     setAdvancePaymentId(null);
@@ -508,8 +501,6 @@ export default function BillingPage() {
     setAdvanceBalance(0);
     setApplyAdvance(false);
     setAdvancePaymentId(null);
-    const generalType = patientTypes.find((pt) => pt.patientType === "General");
-    setPatientType(generalType ? generalType.id : (patientTypes.length > 0 ? patientTypes[0].id : ""));
     setEditingInvoice(null);
     setEditingInvoiceId(null);
   };
@@ -565,7 +556,6 @@ export default function BillingPage() {
       setExistingPaymentId(payment?.id || null);
       setSelectedPatient(invoice.patientVisit?.patient || null);
       setMrnSearch(invoice.patientVisit?.patient?.mrn || "");
-      setPatientType(invoice.patientType?.id || "");
       setVisitNoSearch(invoice.patientVisit?.visitNo?.replace("V-", "") || "");
       // alert(invoice.patientVisit?.visitNo);
       const loadedServices = details.map((d, idx) => ({
@@ -640,6 +630,7 @@ export default function BillingPage() {
   });
 
   const onSubmit = async (formData) => {
+    if (loading) return;
     if (!selectedPatient) {
       setMessage({ type: "error", text: "Please search and select a patient first" });
       return;
@@ -656,7 +647,6 @@ export default function BillingPage() {
       if (!visitIdToUse) {
         const visitRes = await patientVisitService.create({
           patientId: selectedPatient.id,
-          patientTypeId: effectivePatientType,
           insuranceCompanyId: null,
           doctorId: formData.selectedConsultant || null,
           userId: user?.id || 1,
@@ -798,14 +788,12 @@ export default function BillingPage() {
     if (departments.length === 0) dispatch(fetchBillingDepartments());
     if (services.length === 0) dispatch(fetchBillingServices());
     if (serviceCharges.length === 0) dispatch(fetchBillingServiceCharges());
-    if (patientTypes.length === 0) dispatch(fetchBillingPatientTypes());
   }, [dispatch]);
 
   useEffect(() => {
     const mrn = searchParams.get("mrn");
     const visitId = searchParams.get("visitId");
     const doctorId = searchParams.get("doctorId");
-    const patientTypeId = searchParams.get("patientTypeId");
     if (mrn) {
       setMrnSearch(mrn.replace("MRN-", ""));
       const loadFromVisit = async () => {
@@ -818,7 +806,6 @@ export default function BillingPage() {
             setSelectedPatient(visit.patient);
             setMrnSearch(visit.patient?.mrn?.replace("MRN-", "") || "");
             setVisitNoSearch(visit.visitNo?.replace("V-", "") || "");
-            setPatientType(patientTypeId || visit.patientTypeId || "");
             setValue("selectedConsultant", doctorId || visit.doctorId || "");
             fetchAdvanceBalance(visit.patient?.mrn);
           }
@@ -872,9 +859,6 @@ export default function BillingPage() {
         onVisitNoSearchChange={setVisitNoSearch}
         onVisitNoSearch={handleVisitNoSearch}
         selectedPatient={selectedPatient}
-        patientType={effectivePatientType}
-        onPatientTypeChange={setPatientType}
-        patientTypes={patientTypes}
         onReset={handleResetCard}
       />
 

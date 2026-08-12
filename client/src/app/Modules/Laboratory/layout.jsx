@@ -50,7 +50,7 @@ const labMenuItems = [
   {
     label: "Test Approval",
     icon: CheckCircle,
-    href: "/Modules/laboratory/reportedAt",
+    href: "/Modules/laboratory/testApproval",
   },
   {
     label: "Patient Reports",
@@ -70,6 +70,7 @@ const masterSettingsItems = [
   { label: "Sub Headers", href: "/Modules/laboratory/subHeader" },
   { label: "Required Samples", href: "/Modules/laboratory/requiredSamples" },
   { label: "Master Tests", href: "/Modules/laboratory/masterTests" },
+  { label: "Out Put Settings", href: "/Modules/laboratory/labOutPut" },
   
 ];
 

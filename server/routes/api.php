@@ -6,7 +6,6 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\HospitalProfileController;
 use App\Http\Controllers\PatientController;
-use App\Http\Controllers\PatientTypeController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\ServiceController;
@@ -29,6 +28,7 @@ use App\Http\Controllers\FloorController;
 use App\Http\Controllers\RoomsWardsController;
 use App\Http\Controllers\BedMasterController;
 use App\Http\Controllers\LabHeaderController;
+use App\Http\Controllers\LabOutputSettingController;
 use App\Http\Controllers\LabSubHeaderController;
 use App\Http\Controllers\LabRequiredSampleController;
 use App\Http\Controllers\LabMasterTestController;
@@ -48,83 +48,103 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // User management
-    Route::apiResource('users', UserController::class);
-    Route::post('/users/{user}/role', [UserController::class, 'assignRole']);
-    Route::put('/users/{user}/roles', [UserController::class, 'updateRoles']);
+    // User management (Administration)
+    Route::middleware('permission:view_administration')->group(function () {
+        Route::get('/users', [UserController::class, 'index']);
+        Route::get('/users/{user}', [UserController::class, 'show']);
+        Route::get('/roles', [RoleController::class, 'index']);
+        Route::get('/roles/{role}', [RoleController::class, 'show']);
+        Route::get('/permissions', [PermissionController::class, 'index']);
+        Route::get('/hospital-profile', [HospitalProfileController::class, 'index']);
+    });
 
-    // Roles & Permissions management
-    Route::apiResource('roles', RoleController::class);
-    Route::apiResource('permissions', PermissionController::class)->only(['index']);
+    Route::middleware('permission:create_administration')->group(function () {
+        Route::post('/users', [UserController::class, 'store']);
+        Route::post('/users/{user}/role', [UserController::class, 'assignRole']);
+        Route::post('/roles', [RoleController::class, 'store']);
+        Route::post('/hospital-profile', [HospitalProfileController::class, 'store']);
+    });
 
-    // Hospital Profile
-    Route::get('/hospital-profile', [HospitalProfileController::class, 'index']);
-    Route::post('/hospital-profile', [HospitalProfileController::class, 'store']);
-    Route::put('/hospital-profile', [HospitalProfileController::class, 'update']);
-    Route::delete('/hospital-profile', [HospitalProfileController::class, 'destroy']);
+    Route::middleware('permission:edit_administration')->group(function () {
+        Route::put('/users/{user}', [UserController::class, 'update']);
+        Route::put('/users/{user}/roles', [UserController::class, 'updateRoles']);
+        Route::put('/roles/{role}', [RoleController::class, 'update']);
+        Route::put('/hospital-profile', [HospitalProfileController::class, 'update']);
+    });
 
-    // Patients
-    Route::apiResource('patients', PatientController::class);
+    Route::middleware('permission:delete_administration')->group(function () {
+        Route::delete('/users/{user}', [UserController::class, 'destroy']);
+        Route::delete('/roles/{role}', [RoleController::class, 'destroy']);
+        Route::delete('/hospital-profile', [HospitalProfileController::class, 'destroy']);
+    });
 
-    // Patient Types
-    Route::apiResource('patient-types', PatientTypeController::class);
+    // Patients (Registration)
+    Route::middleware('permission:view_registration')->get('/patients', [PatientController::class, 'index']);
+    Route::middleware('permission:view_registration')->get('/patients/{patient}', [PatientController::class, 'show']);
+    Route::middleware('permission:create_registration')->post('/patients', [PatientController::class, 'store']);
+    Route::middleware('permission:edit_registration')->put('/patients/{patient}', [PatientController::class, 'update']);
+    Route::middleware('permission:delete_registration')->delete('/patients/{patient}', [PatientController::class, 'destroy']);
 
-    // Departments
+    // Billings & Financial Payments
+    Route::middleware('permission:view_billing')->group(function () {
+        Route::get('/billings', [BillingController::class, 'index']);
+        Route::get('/billings/{billing}', [BillingController::class, 'show']);
+        Route::get('/billing-details', [BillingDetailController::class, 'index']);
+        Route::get('/billing-details/{billingDetail}', [BillingDetailController::class, 'show']);
+        Route::get('/patient-payments', [PatientPaymentController::class, 'index']);
+        Route::get('/patient-payments/advance-balance', [PatientPaymentController::class, 'getAdvanceBalance']);
+        Route::get('/patient-payments/{id}', [PatientPaymentController::class, 'show']);
+    });
+
+    Route::middleware('permission:create_billing')->group(function () {
+        Route::post('/billings', [BillingController::class, 'store']);
+        Route::post('/billing-details', [BillingDetailController::class, 'store']);
+        Route::post('/patient-payments', [PatientPaymentController::class, 'store']);
+        Route::post('/patient-payments/apply-advance', [PatientPaymentController::class, 'applyAdvance']);
+        Route::post('/patient-payments/refund-advance', [PatientPaymentController::class, 'refundAdvance']);
+    });
+
+    Route::middleware('permission:edit_billing')->group(function () {
+        Route::put('/billings/{billing}', [BillingController::class, 'update']);
+        Route::put('/billing-details/{billingDetail}', [BillingDetailController::class, 'update']);
+        Route::put('/patient-payments/{id}', [PatientPaymentController::class, 'update']);
+        Route::put('/patient-payments/{id}/cancel', [PatientPaymentController::class, 'cancel']);
+    });
+
+    Route::middleware('permission:delete_billing')->group(function () {
+        Route::delete('/billings/{billing}', [BillingController::class, 'destroy']);
+        Route::delete('/billing-details/{billingDetail}', [BillingDetailController::class, 'destroy']);
+        Route::delete('/patient-payments/{id}', [PatientPaymentController::class, 'destroy']);
+    });
+
+    // Master Tables & Departments
     Route::apiResource('departments', DepartmentController::class);
-
-    // Doctors
     Route::apiResource('doctors', DoctorController::class);
-
-    // Services
     Route::apiResource('services', ServiceController::class);
-
-    // Service Charges
     Route::apiResource('service-charges', ServiceChargeController::class);
-
-    // Appointment Master
     Route::apiResource('appointment-master', AppointmentMasterController::class);
 
     // Patient Appointments
     Route::get('/patient-appointments/slots', [PatientAppointmentController::class, 'getSlots']);
     Route::apiResource('patient-appointments', PatientAppointmentController::class);
 
-    // OPD Visits
+    // Clinical Modules
     Route::apiResource('opd-visits', OpdVisitController::class);
-
-    // IPD Admissions
     Route::apiResource('ipd-admissions', IpdAdmissionController::class);
-
-    // Emergency Cases
     Route::apiResource('emergency-cases', EmergencyCaseController::class);
 
-    // Billings
-    Route::apiResource('billings', BillingController::class);
-
-    // Pharmacy Items
+    // Pharmacy & Radiology
     Route::apiResource('pharmacy-items', PharmacyItemController::class);
-
-    // Radiology Scans
     Route::apiResource('radiology-scans', RadiologyScanController::class);
 
-    // Lab Headers
+    // Laboratory
     Route::apiResource('lab-headers', LabHeaderController::class);
-
-    // Lab Sub Headers
     Route::apiResource('lab-sub-headers', LabSubHeaderController::class);
-
-    // Lab Required Samples
     Route::apiResource('lab-required-samples', LabRequiredSampleController::class);
-
-    // Lab Master Tests
     Route::apiResource('lab-master-tests', LabMasterTestController::class);
-
-    // Lab Master Test Parameters
     Route::apiResource('lab-master-test-parameters', LabMasterTestParameterController::class);
-
-    // Lab Boundings
     Route::apiResource('lab-boundings', LabBoundingController::class);
 
-    // Lab Cases
     Route::get('/lab-cases/waiting-invoices', [LabCaseController::class, 'waitingInvoices']);
     Route::post('/lab-cases/{testId}/results', [LabCaseController::class, 'storeResults']);
     Route::get('/lab-cases/{testId}/results', [LabCaseController::class, 'getResults']);
@@ -133,19 +153,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/lab-cases/{caseId}/tests', [LabCaseController::class, 'addTests']);
     Route::apiResource('lab-cases', LabCaseController::class);
 
-    // Accept Sample
     Route::get('/accept-sample', [AcceptSampleController::class, 'index']);
     Route::put('/accept-sample/{testId}/accept', [AcceptSampleController::class, 'acceptSample']);
     Route::put('/accept-sample/{testId}/reject', [AcceptSampleController::class, 'rejectSample']);
 
-    // Test Perform
+    Route::get('/lab-output-settings', [LabOutputSettingController::class, 'show']);
+    Route::put('/lab-output-settings', [LabOutputSettingController::class, 'update']);
+    Route::post('/lab-output-settings/upload-image', [LabOutputSettingController::class, 'uploadImage']);
+
     Route::get('/test-perform', [TestPerformController::class, 'index']);
     Route::get('/test-perform/{testId}/parameters', [TestPerformController::class, 'getParameters']);
 
-    // Insurance Companies
+    // Insurance Companies & Plans
     Route::apiResource('insurance-companies', InsuranceCompanyController::class);
-
-    // Insurance Plans
     Route::apiResource('insurance-plans', InsurancePlanController::class);
 
     // Patient Visits
@@ -153,26 +173,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/patient-visits/by-patient/{patientId}', [PatientVisitController::class, 'getByPatientId']);
     Route::apiResource('patient-visits', PatientVisitController::class);
 
-    // Billing Details
-    Route::apiResource('billing-details', BillingDetailController::class);
-
-    // Patient Payments
-    Route::get('/patient-payments/advance-balance', [PatientPaymentController::class, 'getAdvanceBalance']);
-    Route::post('/patient-payments/apply-advance', [PatientPaymentController::class, 'applyAdvance']);
-    Route::post('/patient-payments/refund-advance', [PatientPaymentController::class, 'refundAdvance']);
-    Route::apiResource('patient-payments', PatientPaymentController::class);
-
     // Doctor Share Master
     Route::post('/doctor-share-master/bulk', [DoctorShareMasterController::class, 'bulkStore']);
     Route::delete('/doctor-share-master/bulk', [DoctorShareMasterController::class, 'bulkDestroy']);
     Route::apiResource('doctor-share-master', DoctorShareMasterController::class);
 
-    // Floor Master
+    // Infrastructure Master
     Route::apiResource('floor-master', FloorController::class);
-
-    // Rooms/Wards Master
     Route::apiResource('rooms-wards-master', RoomsWardsController::class);
-
-    // Bed Master
     Route::apiResource('bed-master', BedMasterController::class);
 });

@@ -59,17 +59,23 @@ class PatientPaymentController extends Controller
         }
 
         $rows = $query->latest()->get();
+        $paymentIds = $rows->pluck('id')->toArray();
 
-        $payments = $rows->map(function ($row) {
-            $paymentDetails = DB::table('payment_details')
-                ->where('paymentId', $row->id)
-                ->get();
+        $paymentDetailsGrouped = DB::table('payment_details')
+            ->whereIn('paymentId', $paymentIds)
+            ->get()
+            ->groupBy('paymentId');
 
-            $billingPayments = DB::table('billing_payments')
-                ->leftJoin('billings', 'billing_payments.billingId', '=', 'billings.id')
-                ->where('billing_payments.paymentId', $row->id)
-                ->select('billing_payments.*', 'billings.InvoiceNo', 'billings.TotalAmount')
-                ->get();
+        $billingPaymentsGrouped = DB::table('billing_payments')
+            ->leftJoin('billings', 'billing_payments.billingId', '=', 'billings.id')
+            ->whereIn('billing_payments.paymentId', $paymentIds)
+            ->select('billing_payments.*', 'billings.InvoiceNo', 'billings.TotalAmount')
+            ->get()
+            ->groupBy('paymentId');
+
+        $payments = $rows->map(function ($row) use ($paymentDetailsGrouped, $billingPaymentsGrouped) {
+            $paymentDetails = $paymentDetailsGrouped->get($row->id, []);
+            $billingPayments = $billingPaymentsGrouped->get($row->id, []);
 
             return [
                 'id' => $row->id,

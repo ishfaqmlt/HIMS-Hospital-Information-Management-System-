@@ -126,6 +126,7 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, e
   };
 
   const onSubmit = async (data) => {
+    if (loading) return;
     try {
       setLoading(true);
       const { year, month, day, ...submitData } = data;

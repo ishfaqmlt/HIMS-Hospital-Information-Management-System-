@@ -44,12 +44,6 @@ export const getColumns = ({ onEdit, onBill }) => [
     cell: ({ row }) => row.original.doctor?.Name || "-",
   },
   {
-    id: "patientType",
-    accessorFn: (row) => row.patient_type?.patientType || "",
-    header: "Patient Type",
-    cell: ({ row }) => row.original.patient_type?.patientType || "-",
-  },
-  {
     id: "insuranceCompany",
     accessorFn: (row) => row.insurance_company?.name || "",
     header: "Insurance Company",

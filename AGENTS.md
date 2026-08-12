@@ -127,9 +127,9 @@ import { getColumns } from "./columns";
 ```
 
 ### UI Components (shadcn/ui Only)
-- **ALL UI elements MUST come from shadcn/ui** (`@/components/ui/`)
-- Never create custom UI components when shadcn equivalents exist
-- Never use plain HTML elements (button, input, select, etc.) — always use shadcn versions
+- **ALL UI elements MUST strictly come from shadcn/ui** (`@/components/ui/`)
+- Never create custom UI code, raw HTML boxes, or custom div wrappers when shadcn equivalents exist
+- Never use plain HTML elements (button, input, select, etc.) or raw HTML alert/toast banners — always use shadcn versions (`Button`, `Input`, `Select`, `Alert`, `AlertDescription`, `Card`, `Badge`, `Separator`, etc.)
 - Available shadcn components: Button, Input, Label, Textarea, Select, Dialog, AlertDialog, DropdownMenu, Table, Card, Badge, Alert, Tabs, Checkbox, RadioGroup, Switch, Slider, Popover, Tooltip, Sheet, Command, Calendar, Avatar, Separator, Skeleton, ScrollArea, Accordion, NavigationMenu, Menubar, ContextMenu, HoverCard, Resizable, Table (DataTable)
 - Use Lucide icons from `lucide-react`
 - Use `cn()` utility for conditional classes
@@ -212,12 +212,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 - **CNIC/Mobile search**: Triggers backend search, shows multiple-patient selection dialog
 - **No patients found**: Opens AddPatientDialog automatically
 - **AddPatientDialog**: `onPatientAdded` passes created patient data to parent callback
-- **Patient type**: Defaults to "General" on New button click and initial load
+
 
 ### PatientDetailsCard (Reusable Component)
-- 9-column grid layout: MRN | Patient ID | CNIC | Mobile | Patient | Guardian | DOB | Gender | Patient Type
+- 8-column grid layout:Visit No | MRN | CNIC | Mobile | Patient Name | Guardian | DOB | Gender 
 - **Input masking**: `formatCode()` strips non-digits, adds `-` after 4th digit, max 8 digits (9 chars with dash)
-- **Enter key**: All four search inputs (MRN, Patient ID, CNIC, Mobile) trigger search on Enter via `onKeyDown`
+- **Enter key**: All four search inputs (Visit No,MRN, CNIC, Mobile) trigger search on Enter via `onKeyDown`
 - **Disabled state**: When `selectedPatient` exists, inputs show disabled value (patient data)
 - **Placeholders**: All search inputs use empty placeholders (`placeholder=""`)
 
@@ -275,15 +275,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 ## Patient Registration Rules
 
 ### ID Generation
-- **PatientId**: `pid-{MMYY}-{SEQ}` (e.g., `pid-0726-001`) — resets monthly via prefix match
-- **MRN**: `mrn-{MMYY}-{SEQ}` (e.g., `mrn-0726-001`) — resets monthly via prefix match
+- **MRN**: `MRN-{MMYY}-{SEQ}` (e.g., `MRN-0726-001`) — resets monthly via prefix match
 - **InvoiceNo**: `INV-{MMYY}-{SEQ}` (e.g., `INV-0726-001`) — resets monthly via prefix match
 - All use 3-digit zero-padded sequence numbers
 
 ### Database Notes
-- `patient_visits.patientId` is `foreignUuid` but stores `pid-MMYY-###` values — **type mismatch**
 - Eloquent eager loading breaks on this FK — use raw `DB::table()` joins instead
-- `billings.patientId` FK references `patient_visits.mrn` (string), not `patients.id`
+- `billings.patientId` FK references `patients.id`
 
 ---
 
@@ -307,7 +305,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 ### Input Masking
 - `formatCode(value)`: Strips non-digits, takes max 8 digits, adds `-` after 4th digit
-- Used on MRN and Patient ID inputs in PatientDetailsCard
+- Used on visitNo and MRN input in PatientDetailsCard
 
 ---
 
@@ -415,7 +413,7 @@ const toLocalISOString = (date) => {
 ### Migration Safety
 - **NEVER run `migrate:fresh` unless explicitly told** — only `php artisan migrate` or targeted rollback
 - When changing FK types, create a new migration (don't modify existing ones)
-- **When altering a table via migration**: Also update the original `create_*_table` migration to reflect the same change. After running the alter migration, delete the alter migration file. The change should only exist in the main migration.
+- **When altering a table via migration**: Also update the original `create_*_table` migration to reflect the same change. 
 
 ### File Naming
 - Frontend pages: `page.jsx` (not `.tsx` unless TypeScript required)

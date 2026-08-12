@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable } from "@/components/data-table/data-table";
 import { getColumns } from "./columns";
@@ -79,7 +79,7 @@ export default function MasterTestsPage() {
 
   const loadServices = async () => {
     try {
-      const res = await serviceService.getAll({ DepartmentName: "Laboratory" });
+      const res = await serviceService.getAll({ laboratory: true, excludeExistingLabMasterTests: true });
       setServices(res.data || []);
     } catch (error) {
       console.error("Failed to load services:", error);
@@ -113,7 +113,7 @@ export default function MasterTestsPage() {
     setIsDialogOpen(true);
   };
 
-  const openEdit = async (rowData) => {
+  const openEdit = useCallback(async (rowData) => {
     try {
       setLoading(true);
       setDialogError(null);
@@ -134,7 +134,7 @@ export default function MasterTestsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [reset]);
 
   const onSubmit = async (formData) => {
     setLoading(true);
@@ -261,12 +261,12 @@ export default function MasterTestsPage() {
                   name="lab_required_sample_id"
                   control={control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={(val) => field.onChange(val === "__none" ? "" : val)} value={field.value || ""}>
                       <SelectTrigger className="w-full h-9 text-xs">
                         <SelectValue placeholder="Select sample" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="__none">None</SelectItem>
                         {requiredSamples.map((sample) => (
                           <SelectItem key={sample.id} value={sample.id}>
                             {sample.required_sample_name}

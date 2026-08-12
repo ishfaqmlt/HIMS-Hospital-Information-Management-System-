@@ -4,19 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Models\Service;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ServiceController extends Controller
 {
     public function index(Request $request)
     {
+        $labDepartment = DB::table('departments')->where('DepartmentName', 'Laboratory')->first();
+
         $query = Service::with('department');
 
-        if ($request->has('departmentId')) {
-            $query->where('DepartmentId', $request->departmentId);
+        if ($request->has('laboratory') && $request->laboratory) {
+            $query->where('DepartmentId', $labDepartment->id);
         }
 
-        if ($request->has('DepartmentName') && $request->DepartmentName) {
-            $query->where('DepartmentName', $request->DepartmentName);
+        if ($request->has('excludeExistingLabMasterTests') && $request->excludeExistingLabMasterTests) {
+            $query->whereNotIn('id', DB::table('lab_master_tests')->pluck('serviceId'));
         }
 
         return response()->json($query->latest()->get());

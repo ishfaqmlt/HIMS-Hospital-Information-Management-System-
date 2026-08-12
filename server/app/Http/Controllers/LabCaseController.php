@@ -94,8 +94,13 @@ class LabCaseController extends Controller
                     'lab_case_tests.masterTestId',
                     'lab_case_tests.rate',
                     'lab_case_tests.testStatus',
+                    'lab_case_tests.sampleStatus',
+                    'lab_case_tests.rejectReason',
                     'lab_case_tests.isPerformed',
                     'lab_case_tests.isApproved',
+                    'lab_case_tests.isPrinted',
+                    'lab_case_tests.printedAt',
+                    'lab_case_tests.remarks',
                     'services.ServiceName as testName',
                     'services.Code as testCode'
                 )
@@ -143,7 +148,7 @@ class LabCaseController extends Controller
                 ] : null,
                 'doctor' => $row->doctor_name ? ['id' => $row->doctorId, 'Name' => $row->doctor_name] : null,
                 'insuranceCompany' => $row->insurance_name ? ['id' => $row->insuranceCompanyId, 'name' => $row->insurance_name] : null,
-                'createdByUser' => $row->created_by_name ? ['id' => $row->createdBy, 'name' => $row->created_by_name] : null,
+                'created_by' => $row->created_by_name ? ['id' => $row->createdBy, 'name' => $row->created_by_name] : null,
                 'tests' => $tests,
             ];
         });
@@ -215,7 +220,7 @@ class LabCaseController extends Controller
                 'masterTestId' => $test['masterTestId'],
                 'serviceId' => $test['serviceId'] ?? null,
                 'rate' => $test['rate'],
-                'testStatus' => 'Pending',
+                'testStatus' => 'Registered',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -400,7 +405,7 @@ class LabCaseController extends Controller
                 'masterTestId' => $test['masterTestId'],
                 'serviceId' => $test['serviceId'] ?? null,
                 'rate' => $test['rate'],
-                'testStatus' => 'Pending',
+                'testStatus' => 'Registered',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -421,12 +426,13 @@ class LabCaseController extends Controller
     public function updateTestStatus(Request $request, $testId)
     {
         $validated = $request->validate([
-            'status' => 'required|in:Pending,Sampled,InProcess,Completed,Approved,Cancelled',
+            'status' => 'required|in:Registered,Sampled,InProcess,Reported,Approved,Cancelled',
             'sampledAt' => 'nullable|date',
             'performedAt' => 'nullable|date',
             'approvedAt' => 'nullable|date',
             'showInterpretation' => 'nullable|boolean',
             'isPrinted' => 'nullable|boolean',
+            'remarks' => 'nullable|string',
         ]);
 
         $existing = DB::table('lab_case_tests')->where('id', $testId)->first();
@@ -436,21 +442,35 @@ class LabCaseController extends Controller
 
         $updateData = ['testStatus' => $validated['status'], 'updated_at' => now()];
 
-        if ($validated['status'] === 'Sampled') {
-            $updateData['sampledAt'] = $validated['sampledAt'] ?? now();
-            $updateData['sampledBy'] = Auth::id();
-            $updateData['isPerformed'] = false;
+        if ($request->has('remarks')) {
+            $updateData['remarks'] = $validated['remarks'];
         }
 
-        if ($validated['status'] === 'InProcess') {
+        if ($validated['status'] === 'Sampled') {
+            $updateData['sampledAt'] = !empty($validated['sampledAt'])
+                ? date('Y-m-d H:i:s', strtotime($validated['sampledAt']))
+                : now();
+            $updateData['sampledBy'] = Auth::id();
+            $updateData['isPerformed'] = false;
+            $updateData['isApproved'] = false;
+        }
+
+        if ($validated['status'] === 'InProcess' || $validated['status'] === 'Reported') {
             $updateData['isPerformed'] = true;
-            $updateData['performedAt'] = $validated['performedAt'] ?? now();
+            $updateData['performedAt'] = !empty($validated['performedAt'])
+                ? date('Y-m-d H:i:s', strtotime($validated['performedAt']))
+                : now();
             $updateData['performedBy'] = Auth::id();
+            if ($validated['status'] === 'InProcess') {
+                $updateData['isApproved'] = false;
+            }
         }
 
         if ($validated['status'] === 'Approved') {
             $updateData['isApproved'] = true;
-            $updateData['approvedAt'] = $validated['approvedAt'] ?? now();
+            $updateData['approvedAt'] = !empty($validated['approvedAt'])
+                ? date('Y-m-d H:i:s', strtotime($validated['approvedAt']))
+                : now();
             $updateData['approvedBy'] = Auth::id();
         }
 
@@ -464,6 +484,38 @@ class LabCaseController extends Controller
         }
 
         DB::table('lab_case_tests')->where('id', $testId)->update($updateData);
+
+        // Check if ALL tests for parent case are Approved or Reported
+        $caseId = $existing->caseId;
+        if ($caseId) {
+            $totalTests = DB::table('lab_case_tests')->where('caseId', $caseId)->count();
+            $approvedTests = DB::table('lab_case_tests')
+                ->where('caseId', $caseId)
+                ->where('testStatus', 'Approved')
+                ->count();
+
+            $reportedTests = DB::table('lab_case_tests')
+                ->where('caseId', $caseId)
+                ->whereIn('testStatus', ['Reported', 'Approved', 'Completed'])
+                ->count();
+
+            if ($totalTests > 0 && $totalTests === $approvedTests) {
+                DB::table('lab_cases')->where('id', $caseId)->update([
+                    'status' => 'Approved',
+                    'updated_at' => now(),
+                ]);
+            } elseif ($totalTests > 0 && $totalTests === $reportedTests) {
+                DB::table('lab_cases')->where('id', $caseId)->update([
+                    'status' => 'Reported',
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::table('lab_cases')->where('id', $caseId)->update([
+                    'status' => 'InProcess',
+                    'updated_at' => now(),
+                ]);
+            }
+        }
 
         $test = DB::table('lab_case_tests')
             ->leftJoin('lab_master_tests', 'lab_case_tests.masterTestId', '=', 'lab_master_tests.id')
@@ -505,6 +557,47 @@ class LabCaseController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+        }
+
+        // Update testStatus to Reported in lab_case_tests
+        DB::table('lab_case_tests')->where('id', $testId)->update([
+            'testStatus' => 'Reported',
+            'isPerformed' => true,
+            'performedAt' => now(),
+            'performedBy' => Auth::id(),
+            'updated_at' => now(),
+        ]);
+
+        // Check if ALL tests for parent case are Reported, Approved, or Completed
+        $caseId = $existing->caseId;
+        if ($caseId) {
+            $totalTests = DB::table('lab_case_tests')->where('caseId', $caseId)->count();
+            $approvedTests = DB::table('lab_case_tests')
+                ->where('caseId', $caseId)
+                ->where('testStatus', 'Approved')
+                ->count();
+
+            $reportedTests = DB::table('lab_case_tests')
+                ->where('caseId', $caseId)
+                ->whereIn('testStatus', ['Reported', 'Approved', 'Completed'])
+                ->count();
+
+            if ($totalTests > 0 && $totalTests === $approvedTests) {
+                DB::table('lab_cases')->where('id', $caseId)->update([
+                    'status' => 'Approved',
+                    'updated_at' => now(),
+                ]);
+            } elseif ($totalTests > 0 && $totalTests === $reportedTests) {
+                DB::table('lab_cases')->where('id', $caseId)->update([
+                    'status' => 'Reported',
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::table('lab_cases')->where('id', $caseId)->update([
+                    'status' => 'InProcess',
+                    'updated_at' => now(),
+                ]);
+            }
         }
 
         $results = DB::table('lab_case_test_results')

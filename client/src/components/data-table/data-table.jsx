@@ -4,6 +4,7 @@ import * as React from "react"
 import {
   flexRender,
   getCoreRowModel,
+  getExpandedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
@@ -23,10 +24,11 @@ import { ArrowUpDown } from "lucide-react"
 import { DataTablePagination } from "./data-table-pagination"
 import { DataTableToolbar } from "./data-table-toolbar"
 
-export function DataTable({ columns, data, filterColumn }) {
+export function DataTable({ columns, data, filterColumn, renderSubComponent, getRowCanExpand }) {
   const [sorting, setSorting] = React.useState([])
   const [columnFilters, setColumnFilters] = React.useState([])
   const [rowSelection, setRowSelection] = React.useState({})
+  const [expanded, setExpanded] = React.useState({})
 
   const table = useReactTable({
     data,
@@ -36,18 +38,22 @@ export function DataTable({ columns, data, filterColumn }) {
       sorting,
       columnFilters,
       rowSelection,
+      expanded,
     },
 
     enableRowSelection: true,
+    getRowCanExpand: getRowCanExpand || (() => !!renderSubComponent),
 
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    onExpandedChange: setExpanded,
 
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
   })
 
   return (
@@ -89,20 +95,29 @@ export function DataTable({ columns, data, filterColumn }) {
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <React.Fragment key={row.id}>
+                  <TableRow data-state={row.getIsSelected() && "selected"}>
 
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
 
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
 
-                    </TableCell>
-                  ))}
+                      </TableCell>
+                    ))}
 
-                </TableRow>
+                  </TableRow>
+                  {row.getIsExpanded() && renderSubComponent && (
+                    <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
+                      <TableCell colSpan={row.getVisibleCells().length} className="p-3 pl-8">
+                        {renderSubComponent({ row })}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
               ))
             ) : (
               <TableRow>

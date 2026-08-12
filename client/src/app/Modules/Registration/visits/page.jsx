@@ -25,7 +25,6 @@ import { Loader2, Search, UserPlus, CalendarDays } from "lucide-react";
 import PatientDetailsCard from "@/components/patients/PatientDetailsCard";
 import patientService from "@/services/patient.service";
 import patientVisitService from "@/services/patientVisitService";
-import patientTypeService from "@/services/patientTypeService";
 import doctorService from "@/services/doctor.service";
 import insuranceCompanyService from "@/services/insuranceCompanyService";
 import AddPatientDialog from "@/components/patients/AddPatientDialog";
@@ -38,7 +37,6 @@ export default function PatientVisitsPage() {
   const [message, setMessage] = useState(null);
 
   const [visits, setVisits] = useState([]);
-  const [patientTypes, setPatientTypes] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [insuranceCompanies, setInsuranceCompanies] = useState([]);
 
@@ -58,7 +56,6 @@ export default function PatientVisitsPage() {
 
   const [isVisitDialogOpen, setIsVisitDialogOpen] = useState(false);
   const [editingVisit, setEditingVisit] = useState(null);
-  const [patientType, setPatientType] = useState("");
   const [selectedDoctor, setSelectedDoctor] = useState("");
   const [selectedInsuranceCompany, setSelectedInsuranceCompany] = useState("");
   const [visitStatus, setVisitStatus] = useState("Waiting");
@@ -79,24 +76,10 @@ export default function PatientVisitsPage() {
   }, [message]);
 
   useEffect(() => {
-    loadPatientTypes();
     loadDoctors();
     loadInsuranceCompanies();
     fetchVisits({ today: true });
   }, []);
-
-  const loadPatientTypes = async () => {
-    try {
-      const res = await patientTypeService.getAll();
-      setPatientTypes(res.data);
-      if (res.data.length > 0) {
-        const generalType = res.data.find((pt) => pt.patientType === "General");
-        setPatientType(generalType ? generalType.id : res.data[0].id);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   const loadDoctors = async () => {
     try {
@@ -258,7 +241,6 @@ export default function PatientVisitsPage() {
   const handleEditVisit = (visit) => {
     setEditingVisit(visit);
     setSelectedPatient(visit.patient);
-    setPatientType(visit.patientTypeId || "");
     setSelectedDoctor(visit.doctorId || "");
     setSelectedInsuranceCompany(visit.insuranceCompanyId || "");
     setVisitStatus(visit.status || "Waiting");
@@ -271,7 +253,6 @@ export default function PatientVisitsPage() {
     if (visit.patient?.mrn) params.set("mrn", visit.patient.mrn);
     if (visit.id) params.set("visitId", visit.id);
     if (visit.doctorId) params.set("doctorId", visit.doctorId);
-    if (visit.patientTypeId) params.set("patientTypeId", visit.patientTypeId);
     params.set("fromVisit", "1");
     router.push(`/Modules/Billing?${params.toString()}`);
   };
@@ -281,16 +262,11 @@ export default function PatientVisitsPage() {
       setMessage({ type: "error", text: "Please select a patient first" });
       return;
     }
-    if (!patientType) {
-      setMessage({ type: "error", text: "Please select patient type" });
-      return;
-    }
 
     try {
       setLoading(true);
       const visitData = {
         patientId: selectedPatient.id,
-        patientTypeId: patientType,
         doctorId: selectedDoctor || null,
         insuranceCompanyId: selectedInsuranceCompany || null,
         userId: user?.id,
@@ -329,10 +305,6 @@ export default function PatientVisitsPage() {
     setSelectedInsuranceCompany("");
     setVisitStatus("Waiting");
     setVisitDate(toLocalISOString(new Date()));
-    if (patientTypes.length > 0) {
-        const generalType = patientTypes.find((pt) => pt.patientType === "OPD Consultation");
-      setPatientType(generalType ? generalType.id : patientTypes[0].id);
-    }
   };
 
   return (
@@ -364,9 +336,6 @@ export default function PatientVisitsPage() {
         onVisitNoSearchChange={setVisitNoSearch}
         onVisitNoSearch={handleVisitNoSearch}
         selectedPatient={selectedPatient}
-        patientType={patientType}
-        onPatientTypeChange={setPatientType}
-        patientTypes={patientTypes}
         onReset={handleResetCard}
       />
 
@@ -469,22 +438,6 @@ export default function PatientVisitsPage() {
                 onChange={(e) => setVisitDate(e.target.value)}
                 disabled={true}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Patient Type *</Label>
-              <Select value={patientType} onValueChange={setPatientType}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select patient type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {patientTypes.map((pt) => (
-                    <SelectItem key={pt.id} value={pt.id}>
-                      {pt.patientType}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="space-y-2">

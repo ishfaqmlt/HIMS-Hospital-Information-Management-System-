@@ -1,14 +1,16 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Loader2,
   RefreshCw,
   User,
-  Download,
+  CheckCircle,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -35,7 +37,7 @@ const stripHtml = (str) => {
   return str.replace(/<[^>]*>/g, "").trim();
 };
 
-const TestPerform = () => {
+const TestApproval = () => {
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [cases, setCases] = useState([]);
@@ -47,18 +49,17 @@ const TestPerform = () => {
   const [dtTo, setDtTo] = useState(
     toLocalISOString(new Date(new Date().setHours(23, 59, 0, 0)))
   );
-  const [statusFilter, setStatusFilter] = useState("InProcess");
+  const [statusFilter, setStatusFilter] = useState("Reported");
 
   const [testParameters, setTestParameters] = useState([]);
   const [resultsLoading, setResultsLoading] = useState(false);
-  const [savingResults, setSavingResults] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [remarks, setRemarks] = useState("");
 
   const [analyzerReffno, setAnalyzerReffno] = useState("");
   const [sampledAt, setSampledAt] = useState("");
   const [performedAt, setPerformedAt] = useState("");
   const [orReffBy, setOrReffBy] = useState("");
-
-  const resultInputRefs = useRef({});
 
   useEffect(() => {
     if (!message) return;
@@ -78,6 +79,7 @@ const TestPerform = () => {
       setSelectedCase(null);
       setSelectedTest(null);
       setTestParameters([]);
+      setRemarks("");
       setAnalyzerReffno("");
       setSampledAt("");
       setPerformedAt("");
@@ -94,55 +96,33 @@ const TestPerform = () => {
     fetchCases();
   }, []);
 
-  const handleSelectCase = async (c) => {
+  // Click on "Select" button in Patient List table
+  const handleSelectCase = (c) => {
     setSelectedCase(c);
-    setSelectedTest(null);
+    setSelectedTest(null); // Do NOT select all parameters on case selection
+    setTestParameters([]);
+    setRemarks("");
     setAnalyzerReffno(c.analyzerReffno || "");
     setOrReffBy(c.orReffBy || "");
     setSampledAt("");
     setPerformedAt("");
-
-    const tests = c.tests || [];
-    if (tests.length === 0) {
-      setTestParameters([]);
-      return;
-    }
-
-    setResultsLoading(true);
-    try {
-      const allParams = [];
-      for (const test of tests) {
-        const res = await testPerformService.getParameters(test.id);
-        const params = (res.data || []).map((p) => ({
-          ...p,
-          _testId: test.id,
-          _testName: test.testName,
-        }));
-        allParams.push(...params);
-      }
-      setTestParameters(allParams);
-
-      if (tests[0]?.sampledAt) setSampledAt(tests[0].sampledAt);
-      if (tests[0]?.performedAt) setPerformedAt(tests[0].performedAt);
-    } catch (err) {
-      console.error(err);
-      setMessage({ type: "error", text: "Failed to load parameters." });
-    } finally {
-      setResultsLoading(false);
-    }
   };
 
-  const handleOpenInterpretation = async (test) => {
+  // Click on "Select Test" button in Selected Tests data table
+  const handleSelectTestForApproval = async (test) => {
     setSelectedTest(test);
     setResultsLoading(true);
+    setRemarks(test.remarks || "");
 
     try {
       const res = await testPerformService.getParameters(test.id);
-      const newParams = (res.data || []).map((p) => ({ ...p, _testId: test.id, _testName: test.testName }));
-      setTestParameters((prev) => {
-        const otherParams = prev.filter((p) => p._testId !== test.id);
-        return [...otherParams, ...newParams];
-      });
+      setTestParameters(
+        (res.data || []).map((p) => ({
+          ...p,
+          _testId: test.id,
+          _testName: test.testName,
+        }))
+      );
 
       if (test.sampledAt) setSampledAt(test.sampledAt);
       if (test.performedAt) setPerformedAt(test.performedAt);
@@ -154,110 +134,56 @@ const TestPerform = () => {
     }
   };
 
-  const handleResultChange = (paramId, field, value) => {
-    setTestParameters((prev) =>
-      prev.map((p) => (p.id === paramId ? { ...p, [field]: value } : p))
-    );
-  };
-
-  const handleResultBlur = (paramId) => {
-    const param = testParameters.find((p) => p.id === paramId);
-    if (param && (!param.result || param.result.trim() === "")) {
-      handleResultChange(paramId, "print", false);
-    }
-  };
-
-  const handleResultKeyDown = (e, paramId) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const param = displayParams.find((p) => p.id === paramId);
-      if (param && param.result) {
-        const decimalPlaces = param.decimal ?? 0;
-        const num = parseFloat(param.result);
-        if (!isNaN(num)) {
-          const formatted = num.toFixed(decimalPlaces);
-          handleResultChange(paramId, "result", formatted);
-        }
-        handleResultChange(paramId, "print", true);
-      }
-      const currentIdx = displayParams.findIndex((p) => p.id === paramId);
-      if (currentIdx < displayParams.length - 1) {
-        const nextId = displayParams[currentIdx + 1].id;
-        resultInputRefs.current[nextId]?.focus();
-      }
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      const currentIdx = displayParams.findIndex((p) => p.id === paramId);
-      if (currentIdx < displayParams.length - 1) {
-        const nextId = displayParams[currentIdx + 1].id;
-        resultInputRefs.current[nextId]?.focus();
-      }
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      const currentIdx = displayParams.findIndex((p) => p.id === paramId);
-      if (currentIdx > 0) {
-        const prevId = displayParams[currentIdx - 1].id;
-        resultInputRefs.current[prevId]?.focus();
-      }
-    }
-  };
-
-  const handleSaveResults = async () => {
-    if (!selectedCase) return;
+  // Click on "Approve Test" button
+  const handleApproveTest = async () => {
+    if (!selectedTest) return;
     try {
-      setSavingResults(true);
+      setApproving(true);
+      await testPerformService.updateTestStatus(selectedTest.id, {
+        status: "Approved",
+        approvedAt: toLocalISOString(new Date()),
+        remarks: remarks,
+      });
 
-      if (selectedTest) {
-        const payload = {
-          results: testParameters
-            .filter((r) => r._testId === selectedTest.id)
-            .map((r) => ({
-              parameterId: r.id,
-              result: r.result || null,
-              units: r.units || null,
-              paramStatus: r.paramStatus,
-              normalRange: r.normalRange || null,
-            })),
-        };
-        await testPerformService.storeResults(selectedTest.id, payload);
-        try {
-          await testPerformService.updateTestStatus(selectedTest.id, { status: "Reported" });
-        } catch (e) {}
-      } else {
-        const testsToSave = selectedCase.tests || [];
-        for (const test of testsToSave) {
-          const testParams = testParameters.filter((r) => r._testId === test.id);
-          if (testParams.length > 0) {
-            const payload = {
-              results: testParams.map((r) => ({
-                parameterId: r.id,
-                result: r.result || null,
-                units: r.units || null,
-                paramStatus: r.paramStatus,
-                normalRange: r.normalRange || null,
-              })),
-            };
-            await testPerformService.storeResults(test.id, payload);
-            try {
-              await testPerformService.updateTestStatus(test.id, { status: "Reported" });
-            } catch (e) {}
-          }
-        }
-      }
+      setMessage({ type: "success", text: `Test "${selectedTest.testName}" approved successfully.` });
 
-      setMessage({ type: "success", text: "Results saved successfully." });
+      // Update local state for immediate feedback
+      setSelectedTest((prev) => (prev ? { ...prev, testStatus: "Approved", remarks } : null));
+
+      // Refresh case list to reflect updated test/case statuses
       fetchCases();
     } catch (err) {
       console.error(err);
-      setMessage({ type: "error", text: "Failed to save results." });
+      setMessage({ type: "error", text: "Failed to approve test." });
     } finally {
-      setSavingResults(false);
+      setApproving(false);
     }
   };
 
-  const displayParams = selectedTest
-    ? testParameters.filter((p) => p._testId === selectedTest.id)
-    : testParameters;
+  // Click on "Request Re-Test / Disapprove" button
+  const handleDisapproveTest = async () => {
+    if (!selectedTest) return;
+    try {
+      setApproving(true);
+      await testPerformService.updateTestStatus(selectedTest.id, {
+        status: "InProcess",
+        remarks: remarks || "Returned by Pathologist for re-testing",
+      });
+
+      setMessage({ type: "success", text: `Test "${selectedTest.testName}" returned for re-testing with remarks.` });
+
+      // Update local state for immediate feedback
+      setSelectedTest((prev) => (prev ? { ...prev, testStatus: "InProcess", remarks } : null));
+
+      // Refresh case list
+      fetchCases();
+    } catch (err) {
+      console.error(err);
+      setMessage({ type: "error", text: "Failed to return test for re-testing." });
+    } finally {
+      setApproving(false);
+    }
+  };
 
   return (
     <div className="p-4 max-w-full mx-auto space-y-4">
@@ -265,8 +191,8 @@ const TestPerform = () => {
         <div
           className={`px-4 py-2 rounded text-sm ${
             message.type === "success"
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800"
+              ? "bg-green-100 text-green-800 border border-green-200"
+              : "bg-red-100 text-red-800 border border-red-200"
           }`}
         >
           {message.text}
@@ -313,9 +239,9 @@ const TestPerform = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="Reported">Reported</SelectItem>
                       <SelectItem value="InProcess">InProcess</SelectItem>
-                      <SelectItem value="Sampled">Sampled</SelectItem>
-                      <SelectItem value="Registered">Registered</SelectItem>
+                      <SelectItem value="Approved">Approved</SelectItem>
                       <SelectItem value="All">All</SelectItem>
                     </SelectContent>
                   </Select>
@@ -388,12 +314,12 @@ const TestPerform = () => {
                           <Badge
                             variant="outline"
                             className={`text-[9px] px-1.5 py-0 font-normal ${
-                              c.status === "Reported"
+                              c.status === "Approved"
+                                ? "border-blue-500 text-blue-700 bg-blue-50"
+                                : c.status === "Reported"
                                 ? "border-green-500 text-green-700 bg-green-50"
                                 : c.status === "InProcess"
                                 ? "border-amber-500 text-amber-700 bg-amber-50"
-                                : c.status === "Approved"
-                                ? "border-blue-500 text-blue-700 bg-blue-50"
                                 : c.status === "Sampled"
                                 ? "border-purple-500 text-purple-700 bg-purple-50"
                                 : c.status === "Cancelled"
@@ -425,27 +351,17 @@ const TestPerform = () => {
             </div>
           </div>
 
-          {/* Selected Tests */}
+          {/* Selected Tests Data Table */}
           <div
             className="border rounded-md flex flex-col overflow-hidden"
-            style={{ height: "40%" }}
+            style={{ height: "45%" }}
           >
-            <div className="px-3 py-1 bg-sky-50 border-b flex items-center justify-between">
+            <div className="px-3 py-1 bg-sky-50 border-b">
               <h3 className="text-[10px] font-semibold text-sky-700">
                 {selectedCase
                   ? `Selected Tests (${(selectedCase.tests || []).length})`
                   : "Select a patient"}
               </h3>
-              {selectedCase && selectedTest && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-5 text-[10px] px-1.5 text-sky-700 hover:text-sky-900"
-                  onClick={() => setSelectedTest(null)}
-                >
-                  Show All Tests
-                </Button>
-              )}
             </div>
             <div className="flex-1 overflow-auto">
               {!selectedCase ? (
@@ -458,6 +374,7 @@ const TestPerform = () => {
                     <TableRow className="h-7">
                       <TableHead className="text-[10px] w-8">SL</TableHead>
                       <TableHead className="text-[10px]">Test Name</TableHead>
+                      <TableHead className="text-[10px]">Test Status</TableHead>
                       <TableHead className="text-[10px] text-center">
                         Action
                       </TableHead>
@@ -467,7 +384,7 @@ const TestPerform = () => {
                     {(selectedCase.tests || []).length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={3}
+                          colSpan={4}
                           className="text-center text-[10px] text-muted-foreground py-6"
                         >
                           No tests found.
@@ -477,10 +394,18 @@ const TestPerform = () => {
                       (selectedCase.tests || []).map((test, idx) => (
                         <TableRow
                           key={test.id}
-                          className={`h-7 cursor-pointer hover:bg-muted/50 ${
+                          className={`h-7 ${
+                            test.testStatus === "Reported"
+                              ? "cursor-pointer hover:bg-muted/50"
+                              : "opacity-75"
+                          } ${
                             selectedTest?.id === test.id ? "bg-sky-100" : ""
                           }`}
-                          onClick={() => handleOpenInterpretation(test)}
+                          onClick={() => {
+                            if (test.testStatus === "Reported") {
+                              handleSelectTestForApproval(test);
+                            }
+                          }}
                         >
                           <TableCell className="text-[10px]">
                             {idx + 1}
@@ -488,18 +413,38 @@ const TestPerform = () => {
                           <TableCell className="text-[10px] font-medium">
                             {test.testName}
                           </TableCell>
-                          <TableCell className="text-center">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-5 px-1.5 text-[10px] text-blue-600 hover:text-blue-700"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenInterpretation(test);
-                              }}
+                          <TableCell className="text-[10px]">
+                            <Badge
+                              variant="outline"
+                              className={`text-[9px] px-1.5 py-0 font-normal ${
+                                test.testStatus === "Approved"
+                                  ? "border-blue-500 text-blue-700 bg-blue-50"
+                                  : test.testStatus === "Reported"
+                                  ? "border-green-500 text-green-700 bg-green-50"
+                                  : test.testStatus === "InProcess"
+                                  ? "border-amber-500 text-amber-700 bg-amber-50"
+                                  : "border-gray-400 text-gray-700 bg-gray-50"
+                              }`}
                             >
-                              Enter Results
-                            </Button>
+                              {test.testStatus || "Pending"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {test.testStatus === "Reported" ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 px-1.5 text-[10px] text-blue-600 hover:text-blue-700 font-medium"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSelectTestForApproval(test);
+                                }}
+                              >
+                                Select Test
+                              </Button>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground">-</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))
@@ -511,44 +456,37 @@ const TestPerform = () => {
           </div>
         </div>
 
-        {/* Right Panel - 65% */}
+        {/* Right Panel - 65% (Selected Test Result to Approve) */}
         <div className="w-[65%] border rounded-md flex flex-col overflow-hidden">
           <div className="px-3 py-1.5 bg-sky-50 border-b flex items-center justify-between">
             <h3 className="text-xs font-semibold text-sky-700">
-              Enter Results {selectedTest ? `(${selectedTest.testName})` : selectedCase ? "(All Tests)" : ""}
+              Selected Test Result to Approve {selectedTest ? `(${selectedTest.testName})` : ""}
             </h3>
-            {selectedCase && (
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs"
-                  onClick={() => {}}
-                >
-                  <Download className="h-3 w-3 mr-1" />
-                  Fetch Analyzer
-                </Button>
-                <Button
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={handleSaveResults}
-                  disabled={savingResults || !selectedCase || testParameters.length === 0}
-                >
-                  {savingResults ? (
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  ) : null}
-                  Save Results
-                </Button>
-              </div>
+            {selectedTest && (
+              <Badge
+                variant="outline"
+                className={`text-xs px-2 py-0.5 ${
+                  selectedTest.testStatus === "Approved"
+                    ? "border-blue-500 text-blue-700 bg-blue-50"
+                    : "border-amber-500 text-amber-700 bg-amber-50"
+                }`}
+              >
+                {selectedTest.testStatus || "Pending"}
+              </Badge>
             )}
           </div>
+
           <div className="flex-1 overflow-auto p-3">
             {!selectedCase ? (
               <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
-                Select a patient from the list to enter results.
+                Select a patient from the list, then click &quot;Select Test&quot; to approve results.
+              </div>
+            ) : !selectedTest ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
+                Click &quot;Select Test&quot; in the Selected Tests list to view results for approval.
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {/* Patient Details Card */}
                 <Card className="shadow-sm border border-border/50">
                   <CardHeader className="px-3 py-1.5 bg-sky-50">
@@ -577,8 +515,8 @@ const TestPerform = () => {
                         </Label>
                         <Input
                           value={analyzerReffno}
-                          onChange={(e) => setAnalyzerReffno(e.target.value)}
-                          className="h-7 text-xs"
+                          readOnly
+                          className="h-7 text-xs bg-muted cursor-not-allowed"
                         />
                       </div>
                       <div className="space-y-1">
@@ -609,21 +547,16 @@ const TestPerform = () => {
                         </Label>
                         <Input
                           value={orReffBy}
-                          onChange={(e) => setOrReffBy(e.target.value)}
-                          className="h-7 text-xs"
+                          readOnly
+                          className="h-7 text-xs bg-muted cursor-not-allowed"
                         />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Results Table */}
-                {!selectedTest && testParameters.length === 0 ? (
-                  <div className="flex items-center justify-center h-32 text-muted-foreground text-xs">
-                    Click &quot;Enter Results&quot; on a test to view
-                    parameters.
-                  </div>
-                ) : resultsLoading ? (
+                {/* Parameters Table (READ ONLY) */}
+                {resultsLoading ? (
                   <div className="flex items-center justify-center h-32">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   </div>
@@ -646,16 +579,16 @@ const TestPerform = () => {
                               <TableHead className="text-xs w-32 whitespace-nowrap">
                                 Parameter
                               </TableHead>
-                              <TableHead className="text-xs min-w-30">
+                              <TableHead className="text-xs min-w-[120px]">
                                 Result
                               </TableHead>
-                              <TableHead className="text-xs min-w-27 w-28 whitespace-nowrap">
+                              <TableHead className="text-xs min-w-[110px] w-28 whitespace-nowrap">
                                 Units
                               </TableHead>
-                              <TableHead className="text-xs min-w-27 w-28 whitespace-nowrap">
+                              <TableHead className="text-xs min-w-[110px] w-28 whitespace-nowrap">
                                 Reff. Value
                               </TableHead>
-                              <TableHead className="text-xs min-w-27 w-28 whitespace-nowrap">
+                              <TableHead className="text-xs min-w-[110px] w-28 whitespace-nowrap">
                                 Status
                               </TableHead>
                               <TableHead className="text-xs w-12 text-center whitespace-nowrap">
@@ -664,17 +597,17 @@ const TestPerform = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {displayParams.length === 0 ? (
+                            {testParameters.length === 0 ? (
                               <TableRow>
                                 <TableCell
                                   colSpan={9}
                                   className="text-center text-xs text-muted-foreground py-6"
                                 >
-                                  No parameters found.
+                                  No parameters found for this test.
                                 </TableCell>
                               </TableRow>
                             ) : (
-                              displayParams.map((param, idx) => (
+                              testParameters.map((param, idx) => (
                                 <TableRow
                                   key={param.id}
                                   className="h-8"
@@ -693,73 +626,43 @@ const TestPerform = () => {
                                   </TableCell>
                                   <TableCell className="w-full min-w-[120px]">
                                     <Input
-                                      ref={(el) => { resultInputRefs.current[param.id] = el; }}
                                       value={param.result || ""}
-                                      onChange={(e) =>
-                                        handleResultChange(
-                                          param.id,
-                                          "result",
-                                          e.target.value
-                                        )
-                                      }
-                                      onKeyDown={(e) => handleResultKeyDown(e, param.id)}
-                                      onBlur={() => handleResultBlur(param.id)}
-                                      className="h-7 text-xs w-full"
+                                      readOnly
+                                      className="h-7 text-xs w-full bg-muted cursor-not-allowed font-medium text-foreground"
                                     />
                                   </TableCell>
                                   <TableCell className="min-w-[110px] w-28">
                                     <Input
                                       value={param.units || ""}
-                                      onChange={(e) =>
-                                        handleResultChange(
-                                          param.id,
-                                          "units",
-                                          e.target.value
-                                        )
-                                      }
-                                      className="h-7 text-xs w-full px-2"
+                                      readOnly
+                                      className="h-7 text-xs w-full px-2 bg-muted cursor-not-allowed text-foreground"
                                     />
                                   </TableCell>
                                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap min-w-[110px] w-28">
                                     {stripHtml(param.normalRange) || "-"}
                                   </TableCell>
                                   <TableCell className="min-w-[110px] w-28">
-                                    <Select
-                                      value={param.paramStatus}
-                                      onValueChange={(val) =>
-                                        handleResultChange(
-                                          param.id,
-                                          "paramStatus",
-                                          val
-                                        )
-                                      }
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-[9px] px-1.5 py-0 font-normal ${
+                                        param.paramStatus === "A"
+                                          ? "border-amber-500 text-amber-700 bg-amber-50"
+                                          : param.paramStatus === "C"
+                                          ? "border-red-500 text-red-700 bg-red-50"
+                                          : "border-green-500 text-green-700 bg-green-50"
+                                      }`}
                                     >
-                                      <SelectTrigger className="h-7 text-xs w-full px-2">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="N">
-                                          Normal
-                                        </SelectItem>
-                                        <SelectItem value="A">
-                                          Abnormal
-                                        </SelectItem>
-                                        <SelectItem value="C">
-                                          Critical
-                                        </SelectItem>
-                                      </SelectContent>
-                                    </Select>
+                                      {param.paramStatus === "A"
+                                        ? "Abnormal"
+                                        : param.paramStatus === "C"
+                                        ? "Critical"
+                                        : "Normal"}
+                                    </Badge>
                                   </TableCell>
                                   <TableCell className="text-center">
                                     <Checkbox
                                       checked={param.print}
-                                      onCheckedChange={(checked) =>
-                                        handleResultChange(
-                                          param.id,
-                                          "print",
-                                          checked
-                                        )
-                                      }
+                                      disabled
                                     />
                                   </TableCell>
                                 </TableRow>
@@ -771,6 +674,64 @@ const TestPerform = () => {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* Remarks & Approval Action Section */}
+                <div className="pt-2 space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold text-sky-700">
+                      Approval Remarks
+                    </Label>
+                    <Textarea
+                      value={remarks}
+                      onChange={(e) => setRemarks(e.target.value)}
+                      placeholder="Type approval comments or remarks here..."
+                      rows={2}
+                      className="text-xs resize-none"
+                      disabled={selectedTest?.testStatus === "Approved"}
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 border-amber-500 text-amber-700 hover:bg-amber-50 font-medium px-4"
+                      onClick={handleDisapproveTest}
+                      disabled={
+                        approving ||
+                        !selectedTest ||
+                        selectedTest.testStatus === "Approved"
+                      }
+                    >
+                      {approving ? (
+                        <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-4 w-4 mr-1.5" />
+                      )}
+                      Request Re-Test
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      className="h-8 bg-green-600 hover:bg-green-700 text-white font-medium px-4"
+                      onClick={handleApproveTest}
+                      disabled={
+                        approving ||
+                        !selectedTest ||
+                        selectedTest.testStatus === "Approved"
+                      }
+                    >
+                      {approving ? (
+                        <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 mr-1.5" />
+                      )}
+                      {selectedTest?.testStatus === "Approved"
+                        ? "Test Approved"
+                        : "Approve Test"}
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -780,4 +741,4 @@ const TestPerform = () => {
   );
 };
 
-export default TestPerform;
+export default TestApproval;
