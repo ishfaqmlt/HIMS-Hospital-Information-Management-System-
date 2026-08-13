@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('lab_master_test_parameters', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('master_test_id')->constrained('lab_master_tests')->onDelete('cascade');
-            $table->foreignUuid('sub_headers_id')->constrained('lab_sub_headers')->nullable()->onDelete('set null');
+            $table->foreignUuid('sub_headers_id')->nullable()->constrained('lab_sub_headers')->onDelete('set null');
             $table->string('parameterName');
             $table->string('defaultValue')->nullable();
             $table->string('units')->nullable();

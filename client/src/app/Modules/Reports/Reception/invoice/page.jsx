@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import hospitalProfileService from "@/services/hospitalProfile.service";
+import hospitalOutputSettingService from "@/services/hospitalOutputSetting.service";
 import billingDetailService from "@/services/billingDetailService";
 import patientPaymentService from "@/services/patientPaymentService";
 import { ThermalReceipt } from "../../components/ThermalPrintLayout";
 import { A4Receipt } from "../../components/A4PrintLayout";
 
-function InvoicePrintComponent({ format, hospitalProfile, invoice, services, payment }) {
+function InvoicePrintComponent({ format, hospitalProfile, invoice, services, payment, settings }) {
   const componentRef = useRef(null);
 
   const handlePrint = useReactToPrint({
@@ -41,6 +42,7 @@ function InvoicePrintComponent({ format, hospitalProfile, invoice, services, pay
             invoice={invoice}
             services={services}
             payment={payment}
+            settings={settings}
           />
         </div>
       </div>
@@ -50,13 +52,15 @@ function InvoicePrintComponent({ format, hospitalProfile, invoice, services, pay
 
 export async function printInvoiceSlip(invoice, format = "thermal", setMessage) {
   try {
-    const [profileRes, detailsRes] = await Promise.all([
+    const [profileRes, detailsRes, settingsRes] = await Promise.all([
       hospitalProfileService.get(),
       billingDetailService.getAll({ BillingId: invoice.id }),
+      hospitalOutputSettingService.get().catch(() => ({ data: null })),
     ]);
 
     const profile = profileRes.data?.[0] || profileRes.data || {};
     const details = detailsRes.data || [];
+    const settings = settingsRes.data || null;
 
     let payment = null;
     try {
@@ -103,6 +107,7 @@ export async function printInvoiceSlip(invoice, format = "thermal", setMessage) 
         invoice={flatInvoice}
         services={serviceRows}
         payment={payment}
+        settings={settings}
       />
     );
 

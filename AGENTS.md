@@ -275,9 +275,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 ## Patient Registration Rules
 
 ### ID Generation
-- **MRN**: `MRN-{MMYY}-{SEQ}` (e.g., `MRN-0726-001`) — resets monthly via prefix match
-- **InvoiceNo**: `INV-{MMYY}-{SEQ}` (e.g., `INV-0726-001`) — resets monthly via prefix match
-- All use 3-digit zero-padded sequence numbers
+- **MRN**: `MRN-{MMYY}-{SEQ}` (e.g., `MRN-0726-1`, `MRN-0726-2`, `MRN-0726-100`) — resets monthly via prefix match (`system_sequences` table)
+- **VisitNo**: `V-{MMYY}-{SEQ}` (e.g., `V-0726-1`, `V-0726-2`) — resets monthly via prefix match (`system_sequences` table)
+- **InvoiceNo**: `INV-{MMYY}-{SEQ}` (e.g., `INV-0726-1`, `INV-0726-2`) — resets monthly via prefix match (`system_sequences` table)
+- All sequences are unpadded numbers without leading zeros (`1`, `2`, `3` ... `100`, `5000`)
 
 ### Database Notes
 - Eloquent eager loading breaks on this FK — use raw `DB::table()` joins instead
@@ -422,6 +423,6 @@ const toLocalISOString = (date) => {
 - Services: `camelCase.service.js` (frontend), `PascalCaseController.php` (backend)
 
 ### Pushing to GitHub
-- Verify all changes compile (`npm run build` if needed)
-- Check for unused imports/variables
-- Test key flows before pushing (billing save, edit, return, print)
+- **DO NOT push code or data to GitHub unless explicitly instructed by the user.**
+- Only run `git push` when the user specifically requests to push or sync data to GitHub.
+- When explicitly requested by the user: verify all changes compile (`npm run build` if needed), check for unused imports/variables, and test key flows before pushing.

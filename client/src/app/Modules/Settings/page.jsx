@@ -88,6 +88,13 @@ const settingsModules = [
     color: "bg-violet-500",
     href: "/Modules/Settings/doctorShareMaster",
   },
+  {
+    name: "Hospital Output Settings",
+    description: "Manage header, footer, letterhead logos and page layouts for non-lab printouts & invoices",
+    icon: Settings,
+    color: "bg-indigo-500",
+    href: "/Modules/Settings/hospitalOutPut",
+  },
 ];
 
 export default function SettingsPage() {

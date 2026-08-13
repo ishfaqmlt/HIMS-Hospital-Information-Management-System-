@@ -64,7 +64,7 @@ class Billing extends Model
     public static function generateInvoiceNo(): string
     {
         $prefix = 'INV-' . now()->format('my') . '-';
-        
+
         return \Illuminate\Support\Facades\DB::transaction(function () use ($prefix) {
             $sequence = \Illuminate\Support\Facades\DB::table('system_sequences')
                 ->where('prefix', $prefix)
@@ -72,12 +72,15 @@ class Billing extends Model
                 ->first();
 
             if (!$sequence) {
-                $last = \Illuminate\Support\Facades\DB::table('billings')
+                $maxSeq = \Illuminate\Support\Facades\DB::table('billings')
                     ->where('InvoiceNo', 'like', "{$prefix}%")
-                    ->orderByDesc('InvoiceNo')
-                    ->value('InvoiceNo');
+                    ->get()
+                    ->map(function ($row) use ($prefix) {
+                        return intval(substr($row->InvoiceNo, strlen($prefix)));
+                    })
+                    ->max();
 
-                $startVal = $last ? intval(substr($last, strlen($prefix))) + 1 : 1;
+                $startVal = $maxSeq ? $maxSeq + 1 : 1;
 
                 \Illuminate\Support\Facades\DB::table('system_sequences')->insert([
                     'prefix' => $prefix,
@@ -96,7 +99,7 @@ class Billing extends Model
                     ]);
             }
 
-            return $prefix . str_pad($nextVal, 3, '0', STR_PAD_LEFT);
+            return $prefix . $nextVal;
         });
     }
 

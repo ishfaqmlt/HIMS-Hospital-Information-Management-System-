@@ -51,12 +51,15 @@ class PatientVisit extends Model
                 ->first();
 
             if (!$sequence) {
-                $last = \Illuminate\Support\Facades\DB::table('patient_visits')
+                $maxSeq = \Illuminate\Support\Facades\DB::table('patient_visits')
                     ->where('visitNo', 'like', "{$prefix}%")
-                    ->orderByDesc('visitNo')
-                    ->value('visitNo');
+                    ->get()
+                    ->map(function ($row) use ($prefix) {
+                        return intval(substr($row->visitNo, strlen($prefix)));
+                    })
+                    ->max();
 
-                $startVal = $last ? intval(substr($last, strlen($prefix))) + 1 : 1;
+                $startVal = $maxSeq ? $maxSeq + 1 : 1;
 
                 \Illuminate\Support\Facades\DB::table('system_sequences')->insert([
                     'prefix' => $prefix,
@@ -75,7 +78,7 @@ class PatientVisit extends Model
                     ]);
             }
 
-            return $prefix . str_pad($nextVal, 3, '0', STR_PAD_LEFT);
+            return $prefix . $nextVal;
         });
     }
 

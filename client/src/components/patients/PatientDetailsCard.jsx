@@ -8,9 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, RotateCcw, User } from "lucide-react";
 
 function formatMrnCode(value) {
-  const digits = value.replace(/\D/g, "").slice(0, 7);
-  if (digits.length <= 2) return digits;
-  return digits.slice(0, 2) + "-" + digits.slice(2);
+  const digits = value.replace(/\D/g, "");
+  if (digits.length <= 4) return digits;
+  return digits.slice(0, 4) + "-" + digits.slice(4);
 }
 
 function formatVisitNoCode(value) {

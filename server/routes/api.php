@@ -29,6 +29,7 @@ use App\Http\Controllers\RoomsWardsController;
 use App\Http\Controllers\BedMasterController;
 use App\Http\Controllers\LabHeaderController;
 use App\Http\Controllers\LabOutputSettingController;
+use App\Http\Controllers\HospitalOutputSettingController;
 use App\Http\Controllers\LabSubHeaderController;
 use App\Http\Controllers\LabRequiredSampleController;
 use App\Http\Controllers\LabMasterTestController;
@@ -160,6 +161,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/lab-output-settings', [LabOutputSettingController::class, 'show']);
     Route::put('/lab-output-settings', [LabOutputSettingController::class, 'update']);
     Route::post('/lab-output-settings/upload-image', [LabOutputSettingController::class, 'uploadImage']);
+
+    Route::get('/hospital-output-settings', [HospitalOutputSettingController::class, 'show']);
+    Route::put('/hospital-output-settings', [HospitalOutputSettingController::class, 'update']);
+    Route::post('/hospital-output-settings/upload-image', [HospitalOutputSettingController::class, 'uploadImage']);
 
     Route::get('/test-perform', [TestPerformController::class, 'index']);
     Route::get('/test-perform/{testId}/parameters', [TestPerformController::class, 'getParameters']);

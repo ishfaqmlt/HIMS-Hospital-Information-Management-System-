@@ -48,7 +48,7 @@ class Patient extends Model
 
     public static function generateMrn(): string
     {
-        $prefix = 'mrn-' . date('my') . '-';
+        $prefix = 'MRN-' . date('my') . '-';
 
         return \Illuminate\Support\Facades\DB::transaction(function () use ($prefix) {
             $sequence = \Illuminate\Support\Facades\DB::table('system_sequences')
@@ -57,12 +57,16 @@ class Patient extends Model
                 ->first();
 
             if (!$sequence) {
-                $last = \Illuminate\Support\Facades\DB::table('patients')
+                // Extract max integer sequence after prefix (first 9 characters)
+                $maxSeq = \Illuminate\Support\Facades\DB::table('patients')
                     ->where('mrn', 'like', "{$prefix}%")
-                    ->orderByDesc('mrn')
-                    ->value('mrn');
+                    ->get()
+                    ->map(function ($row) use ($prefix) {
+                        return intval(substr($row->mrn, strlen($prefix)));
+                    })
+                    ->max();
 
-                $startVal = $last ? intval(substr($last, strlen($prefix))) + 1 : 1;
+                $startVal = $maxSeq ? $maxSeq + 1 : 1;
 
                 \Illuminate\Support\Facades\DB::table('system_sequences')->insert([
                     'prefix' => $prefix,
@@ -81,7 +85,7 @@ class Patient extends Model
                     ]);
             }
 
-            return $prefix . str_pad($nextVal, 3, '0', STR_PAD_LEFT);
+            return $prefix . $nextVal;
         });
     }
 
