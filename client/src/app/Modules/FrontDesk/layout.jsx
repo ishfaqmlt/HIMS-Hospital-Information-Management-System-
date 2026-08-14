@@ -32,6 +32,11 @@ const frontDeskItems = [
     href: "/Modules/FrontDesk/patientRegistration",
   },
   {
+    label: "Patient Appointments",
+    icon: UserPlus,
+    href: "/Modules/FrontDesk/Appointments",
+  },
+  {
     label: "Patient Visits",
     icon: TestTube,
     href: "/Modules/FrontDesk/patientVisits",

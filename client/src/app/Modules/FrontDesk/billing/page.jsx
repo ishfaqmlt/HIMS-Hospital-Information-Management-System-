@@ -547,7 +547,9 @@ export default function BillingPage() {
       remarks: "",
       services: [],
     });
-    setExistingVisitId(null);
+    if (!selectedPatient) {
+      setExistingVisitId(null);
+    }
     setExistingPaymentId(null);
     setAdvanceBalance(0);
     setApplyAdvance(false);
@@ -672,6 +674,15 @@ export default function BillingPage() {
     }
     if (formData.services.length === 0) {
       setMessage({ type: "error", text: "Please add at least one service" });
+      return;
+    }
+
+    const serviceIds = formData.services.map((s) => s.serviceId);
+    if (new Set(serviceIds).size !== serviceIds.length) {
+      setMessage({
+        type: "error",
+        text: "Duplicate services detected in this invoice. Each service can only be added once.",
+      });
       return;
     }
 
@@ -1215,14 +1226,14 @@ export default function BillingPage() {
               </div>
             </div>
 
-            <div className="space-y-1 pt-1">
+            {/* <div className="space-y-1 pt-1">
               <Label className="text-[10px] font-medium text-muted-foreground">Remarks / Notes</Label>
               <Input
                 {...register("remarks")}
                 className="h-7 text-[11px]"
                 placeholder="Optional remarks"
               />
-            </div>
+            </div> */}
 
             {advanceBalance > 0 && !editingInvoiceId && (
               <div className="p-2 rounded bg-emerald-50 border border-emerald-200 flex flex-col gap-1">

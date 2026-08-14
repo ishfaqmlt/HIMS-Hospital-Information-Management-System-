@@ -271,15 +271,20 @@ class PatientPaymentController extends Controller
 
         $validated['updated_at'] = now();
 
+        $paymentDetails = $validated['paymentDetails'] ?? null;
+        unset($validated['paymentDetails']);
+
         DB::beginTransaction();
 
         try {
-            DB::table('patient_payments')->where('id', $id)->update($validated);
+            if (!empty($validated)) {
+                DB::table('patient_payments')->where('id', $id)->update($validated);
+            }
 
-            if (isset($validated['paymentDetails'])) {
+            if ($paymentDetails) {
                 DB::table('payment_details')->where('paymentId', $id)->delete();
 
-                foreach ($validated['paymentDetails'] as $detail) {
+                foreach ($paymentDetails as $detail) {
                     DB::table('payment_details')->insert([
                         'id' => Str::uuid(),
                         'paymentId' => $id,

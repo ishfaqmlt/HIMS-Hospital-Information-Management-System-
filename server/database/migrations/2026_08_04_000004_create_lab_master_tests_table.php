@@ -11,7 +11,8 @@ return new class extends Migration
         Schema::create('lab_master_tests', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('serviceId')->constrained('services')->onDelete('cascade');
-            $table->uuid('lab_required_sample_id')->nullable();
+            $table->foreignUuid('lab_headers_id')->constrained('lab_headers')->onDelete('cascade');
+            $table->foreignUuid('lab_required_sample_id')->constrained('lab_required_samples')->onDelete('cascade');
             $table->integer('testSort')->default(1);
             $table->string('expectedTime')->default('60')->nullable();
             $table->text('interpretation')->nullable();

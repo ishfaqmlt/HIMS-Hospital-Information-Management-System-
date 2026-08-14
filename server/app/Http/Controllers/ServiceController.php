@@ -14,6 +14,14 @@ class ServiceController extends Controller
 
         $query = Service::with('department');
 
+        if ($request->has('departmentId') && $request->departmentId) {
+            $query->where('DepartmentId', $request->departmentId);
+        }
+
+        if ($request->has('DepartmentId') && $request->DepartmentId) {
+            $query->where('DepartmentId', $request->DepartmentId);
+        }
+
         if ($request->has('laboratory') && $request->laboratory) {
             $query->where('DepartmentId', $labDepartment->id);
         }

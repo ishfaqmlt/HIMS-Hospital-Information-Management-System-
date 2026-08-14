@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Plus, Save, X, Check, FlaskConical } from "lucide-react";
 import masterTestService from "@/services/masterTests.service";
+import labHeaderService from "@/services/labHeader.service";
 import labRequiredSampleService from "@/services/labRequiredSample.service";
 import serviceService from "@/services/serviceService";
 
@@ -38,6 +39,7 @@ export default function MasterTestsPage() {
   const [editingId, setEditingId] = useState(null);
   const [tests, setTests] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [labHeaders, setLabHeaders] = useState([]);
   const [requiredSamples, setRequiredSamples] = useState([]);
   const [services, setServices] = useState([]);
 
@@ -51,6 +53,7 @@ export default function MasterTestsPage() {
     resolver: zodResolver(masterTestSchema),
     defaultValues: {
       serviceId: "",
+      lab_headers_id: "",
       lab_required_sample_id: "",
       testSort: 1,
       expectedTime: 60,
@@ -65,6 +68,15 @@ export default function MasterTestsPage() {
       setTests(res.data || []);
     } catch (error) {
       console.error("Failed to load tests:", error);
+    }
+  };
+
+  const loadHeaders = async () => {
+    try {
+      const res = await labHeaderService.getAll();
+      setLabHeaders(res.data || []);
+    } catch (error) {
+      console.error("Failed to load lab headers:", error);
     }
   };
 
@@ -88,6 +100,7 @@ export default function MasterTestsPage() {
 
   useEffect(() => {
     loadTests();
+    loadHeaders();
     loadRequiredSamples();
     loadServices();
   }, []);
@@ -104,6 +117,7 @@ export default function MasterTestsPage() {
     const maxSort = tests.length > 0 ? Math.max(...tests.map((t) => t.testSort || 0)) : 0;
     reset({
       serviceId: "",
+      lab_headers_id: "",
       lab_required_sample_id: "",
       testSort: maxSort + 1,
       expectedTime: 60,
@@ -122,6 +136,7 @@ export default function MasterTestsPage() {
       setEditingId(data.id);
       reset({
         serviceId: data.serviceId || "",
+        lab_headers_id: data.lab_headers_id || "",
         lab_required_sample_id: data.lab_required_sample_id || "",
         testSort: data.testSort || 1,
         expectedTime: data.expectedTime || 60,
@@ -179,44 +194,47 @@ export default function MasterTestsPage() {
     <div className="space-y-4">
       {message && (
         <div
-          className={`px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm ${
+          className={`p-3 rounded-lg text-xs font-medium flex items-center justify-between ${
             message.type === "success"
               ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
               : "bg-red-50 text-red-700 border border-red-200"
           }`}
         >
-          {message.type === "success" ? (
-            <Check className="h-4 w-4" />
-          ) : (
-            <X className="h-4 w-4" />
-          )}
-          {message.text}
+          <div className="flex items-center gap-2">
+            {message.type === "success" ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <X className="h-4 w-4" />
+            )}
+            {message.text}
+          </div>
+          <button onClick={() => setMessage(null)}>
+            <X className="h-3 w-3 opacity-60 hover:opacity-100" />
+          </button>
         </div>
       )}
 
       <Card className="shadow-sm border border-border/50">
-        <CardHeader className="py-2.5 bg-gradient-to-r from-primary/90 to-primary text-primary-foreground rounded-t-lg">
-          <CardTitle className="text-sm font-semibold flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <FlaskConical className="h-4 w-4" />
-              Lab Master Tests
-            </span>
-            <Button
-              size="sm"
-              className="bg-white/20 hover:bg-white/30 text-white"
-              onClick={openCreate}
-            >
-              <Plus className="h-3 w-3 mr-1" /> Add Test
-            </Button>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <FlaskConical className="h-5 w-5 text-sky-600" />
+            Master Tests Configuration
           </CardTitle>
+          <Button onClick={openCreate} size="sm" className="h-8 gap-1">
+            <Plus className="h-4 w-4" /> Add Test
+          </Button>
         </CardHeader>
-        <CardContent className="p-4">
-          <DataTable columns={columns} data={tests} filterColumn="serviceName" />
+        <CardContent>
+          <DataTable
+            columns={columns}
+            data={tests}
+            filterColumn="serviceName"
+            isLoading={loading}
+          />
         </CardContent>
       </Card>
 
-      {/* Create/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setDialogError(null); }}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -254,6 +272,28 @@ export default function MasterTestsPage() {
                 {errors.serviceId && (
                   <p className="text-xs text-destructive">{errors.serviceId.message}</p>
                 )}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Lab Header</Label>
+                <Controller
+                  name="lab_headers_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={(val) => field.onChange(val === "__none" ? "" : val)} value={field.value || ""}>
+                      <SelectTrigger className="w-full h-9 text-xs">
+                        <SelectValue placeholder="Select header" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">None</SelectItem>
+                        {labHeaders.map((hdr) => (
+                          <SelectItem key={hdr.id} value={hdr.id}>
+                            {hdr.header_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs">Required Sample</Label>

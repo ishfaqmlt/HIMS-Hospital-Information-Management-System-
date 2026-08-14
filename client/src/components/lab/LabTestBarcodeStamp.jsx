@@ -7,7 +7,7 @@ export default function LabTestBarcodeStamp({ testName, caseNo, testId, approved
   const showBarcode = settings?.showBarcodeOnReport ?? true;
   const showApprovedAt = settings?.showApprovedAtOnReport ?? true;
 
-  const barcodeValue = testId ? `${caseNo || "CASE"}-${testId.substring(0, 6)}` : caseNo || "1001";
+  const barcodeValue = caseNo || "CASE";
   const formattedApprovedAt = approvedAt
     ? new Date(approvedAt).toLocaleDateString("en-GB", {
         day: "2-digit",

@@ -41,6 +41,22 @@ export const getColumns = ({ onEdit, onParameters }) => [
     ),
   },
   {
+    accessorFn: (row) => row.header_name || "",
+    id: "header_name",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Header Name
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+    cell: ({ row }) => (
+      <span className="text-xs font-semibold text-sky-800">{row.original.header_name || "-"}</span>
+    ),
+  },
+  {
     accessorFn: (row) => row.required_sample_name || "",
     id: "required_sample_name",
     header: ({ column }) => (

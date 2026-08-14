@@ -13,11 +13,13 @@ class LabMasterTestController extends Controller
     {
         $query = DB::table('lab_master_tests')
             ->leftJoin('services', 'lab_master_tests.serviceId', '=', 'services.id')
+            ->leftJoin('lab_headers', 'lab_master_tests.lab_headers_id', '=', 'lab_headers.id')
             ->leftJoin('lab_required_samples', 'lab_master_tests.lab_required_sample_id', '=', 'lab_required_samples.id')
             ->select(
                 'lab_master_tests.*',
                 'services.ServiceName as serviceName',
                 'services.Code as serviceCode',
+                'lab_headers.header_name as header_name',
                 'lab_required_samples.required_sample_name as required_sample_name'
             );
 
@@ -25,7 +27,8 @@ class LabMasterTestController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('services.ServiceName', 'like', "%{$search}%")
-                  ->orWhere('services.Code', 'like', "%{$search}%");
+                  ->orWhere('services.Code', 'like', "%{$search}%")
+                  ->orWhere('lab_headers.header_name', 'like', "%{$search}%");
             });
         }
 
@@ -40,6 +43,7 @@ class LabMasterTestController extends Controller
     {
         $validated = $request->validate([
             'serviceId' => 'required|uuid|exists:services,id',
+            'lab_headers_id' => 'nullable|exists:lab_headers,id',
             'lab_required_sample_id' => 'nullable|exists:lab_required_samples,id',
             'testSort' => 'nullable|integer',
             'expectedTime' => 'nullable|string',
@@ -51,6 +55,7 @@ class LabMasterTestController extends Controller
         DB::table('lab_master_tests')->insert([
             'id' => $validated['id'],
             'serviceId' => $validated['serviceId'],
+            'lab_headers_id' => $validated['lab_headers_id'] ?? null,
             'lab_required_sample_id' => $validated['lab_required_sample_id'] ?? null,
             'testSort' => $validated['testSort'] ?? 1,
             'expectedTime' => $validated['expectedTime'] ?? '60',
@@ -62,12 +67,14 @@ class LabMasterTestController extends Controller
 
         $item = DB::table('lab_master_tests')
             ->leftJoin('services', 'lab_master_tests.serviceId', '=', 'services.id')
+            ->leftJoin('lab_headers', 'lab_master_tests.lab_headers_id', '=', 'lab_headers.id')
             ->leftJoin('lab_required_samples', 'lab_master_tests.lab_required_sample_id', '=', 'lab_required_samples.id')
             ->where('lab_master_tests.id', $validated['id'])
             ->select(
                 'lab_master_tests.*',
                 'services.ServiceName as serviceName',
                 'services.Code as serviceCode',
+                'lab_headers.header_name as header_name',
                 'lab_required_samples.required_sample_name as required_sample_name'
             )
             ->first();
@@ -79,12 +86,14 @@ class LabMasterTestController extends Controller
     {
         $item = DB::table('lab_master_tests')
             ->leftJoin('services', 'lab_master_tests.serviceId', '=', 'services.id')
+            ->leftJoin('lab_headers', 'lab_master_tests.lab_headers_id', '=', 'lab_headers.id')
             ->leftJoin('lab_required_samples', 'lab_master_tests.lab_required_sample_id', '=', 'lab_required_samples.id')
             ->where('lab_master_tests.id', $id)
             ->select(
                 'lab_master_tests.*',
                 'services.ServiceName as serviceName',
                 'services.Code as serviceCode',
+                'lab_headers.header_name as header_name',
                 'lab_required_samples.required_sample_name as required_sample_name'
             )
             ->first();
@@ -100,6 +109,7 @@ class LabMasterTestController extends Controller
     {
         $validated = $request->validate([
             'serviceId' => 'required|uuid|exists:services,id',
+            'lab_headers_id' => 'nullable|exists:lab_headers,id',
             'lab_required_sample_id' => 'nullable|exists:lab_required_samples,id',
             'testSort' => 'nullable|integer',
             'expectedTime' => 'nullable|string',
@@ -109,6 +119,7 @@ class LabMasterTestController extends Controller
 
         DB::table('lab_master_tests')->where('id', $id)->update([
             'serviceId' => $validated['serviceId'],
+            'lab_headers_id' => $validated['lab_headers_id'] ?? null,
             'lab_required_sample_id' => $validated['lab_required_sample_id'] ?? null,
             'testSort' => $validated['testSort'] ?? 1,
             'expectedTime' => $validated['expectedTime'] ?? '60',
@@ -119,12 +130,14 @@ class LabMasterTestController extends Controller
 
         $item = DB::table('lab_master_tests')
             ->leftJoin('services', 'lab_master_tests.serviceId', '=', 'services.id')
+            ->leftJoin('lab_headers', 'lab_master_tests.lab_headers_id', '=', 'lab_headers.id')
             ->leftJoin('lab_required_samples', 'lab_master_tests.lab_required_sample_id', '=', 'lab_required_samples.id')
             ->where('lab_master_tests.id', $id)
             ->select(
                 'lab_master_tests.*',
                 'services.ServiceName as serviceName',
                 'services.Code as serviceCode',
+                'lab_headers.header_name as header_name',
                 'lab_required_samples.required_sample_name as required_sample_name'
             )
             ->first();

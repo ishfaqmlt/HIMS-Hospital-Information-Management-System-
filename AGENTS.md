@@ -411,6 +411,9 @@ const toLocalISOString = (date) => {
 
 ## Development Rules
 
+### Model, Migration & Seeder Approval Rule
+- **ALWAYS ASK USER PERMISSION FIRST**: Whenever planning to create, edit, or delete any Eloquent Model (`server/app/Models/*`), Migration (`server/database/migrations/*`), or Seeder (`server/database/seeders/*`) file, you MUST explicitly ask for permission from the user before executing the changes.
+
 ### Migration Safety
 - **NEVER run `migrate:fresh` unless explicitly told** — only `php artisan migrate` or targeted rollback
 - When changing FK types, create a new migration (don't modify existing ones)

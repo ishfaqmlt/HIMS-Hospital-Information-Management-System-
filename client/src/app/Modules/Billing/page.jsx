@@ -547,7 +547,9 @@ export default function BillingPage() {
       remarks: "",
       services: [],
     });
-    setExistingVisitId(null);
+    if (!selectedPatient) {
+      setExistingVisitId(null);
+    }
     setExistingPaymentId(null);
     setAdvanceBalance(0);
     setApplyAdvance(false);
@@ -672,6 +674,15 @@ export default function BillingPage() {
     }
     if (formData.services.length === 0) {
       setMessage({ type: "error", text: "Please add at least one service" });
+      return;
+    }
+
+    const serviceIds = formData.services.map((s) => s.serviceId);
+    if (new Set(serviceIds).size !== serviceIds.length) {
+      setMessage({
+        type: "error",
+        text: "Duplicate services detected in this invoice. Each service can only be added once.",
+      });
       return;
     }
 

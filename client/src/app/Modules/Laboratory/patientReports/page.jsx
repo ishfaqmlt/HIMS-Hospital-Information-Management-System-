@@ -48,6 +48,61 @@ const stripHtml = (str) => {
   return str.replace(/<[^>]*>/g, "").trim();
 };
 
+const groupTestsByHeaderAndPerformedAt = (tests) => {
+  const groupsMap = new Map();
+
+  for (const tItem of tests || []) {
+    const headerTitle = (
+      tItem.testObj?.headerName ||
+      tItem.testObj?.header_name ||
+      tItem.testObj?.testName ||
+      tItem.testObj?.departmentName ||
+      tItem.testObj?.DepartmentName ||
+      "LABORATORY"
+    ).trim();
+    const performedAt = tItem.testObj?.performedAt || "";
+
+    const groupKey = headerTitle.toUpperCase();
+
+    if (!groupsMap.has(groupKey)) {
+      groupsMap.set(groupKey, {
+        headerName: headerTitle,
+        performedAt: performedAt,
+        testItems: [],
+      });
+    }
+
+    groupsMap.get(groupKey).testItems.push(tItem);
+  }
+
+  return Array.from(groupsMap.values());
+};
+
+const groupParametersBySubHeader = (testItems) => {
+  const subMap = new Map();
+
+  for (const tItem of testItems || []) {
+    for (const param of tItem.parameters || []) {
+      const subHeader = (
+        param.subHeaderName ||
+        param.sub_header_name ||
+        ""
+      ).trim();
+
+      if (!subMap.has(subHeader)) {
+        subMap.set(subHeader, []);
+      }
+
+      subMap.get(subHeader).push(param);
+    }
+  }
+
+  return Array.from(subMap.entries()).map(([subHeaderName, params]) => ({
+    subHeaderName,
+    parameters: params,
+  }));
+};
+
 export default function PatientReportsPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -580,72 +635,87 @@ export default function PatientReportsPage() {
               }`}
             >
               {/* Top Section: Header & All Case Tests */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Top Header - Rendered ONCE per case */}
                 <LabHeader caseData={caseGroup.caseObj} settings={outputSettings} />
 
-                {/* Sequential List of Tests for this Case */}
-                <div className="space-y-4 pt-2">
-                  {(caseGroup.tests || []).map((tItem, tIdx) => (
-                    <div key={tItem.testObj?.id || tIdx} className="space-y-2">
-                      <LabTestBarcodeStamp
-                        testName={tItem.testObj?.testName}
-                        caseNo={caseGroup.caseObj?.caseNo}
-                        testId={tItem.testObj?.id}
-                        approvedAt={tItem.testObj?.approvedAt}
-                        settings={outputSettings}
-                      />
+                {/* Static Table Column Header - Rendered ONCE right below patient details */}
+                <div className="border-y-2 border-black bg-gray-100/90 py-1.5 px-3 grid grid-cols-12 text-xs font-bold text-black uppercase tracking-wider">
+                  <div className="col-span-5">Test Name</div>
+                  <div className="col-span-2">Result</div>
+                  <div className="col-span-2">Units</div>
+                  <div className="col-span-3">Reference Range</div>
+                </div>
 
-                      <Table className="border text-xs">
-                        <TableHeader>
-                          <TableRow className="bg-gray-100 h-7">
-                            <TableHead className="font-bold text-black text-xs w-10">Sr</TableHead>
-                            <TableHead className="font-bold text-black text-xs">Parameter</TableHead>
-                            <TableHead className="font-bold text-black text-xs">Result</TableHead>
-                            <TableHead className="font-bold text-black text-xs">Units</TableHead>
-                            <TableHead className="font-bold text-black text-xs">Reference Range</TableHead>
-                            <TableHead className="font-bold text-black text-xs">Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {(tItem.parameters || []).length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={6} className="text-center text-gray-500 py-3">
+                {/* Sequential List of Tests Grouped by Header & PerformedAt */}
+                <div className="space-y-4 pt-1">
+                  {groupTestsByHeaderAndPerformedAt(caseGroup.tests).map(
+                    (headerGroup, hIdx) => {
+                      const subHeaderGroups = groupParametersBySubHeader(
+                        headerGroup.testItems
+                      );
+                      const firstTest = headerGroup.testItems[0]?.testObj;
+
+                      return (
+                        <div key={hIdx} className="space-y-1">
+                          <LabTestBarcodeStamp
+                            testName={headerGroup.headerName}
+                            caseNo={caseGroup.caseObj?.caseNo}
+                            testId={firstTest?.id}
+                            approvedAt={
+                              headerGroup.performedAt || firstTest?.approvedAt
+                            }
+                            settings={outputSettings}
+                          />
+
+                          <div className="border border-gray-300 text-xs divide-y divide-gray-200">
+                            {subHeaderGroups.length === 0 ||
+                            subHeaderGroups.every(
+                              (g) => g.parameters.length === 0
+                            ) ? (
+                              <div className="text-center text-gray-500 py-2">
                                 No result parameters recorded for this test.
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            tItem.parameters.map((p, pIdx) => (
-                              <TableRow key={p.id || pIdx} className="h-7 border-b">
-                                <TableCell>{pIdx + 1}</TableCell>
-                                <TableCell className="font-medium">{p.parameterName}</TableCell>
-                                <TableCell className="font-bold text-sky-900">{p.result || "-"}</TableCell>
-                                <TableCell>{p.units || "-"}</TableCell>
-                                <TableCell>{stripHtml(p.normalRange) || "-"}</TableCell>
-                                <TableCell>
-                                  <span
-                                    className={`font-semibold ${
-                                      p.paramStatus === "A"
-                                        ? "text-amber-600"
-                                        : p.paramStatus === "C"
-                                        ? "text-red-600"
-                                        : "text-green-600"
-                                    }`}
-                                  >
-                                    {p.paramStatus === "A"
-                                      ? "Abnormal"
-                                      : p.paramStatus === "C"
-                                      ? "Critical"
-                                      : "Normal"}
-                                  </span>
-                                </TableCell>
-                              </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  ))}
+                              </div>
+                            ) : (
+                              subHeaderGroups.map((subGroup, sIdx) => (
+                                <React.Fragment key={sIdx}>
+                                  {subGroup.subHeaderName ? (
+                                    <div className="bg-gray-100/80 font-bold text-xs text-black uppercase tracking-wide py-1 px-3 border-b border-gray-300">
+                                      {subGroup.subHeaderName}
+                                    </div>
+                                  ) : null}
+
+                                  {subGroup.parameters.map((p, pIdx) => (
+                                    <div
+                                      key={p.id || pIdx}
+                                      className="grid grid-cols-12 py-1 px-3 items-center hover:bg-gray-50/50 border-b border-gray-100 last:border-b-0 text-[11px]"
+                                    >
+                                      <div
+                                        className={`col-span-5 font-medium text-slate-900 ${
+                                          subGroup.subHeaderName ? "pl-4" : ""
+                                        }`}
+                                      >
+                                        {p.parameterName}
+                                      </div>
+                                      <div className="col-span-2 font-bold text-black">
+                                        {p.result || "-"}
+                                      </div>
+                                      <div className="col-span-2 text-slate-700">
+                                        {p.units || "-"}
+                                      </div>
+                                      <div className="col-span-3 text-slate-700">
+                                        {stripHtml(p.normalRange) || "-"}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </React.Fragment>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+                  )}
                 </div>
               </div>
 

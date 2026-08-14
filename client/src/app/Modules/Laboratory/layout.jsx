@@ -80,7 +80,7 @@ const LaboratoryLayout = ({ children }) => {
   return (
     <div className="w-full min-h-screen">
       {/* Menubar */}
-      <div className="flex flex-wrap items-center gap-1 bg-linear-to-r from-amber-500 to-amber-600 p-2 rounded-b-lg border border-amber-700 shadow-sm sticky top-0 z-40">
+      <div className="flex flex-wrap items-center gap-1 bg-linear-to-r from-blue-500 to-amber-500 p-2 rounded-b-lg border border-amber-700 shadow-sm sticky top-0 z-40">
         {labMenuItems.map((item, idx) => {
           const Icon = item.icon;
           const isActive = pathname.startsWith(item.href);

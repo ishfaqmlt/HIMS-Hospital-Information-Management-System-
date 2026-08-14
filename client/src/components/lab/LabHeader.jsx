@@ -4,6 +4,54 @@ import React from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { getImageUrl } from "@/lib/utils";
 
+const calculateAge = (dob) => {
+  if (!dob) return "";
+  const birth = new Date(dob);
+  if (isNaN(birth.getTime())) return "";
+
+  const now = new Date();
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+  if (months < 0 || (months === 0 && now.getDate() < birth.getDate())) {
+    years--;
+  }
+  if (years > 0) return `${years} Year(s)`;
+
+  const diffTime = Math.abs(now - birth);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  if (diffDays < 30) return `${diffDays} Day(s)`;
+  const monthsTotal = Math.floor(diffDays / 30);
+  return `${monthsTotal} Month(s)`;
+};
+
+const formatSexAndAge = (patient, caseData) => {
+  const gender =
+    patient?.gender ||
+    patient?.gander ||
+    caseData?.patient_gender ||
+    caseData?.gender ||
+    "-";
+
+  let ageVal =
+    patient?.age ||
+    caseData?.patient_age ||
+    caseData?.age ||
+    "";
+
+  const dobVal =
+    patient?.dob ||
+    caseData?.patient_dob ||
+    caseData?.dob;
+
+  if (!ageVal && dobVal) {
+    ageVal = calculateAge(dobVal);
+  } else if (ageVal && !isNaN(ageVal)) {
+    ageVal = `${ageVal} Year(s)`;
+  }
+
+  return ageVal ? `${gender} / ${ageVal}` : gender;
+};
+
 export default function LabHeader({ caseData, settings, hospitalProfile }) {
   const showHeader = settings?.showHeader ?? true;
   const showQrCode = settings?.showQrCode ?? true;
@@ -61,7 +109,7 @@ export default function LabHeader({ caseData, settings, hospitalProfile }) {
         </div>
       )}
 
-      {/* Patient Demographics Box (Matching Image 1 EXACTLY) */}
+      {/* Patient Demographics Box */}
       <div className="border border-gray-400 rounded-sm p-2 text-xs grid grid-cols-3 gap-x-4 gap-y-1.5 bg-gray-50/50">
         <div>
           <span className="font-semibold text-gray-700">Patient Name: </span>
@@ -91,8 +139,8 @@ export default function LabHeader({ caseData, settings, hospitalProfile }) {
 
         <div>
           <span className="font-semibold text-gray-700">Sex / Age: </span>
-          <span>
-            {patient?.gender || "-"} {patient?.age ? `${patient.age} Year(s)` : ""}
+          <span className="font-medium text-black">
+            {formatSexAndAge(patient, caseData)}
           </span>
         </div>
         <div>

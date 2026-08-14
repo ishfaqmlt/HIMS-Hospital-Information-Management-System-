@@ -74,7 +74,7 @@ export default function ServiceChargesPage() {
       const [cRes, dRes, depRes] = await Promise.all([
         serviceChargeService.getAll(),
         doctorService.getAll(),
-        departmentService.getAll({ servingBy: "Doctor" }),
+        departmentService.getAll(),
       ]);
       setCharges(cRes.data);
       setDoctors(dRes.data.filter((d) => d.Name !== "Self"));
@@ -93,9 +93,13 @@ export default function ServiceChargesPage() {
     }
     try {
       const res = await serviceService.getAll({ departmentId });
-      setServices(res.data);
+      const filtered = (res.data || []).filter(
+        (s) => String(s.DepartmentId) === String(departmentId) || String(s.departmentId) === String(departmentId)
+      );
+      setServices(filtered);
     } catch (error) {
       console.error(error);
+      setServices([]);
     }
   };
 

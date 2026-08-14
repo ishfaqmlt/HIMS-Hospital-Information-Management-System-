@@ -54,6 +54,11 @@ export const masterTestSchema = z.object({
     .string({ required_error: "Service is required" })
     .min(1, "Service is required"),
 
+  lab_headers_id: z
+    .string()
+    .optional()
+    .nullable(),
+
   lab_required_sample_id: z
     .string()
     .optional()

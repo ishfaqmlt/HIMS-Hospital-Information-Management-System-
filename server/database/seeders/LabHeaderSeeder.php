@@ -6,11 +6,15 @@ use Illuminate\Database\Seeder;
 use App\Models\LabHeader;
 use Illuminate\Support\Str;
 
+use Illuminate\Support\Facades\DB;
+
 class LabHeaderSeeder extends Seeder
 {
     public function run(): void
     {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         LabHeader::truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         $headers = [
             ['id' => Str::uuid(), 'header_name' => 'Hematology'],

@@ -32,6 +32,16 @@ class BillingDetailController extends Controller
             'isServed' => 'nullable|boolean',
         ]);
 
+        $exists = BillingDetail::where('BillingId', $validated['BillingId'])
+            ->where('serviceId', $validated['serviceId'])
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'message' => 'This service has already been added to this invoice.'
+            ], 422);
+        }
+
         $validated['createdBy'] = Auth::id();
 
         $detail = BillingDetail::create($validated);

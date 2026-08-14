@@ -27,8 +27,10 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchLabBoundings } from "@/reduxToolKit/slices/labBoundingSlice";
 import testPerformService from "@/services/testPerform.service";
-import { calculateAge, toLocalISOString } from "@/lib/utils";
+import { calculateAge, calculateAgeInDays, toLocalISOString } from "@/lib/utils";
 
 const stripHtml = (str) => {
   if (!str) return "";
@@ -36,6 +38,9 @@ const stripHtml = (str) => {
 };
 
 const TestPerform = () => {
+  const dispatch = useDispatch();
+  const { boundings } = useSelector((state) => state.labBoundings || { boundings: [] });
+
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [cases, setCases] = useState([]);
@@ -61,10 +66,103 @@ const TestPerform = () => {
   const resultInputRefs = useRef({});
 
   useEffect(() => {
+    dispatch(fetchLabBoundings());
+  }, [dispatch]);
+
+  useEffect(() => {
     if (!message) return;
     const t = setTimeout(() => setMessage(null), 4000);
     return () => clearTimeout(t);
   }, [message]);
+
+  const evaluateResultStatus = useCallback(
+    (resultVal, paramId) => {
+      if (!resultVal || String(resultVal).trim() === "") {
+        return "N";
+      }
+
+      const valStr = String(resultVal).trim();
+
+      // Special rule: if string contains "*", force Abnormal ("A")
+      if (valStr.includes("*")) {
+        return "A";
+      }
+
+      const valNum = parseFloat(valStr);
+      if (isNaN(valNum)) {
+        return "N";
+      }
+
+      const patientGender = selectedCase?.patient?.gender || "Both";
+      const dob = selectedCase?.patient?.dob;
+      const ageDays = calculateAgeInDays(dob);
+
+      // 1. Match specific gender & age range in days
+      let matchedBounding = (boundings || []).find((b) => {
+        const matchParam = String(b.parameterId) === String(paramId);
+        const matchGender =
+          String(b.gender).toLowerCase() === String(patientGender).toLowerCase();
+        const fDays = Number(b.fromAgeDays ?? b.fagedays) || 0;
+        const tDays = Number(b.toAgeDays ?? b.tagedays) || 0;
+        const matchAge = tDays > 0 ? ageDays >= fDays && ageDays <= tDays : true;
+        return matchParam && matchGender && matchAge;
+      });
+
+      // 2. Fallback to gender === 'Both'
+      if (!matchedBounding) {
+        matchedBounding = (boundings || []).find((b) => {
+          const matchParam = String(b.parameterId) === String(paramId);
+          const matchGender = String(b.gender).toLowerCase() === "both";
+          const fDays = Number(b.fromAgeDays ?? b.fagedays) || 0;
+          const tDays = Number(b.toAgeDays ?? b.tagedays) || 0;
+          const matchAge = tDays > 0 ? ageDays >= fDays && ageDays <= tDays : true;
+          return matchParam && matchGender && matchAge;
+        });
+      }
+
+      let isNormal = "N";
+
+      if (matchedBounding) {
+        const lbound = Number(matchedBounding.lowerBound ?? matchedBounding.lbound) || 0;
+        const ubound = Number(matchedBounding.upperBound ?? matchedBounding.ubound) || 0;
+        const lcritical = Number(matchedBounding.lowerCritical ?? matchedBounding.lcritical) || 0;
+        const ucritical = Number(matchedBounding.upperCritical ?? matchedBounding.ucritical) || 0;
+
+        // Normal bounds check
+        if (lbound > 0 && ubound > 0) {
+          if (valNum < lbound || valNum > ubound) {
+            isNormal = "A";
+          }
+        } else if (lbound === 0 && ubound > 0) {
+          if (valNum > ubound) {
+            isNormal = "A";
+          }
+        } else if (lbound > 0 && ubound === 0) {
+          if (valNum < lbound) {
+            isNormal = "A";
+          }
+        }
+
+        // Critical bounds check (overrides Abnormal)
+        if (lcritical > 0 && ucritical > 0) {
+          if (valNum < lcritical || valNum > ucritical) {
+            isNormal = "C";
+          }
+        } else if (lcritical === 0 && ucritical > 0) {
+          if (valNum > ucritical) {
+            isNormal = "C";
+          }
+        } else if (lcritical > 0 && ucritical === 0) {
+          if (valNum < lcritical) {
+            isNormal = "C";
+          }
+        }
+      }
+
+      return isNormal;
+    },
+    [boundings, selectedCase]
+  );
 
   const fetchCases = useCallback(async () => {
     try {
@@ -113,11 +211,15 @@ const TestPerform = () => {
       const allParams = [];
       for (const test of tests) {
         const res = await testPerformService.getParameters(test.id);
-        const params = (res.data || []).map((p) => ({
-          ...p,
-          _testId: test.id,
-          _testName: test.testName,
-        }));
+        const params = (res.data || []).map((p) => {
+          const evalStatus = p.paramStatus || evaluateResultStatus(p.result, p.id);
+          return {
+            ...p,
+            paramStatus: evalStatus,
+            _testId: test.id,
+            _testName: test.testName,
+          };
+        });
         allParams.push(...params);
       }
       setTestParameters(allParams);
@@ -138,7 +240,15 @@ const TestPerform = () => {
 
     try {
       const res = await testPerformService.getParameters(test.id);
-      const newParams = (res.data || []).map((p) => ({ ...p, _testId: test.id, _testName: test.testName }));
+      const newParams = (res.data || []).map((p) => {
+        const evalStatus = p.paramStatus || evaluateResultStatus(p.result, p.id);
+        return {
+          ...p,
+          paramStatus: evalStatus,
+          _testId: test.id,
+          _testName: test.testName,
+        };
+      });
       setTestParameters((prev) => {
         const otherParams = prev.filter((p) => p._testId !== test.id);
         return [...otherParams, ...newParams];
@@ -156,14 +266,62 @@ const TestPerform = () => {
 
   const handleResultChange = (paramId, field, value) => {
     setTestParameters((prev) =>
-      prev.map((p) => (p.id === paramId ? { ...p, [field]: value } : p))
+      prev.map((p) => {
+        if (p.id === paramId) {
+          const updated = { ...p, [field]: value };
+          if (field === "result") {
+            const evalStatus = evaluateResultStatus(value, paramId);
+            updated.paramStatus = evalStatus;
+          }
+          return updated;
+        }
+        return p;
+      })
     );
   };
 
+  const formatResultValue = useCallback((val, decimalPlaces = 0) => {
+    if (!val || typeof val !== "string") return val || "";
+
+    let cvalue = val.trim();
+
+    // 1. Dash formatting: If contains "-" and not "--" or "---", replace "-" with "---"
+    if (!cvalue.includes("---") && !cvalue.includes("--")) {
+      if (cvalue.includes("-")) {
+        cvalue = cvalue.replace(/-/g, "---");
+      }
+    }
+
+    // 2. Numeric formatting: If single-digit number and != "0", prepend "0" (e.g., "5" -> "05")
+    if (!isNaN(cvalue) && cvalue.length === 1 && cvalue !== "0") {
+      cvalue = "0" + cvalue;
+    }
+
+    // 3. Decimal places formatting if numeric
+    const num = parseFloat(cvalue);
+    if (!isNaN(num) && decimalPlaces > 0 && !cvalue.includes("---")) {
+      cvalue = num.toFixed(decimalPlaces);
+    }
+
+    return cvalue;
+  }, []);
+
   const handleResultBlur = (paramId) => {
     const param = testParameters.find((p) => p.id === paramId);
-    if (param && (!param.result || param.result.trim() === "")) {
-      handleResultChange(paramId, "print", false);
+    if (param) {
+      if (!param.result || param.result.trim() === "") {
+        handleResultChange(paramId, "print", false);
+      } else {
+        const formattedVal = formatResultValue(param.result, param.decimal ?? 0);
+        const evalStatus = evaluateResultStatus(formattedVal, paramId);
+        setTestParameters((prev) =>
+          prev.map((p) =>
+            p.id === paramId
+              ? { ...p, result: formattedVal, paramStatus: evalStatus, print: true }
+              : p
+          )
+        );
+      }
     }
   };
 
@@ -171,14 +329,24 @@ const TestPerform = () => {
     if (e.key === "Enter") {
       e.preventDefault();
       const param = displayParams.find((p) => p.id === paramId);
-      if (param && param.result) {
-        const decimalPlaces = param.decimal ?? 0;
-        const num = parseFloat(param.result);
-        if (!isNaN(num)) {
-          const formatted = num.toFixed(decimalPlaces);
-          handleResultChange(paramId, "result", formatted);
-        }
-        handleResultChange(paramId, "print", true);
+      if (param) {
+        let valStr = param.result || "";
+        valStr = formatResultValue(valStr, param.decimal ?? 0);
+
+        const evaluatedStatus = evaluateResultStatus(valStr, paramId);
+
+        setTestParameters((prev) =>
+          prev.map((p) =>
+            p.id === paramId
+              ? {
+                  ...p,
+                  result: valStr,
+                  paramStatus: evaluatedStatus || "N",
+                  print: valStr !== "",
+                }
+              : p
+          )
+        );
       }
       const currentIdx = displayParams.findIndex((p) => p.id === paramId);
       if (currentIdx < displayParams.length - 1) {
@@ -316,6 +484,7 @@ const TestPerform = () => {
                       <SelectItem value="InProcess">InProcess</SelectItem>
                       <SelectItem value="Sampled">Sampled</SelectItem>
                       <SelectItem value="Registered">Registered</SelectItem>
+                      <SelectItem value="Reported">Reported</SelectItem>
                       <SelectItem value="All">All</SelectItem>
                     </SelectContent>
                   </Select>
@@ -704,7 +873,15 @@ const TestPerform = () => {
                                       }
                                       onKeyDown={(e) => handleResultKeyDown(e, param.id)}
                                       onBlur={() => handleResultBlur(param.id)}
-                                      className="h-7 text-xs w-full"
+                                      className={`h-7 text-xs w-full transition-colors ${
+                                        param.paramStatus === "C"
+                                          ? "bg-red-500 text-white font-bold placeholder:text-red-100"
+                                          : param.paramStatus === "A"
+                                          ? "bg-pink-100 text-pink-900 border-pink-400 font-semibold"
+                                          : param.paramStatus === "N" && param.result
+                                          ? "bg-emerald-50 text-emerald-900 border-emerald-300 font-medium"
+                                          : ""
+                                      }`}
                                     />
                                   </TableCell>
                                   <TableCell className="min-w-[110px] w-28">

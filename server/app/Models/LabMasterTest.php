@@ -14,6 +14,7 @@ class LabMasterTest extends Model
     protected $fillable = [
         'id',
         'serviceId',
+        'lab_headers_id',
         'lab_required_sample_id',
         'testSort',
         'expectedTime',
@@ -35,6 +36,11 @@ class LabMasterTest extends Model
                 $model->id = Str::uuid();
             }
         });
+    }
+
+    public function header()
+    {
+        return $this->belongsTo(LabHeader::class, 'lab_headers_id');
     }
 
     public function requiredSample()

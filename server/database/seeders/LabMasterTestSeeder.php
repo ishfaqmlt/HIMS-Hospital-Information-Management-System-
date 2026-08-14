@@ -12,6 +12,10 @@ class LabMasterTestSeeder extends Seeder
 {
     public function run(): void
     {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        LabMasterTest::truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
         $edta = LabRequiredSample::where('required_sample_name', '3 cc EDTA Blood (CBC Vial)')->first()?->id;
         $clotted = LabRequiredSample::where('required_sample_name', '3-5 cc Clotted Blood or Serum')->first()?->id;
         $citrated = LabRequiredSample::where('required_sample_name', 'Sodium Citrate Blood (Coagulation Vial)')->first()?->id;
@@ -23,6 +27,7 @@ class LabMasterTestSeeder extends Seeder
         $synovial = LabRequiredSample::where('required_sample_name', 'Synovial Fluid')->first()?->id;
         $sputum = LabRequiredSample::where('required_sample_name', 'Sputum')->first()?->id;
         $seminal = LabRequiredSample::where('required_sample_name', 'Seminal Fluid')->first()?->id;
+        $swab = LabRequiredSample::where('required_sample_name', 'Swab')->first()?->id;
 
         $getServiceId = function ($code) {
             $service = DB::table('services')->where('Code', $code)->first();
@@ -86,7 +91,7 @@ class LabMasterTestSeeder extends Seeder
             ['serviceCode' => '1254', 'lab_required_sample_id' => $clotted, 'testSort' => 54, 'expectedTime' => '60'],
             ['serviceCode' => '1255', 'lab_required_sample_id' => $clotted, 'testSort' => 55, 'expectedTime' => '120'],
             ['serviceCode' => '1256', 'lab_required_sample_id' => $clotted, 'testSort' => 56, 'expectedTime' => '60'],
-            ['serviceCode' => '1257', 'lab_required_sample_id' => null, 'testSort' => 57, 'expectedTime' => '15'],
+            ['serviceCode' => '1257', 'lab_required_sample_id' => $swab, 'testSort' => 57, 'expectedTime' => '15'],
             ['serviceCode' => '1258', 'lab_required_sample_id' => $seminal, 'testSort' => 58, 'expectedTime' => '60'],
             ['serviceCode' => '1259', 'lab_required_sample_id' => $clotted, 'testSort' => 59, 'expectedTime' => '120'],
             ['serviceCode' => '1260', 'lab_required_sample_id' => $clotted, 'testSort' => 60, 'expectedTime' => '120'],
@@ -115,13 +120,57 @@ class LabMasterTestSeeder extends Seeder
             ['serviceCode' => '1283', 'lab_required_sample_id' => $clotted, 'testSort' => 83, 'expectedTime' => '60'],
         ];
 
+        $getHeaderId = function ($name) {
+            return DB::table('lab_headers')->where('header_name', $name)->value('id');
+        };
+
+        $hematology = $getHeaderId('Hematology');
+        $biochemistry = $getHeaderId('Biochemistry');
+        $serology = $getHeaderId('Serology');
+        $clinicalPathology = $getHeaderId('Clinical Pathology');
+        $microbiology = $getHeaderId('Microbiology');
+        $endocrinology = $getHeaderId('Endocrinology');
+
+        $getHeaderForCode = function ($codeNum) use (
+            $hematology,
+            $biochemistry,
+            $serology,
+            $clinicalPathology,
+            $microbiology,
+            $endocrinology
+        ) {
+            if (($codeNum >= 1201 && $codeNum <= 1211) || in_array($codeNum, [1234, 1249, 1250, 1262, 1263, 1272])) {
+                return $hematology;
+            }
+            if (($codeNum >= 1212 && $codeNum <= 1233) || ($codeNum >= 1245 && $codeNum <= 1248) || in_array($codeNum, [1264, 1265, 1266, 1267])) {
+                return $biochemistry;
+            }
+            if (in_array($codeNum, [1235, 1236, 1237, 1258, 1268, 1269, 1270, 1271])) {
+                return $clinicalPathology;
+            }
+            if (($codeNum >= 1238 && $codeNum <= 1244) || ($codeNum >= 1254 && $codeNum <= 1257) || in_array($codeNum, [1259, 1260, 1261])) {
+                return $serology;
+            }
+            if (in_array($codeNum, [1251, 1252, 1253])) {
+                return $microbiology;
+            }
+            if ($codeNum >= 1273 && $codeNum <= 1283) {
+                return $endocrinology;
+            }
+            return $biochemistry;
+        };
+
         foreach ($tests as $test) {
             $serviceId = $getServiceId($test['serviceCode']);
             if (!$serviceId) continue;
 
+            $codeNum = intval($test['serviceCode']);
+            $headerId = $getHeaderForCode($codeNum);
+
             DB::table('lab_master_tests')->insert([
                 'id' => Str::uuid(),
                 'serviceId' => $serviceId,
+                'lab_headers_id' => $headerId,
                 'lab_required_sample_id' => $test['lab_required_sample_id'],
                 'testSort' => $test['testSort'],
                 'expectedTime' => $test['expectedTime'],

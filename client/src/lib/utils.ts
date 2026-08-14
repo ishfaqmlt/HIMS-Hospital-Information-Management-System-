@@ -42,6 +42,16 @@ export function calculateAgeLong(dob: string | null): string {
   return `${months} Months`;
 }
 
+export function calculateAgeInDays(dob: string | Date | null | undefined): number {
+  if (!dob) return 0;
+  const birthDate = new Date(dob);
+  if (isNaN(birthDate.getTime())) return 0;
+  const today = new Date();
+  const diffTime = Math.abs(today.getTime() - birthDate.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+}
+
 export function formatDate(dateStr: string | null): string {
   if (!dateStr) return "-";
   return new Date(dateStr).toLocaleDateString("en-GB", {

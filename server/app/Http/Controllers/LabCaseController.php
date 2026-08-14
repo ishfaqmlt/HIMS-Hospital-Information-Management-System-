@@ -86,8 +86,13 @@ class LabCaseController extends Controller
 
         $cases = $rows->map(function ($row) {
             $tests = DB::table('lab_case_tests')
-                ->leftJoin('lab_master_tests', 'lab_case_tests.masterTestId', '=', 'lab_master_tests.id')
-                ->leftJoin('services', 'lab_master_tests.serviceId', '=', 'services.id')
+                ->leftJoin('lab_master_tests', function ($join) {
+                    $join->on('lab_case_tests.masterTestId', '=', 'lab_master_tests.id')
+                         ->orOn('lab_case_tests.serviceId', '=', 'lab_master_tests.serviceId');
+                })
+                ->leftJoin('services', 'lab_case_tests.serviceId', '=', 'services.id')
+                ->leftJoin('departments', 'services.DepartmentId', '=', 'departments.id')
+                ->leftJoin('lab_headers', 'lab_master_tests.lab_headers_id', '=', 'lab_headers.id')
                 ->where('lab_case_tests.caseId', $row->id)
                 ->select(
                     'lab_case_tests.id',
@@ -97,12 +102,17 @@ class LabCaseController extends Controller
                     'lab_case_tests.sampleStatus',
                     'lab_case_tests.rejectReason',
                     'lab_case_tests.isPerformed',
+                    'lab_case_tests.performedAt',
                     'lab_case_tests.isApproved',
+                    'lab_case_tests.approvedAt',
                     'lab_case_tests.isPrinted',
                     'lab_case_tests.printedAt',
                     'lab_case_tests.remarks',
                     'services.ServiceName as testName',
-                    'services.Code as testCode'
+                    'services.Code as testCode',
+                    'departments.DepartmentName as departmentName',
+                    'lab_headers.header_name as headerName',
+                    'lab_headers.header_name as header_name'
                 )
                 ->get();
 
