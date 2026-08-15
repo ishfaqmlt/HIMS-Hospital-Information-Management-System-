@@ -48,7 +48,7 @@ class Patient extends Model
 
     public static function generateMrn(): string
     {
-        $prefix = 'MRN-' . date('my') . '-';
+        $prefix = 'MRN-' . date('y') . '-';
 
         return \Illuminate\Support\Facades\DB::transaction(function () use ($prefix) {
             $sequence = \Illuminate\Support\Facades\DB::table('system_sequences')

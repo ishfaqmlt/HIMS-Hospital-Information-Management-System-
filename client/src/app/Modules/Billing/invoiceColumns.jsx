@@ -71,6 +71,8 @@ export const getColumns = ({ onPrint, onPrintA4, onEdit, onReturn }) => [
           ? "bg-yellow-100 text-yellow-700"
           : status === "Cancelled"
           ? "bg-red-100 text-red-700"
+          : status === "Returned"
+          ? "bg-purple-100 text-purple-700 font-semibold"
           : "bg-gray-100 text-gray-700";
       return (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>
@@ -84,7 +86,8 @@ export const getColumns = ({ onPrint, onPrintA4, onEdit, onReturn }) => [
     header: "Actions",
     cell: ({ row }) => {
       const item = row.original;
-      const canEdit = item.BillType !== "Return" && item.PaymentStatus !== "Cancelled";
+      const canEdit = item.BillType !== "Return" && item.PaymentStatus !== "Cancelled" && item.PaymentStatus !== "Returned";
+      const canReturn = item.BillType !== "Return" && item.PaymentStatus !== "Cancelled" && item.PaymentStatus !== "Returned";
       return (
         <div className="flex gap-1">
           {canEdit && (
@@ -98,7 +101,7 @@ export const getColumns = ({ onPrint, onPrintA4, onEdit, onReturn }) => [
           <Button variant="outline" size="sm" onClick={() => onPrintA4(item)} title="Print A4">
             <FileText className="h-4 w-4" />
           </Button>
-          {canEdit && (
+          {canReturn && (
             <Button variant="outline" size="sm" onClick={() => onReturn(item)} title="Return Invoice">
               <RotateCcw className="h-4 w-4" />
             </Button>

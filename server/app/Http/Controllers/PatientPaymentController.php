@@ -50,6 +50,18 @@ class PatientPaymentController extends Controller
             });
         }
 
+        if ($request->has('today') && $request->today) {
+            $query->whereDate('patient_payments.created_at', now()->toDateString());
+        }
+
+        if ($request->has('fromDate') && $request->fromDate) {
+            $query->where('patient_payments.created_at', '>=', $request->fromDate);
+        }
+
+        if ($request->has('toDate') && $request->toDate) {
+            $query->where('patient_payments.created_at', '<=', $request->toDate);
+        }
+
         if ($request->has('dtFrom') && $request->dtFrom) {
             $query->where('patient_payments.created_at', '>=', $request->dtFrom);
         }
@@ -112,7 +124,7 @@ class PatientPaymentController extends Controller
             'visitId' => 'nullable|string',
             'mrn' => 'nullable|string',
             'invoiceNo' => 'nullable|string',
-            'debit' => 'required|numeric|min:0.01',
+            'debit' => 'required|numeric|min:0',
             'credit' => 'required|numeric|min:0',
             'payerType' => 'required|in:Patient,Insurance',
             'insuranceCompanyId' => 'nullable|string',
@@ -144,7 +156,7 @@ class PatientPaymentController extends Controller
                 'payerType' => $validated['payerType'],
                 'insuranceCompanyId' => $validated['insuranceCompanyId'] ?? null,
                 'status' => 'Active',
-                'advanceBalance' => $hasLinkedBills ? 0 : $validated['debit'],
+                'advanceBalance' => ($hasLinkedBills || $validated['credit'] > 0) ? 0 : $validated['debit'],
                 'remarks' => $validated['remarks'] ?? null,
                 'createdBy' => Auth::id(),
                 'created_at' => $now,
@@ -562,5 +574,61 @@ class PatientPaymentController extends Controller
                 'PaymentStatus' => $paymentStatus,
                 'updated_at' => now(),
             ]);
+    }
+
+    public function getShiftSummary(Request $request)
+    {
+        $userId = $request->query('userId') ?? Auth::id();
+        $date = $request->query('date') ?? now()->toDateString();
+
+        $paymentsQuery = DB::table('patient_payments')
+            ->where('status', 'Active')
+            ->whereDate('created_at', $date);
+
+        if ($userId && $userId !== 'all') {
+            $paymentsQuery->where('createdBy', $userId);
+        }
+
+        $paymentIds = (clone $paymentsQuery)->pluck('id')->toArray();
+
+        $debitTotal = (clone $paymentsQuery)->sum('debit');
+        $creditTotal = (clone $paymentsQuery)->sum('credit');
+        $advanceTotal = (clone $paymentsQuery)->whereNull('invoiceNo')->where('advanceBalance', '>', 0)->sum('debit');
+
+        $modeBreakdown = DB::table('payment_details')
+            ->whereIn('paymentId', $paymentIds)
+            ->select('paymentMode', DB::raw('SUM(amount) as total'))
+            ->groupBy('paymentMode')
+            ->get();
+
+        $cashTotal = 0;
+        $cardTotal = 0;
+        $onlineTotal = 0;
+
+        foreach ($modeBreakdown as $m) {
+            $modeLower = strtolower($m->paymentMode);
+            if (str_contains($modeLower, 'cash')) {
+                $cashTotal += (float) $m->total;
+            } elseif (str_contains($modeLower, 'card')) {
+                $cardTotal += (float) $m->total;
+            } else {
+                $onlineTotal += (float) $m->total;
+            }
+        }
+
+        $userObj = DB::table('users')->where('id', $userId)->first();
+
+        return response()->json([
+            'date' => $date,
+            'user' => $userObj ? $userObj->name : 'All Cashiers',
+            'totalTransactions' => count($paymentIds),
+            'totalDebit' => (float) $debitTotal,
+            'totalCreditRefunds' => (float) $creditTotal,
+            'advanceCollected' => (float) $advanceTotal,
+            'cashTotal' => (float) $cashTotal,
+            'cardTotal' => (float) $cardTotal,
+            'onlineTotal' => (float) $onlineTotal,
+            'netCashInDrawer' => (float) ($cashTotal - $creditTotal),
+        ]);
     }
 }

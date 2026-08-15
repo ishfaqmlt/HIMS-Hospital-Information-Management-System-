@@ -135,6 +135,7 @@ class BillingController extends Controller
             $validated['createdBy'] = Auth::id();
             $validated['Id'] = (string) Str::uuid();
             $validated['InvoiceNo'] = Billing::generateInvoiceNo();
+            $validated['InvoiceDate'] = date('Y-m-d H:i:s', strtotime($validated['InvoiceDate']));
 
             DB::table('billings')->insert($validated);
 
@@ -168,6 +169,7 @@ class BillingController extends Controller
         return DB::transaction(function () use ($validated, $billing) {
             $oldTotal = DB::table('billings')->where('id', $billing->id)->lockForUpdate()->value('TotalAmount');
             $newTotal = $validated['TotalAmount'];
+            $validated['InvoiceDate'] = date('Y-m-d H:i:s', strtotime($validated['InvoiceDate']));
 
             DB::table('billings')->where('id', $billing->id)->update($validated);
 

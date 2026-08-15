@@ -22,11 +22,12 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Save, X, RotateCcw, CheckSquare, Printer, FileText } from "lucide-react";
+import axios from "@/lib/axios";
 import billingService from "@/services/billing.service";
 import billingDetailService from "@/services/billingDetailService";
 import patientPaymentService from "@/services/patientPaymentService";
 import { printInvoiceSlip } from "../invoice/page";
-import { formatDate } from "@/lib/utils";
+import { formatDate, toLocalISOString } from "@/lib/utils";
 
 function ReturnInvoiceContent() {
   const searchParams = useSearchParams();
@@ -63,25 +64,67 @@ function ReturnInvoiceContent() {
         setMessage({ type: "error", text: "Invoice not found" });
         return;
       }
+
+      if (invoice.BillType === "Return") {
+        setMessage({ type: "error", text: "Cannot process return on a Return Voucher." });
+        setOriginalInvoice(invoice);
+        setServices([]);
+        return;
+      }
+
       setOriginalInvoice(invoice);
 
       const detailsRes = await billingDetailService.getAll({ BillingId: invoice.id });
       const details = detailsRes.data || [];
 
-      const loadedServices = details.map((d, idx) => ({
-        id: idx + 1,
-        billingDetailId: d.Id,
-        serviceId: d.serviceId || d.service?.id,
-        serviceCode: d.service?.Code || "",
-        serviceName: d.service?.ServiceName || "",
-        rate: Number(d.Rate) || 0,
-        originalQty: Number(d.Qty) || 1,
-        returnQty: 0,
-        amount: Number(d.Amount) || 0,
-        selected: false,
-      }));
+      // Query existing return invoices linked to this invoice
+      let returnedQtyMap = {};
+      try {
+        const existingReturnsRes = await billingService.getAll({ ReturnInvoiceNo: invoice.InvoiceNo });
+        const existingReturnInvoices = existingReturnsRes.data || [];
+
+        for (const retInv of existingReturnInvoices) {
+          const retDetailsRes = await billingDetailService.getAll({ BillingId: retInv.id });
+          const retDetails = retDetailsRes.data || [];
+          for (const rd of retDetails) {
+            const sId = rd.serviceId || rd.service?.id;
+            if (sId) {
+              returnedQtyMap[sId] = (returnedQtyMap[sId] || 0) + (Number(rd.Qty) || 0);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Error fetching existing return invoices:", err);
+      }
+
+      const loadedServices = details.map((d, idx) => {
+        const sId = d.serviceId || d.service?.id;
+        const totalOriginalQty = Number(d.Qty) || 1;
+        const alreadyReturnedQty = returnedQtyMap[sId] || 0;
+        const availableQty = Math.max(0, totalOriginalQty - alreadyReturnedQty);
+
+        return {
+          id: idx + 1,
+          billingDetailId: d.Id,
+          serviceId: sId,
+          serviceCode: d.service?.Code || "",
+          serviceName: d.service?.ServiceName || "",
+          rate: Number(d.Rate) || 0,
+          originalQty: availableQty,
+          totalOriginalQty,
+          alreadyReturnedQty,
+          returnQty: 0,
+          amount: Number(d.Amount) || 0,
+          selected: false,
+        };
+      });
 
       setServices(loadedServices);
+
+      const totalAvailable = loadedServices.reduce((sum, s) => sum + s.originalQty, 0);
+      if (totalAvailable === 0 || invoice.PaymentStatus === "Returned") {
+        setMessage({ type: "error", text: `Invoice ${invoice.InvoiceNo} has already been fully returned.` });
+      }
     } catch (error) {
       console.error(error);
       setMessage({ type: "error", text: "Failed to load invoice" });
@@ -130,9 +173,16 @@ function ReturnInvoiceContent() {
   };
 
   const selectedCount = services.filter((s) => s.selected).length;
-  const totalReturn = services
+  const subTotalReturn = services
     .filter((s) => s.selected)
     .reduce((sum, s) => sum + s.rate * s.returnQty, 0);
+
+  const origSubTotal = Number(originalInvoice?.SubTotal) || 0;
+  const origDiscount = Number(originalInvoice?.Discount) || 0;
+  const discountRatio = origSubTotal > 0 ? origDiscount / origSubTotal : 0;
+
+  const discountReturn = subTotalReturn * discountRatio;
+  const totalReturn = subTotalReturn - discountReturn;
 
   const handleReturnClick = () => {
     const toReturn = services.filter((s) => s.selected && s.returnQty > 0);
@@ -154,9 +204,9 @@ function ReturnInvoiceContent() {
         visitId: originalInvoice.visitId,
         DepartmentId: originalInvoice.department?.id || originalInvoice.DepartmentId || null,
         DoctorId: originalInvoice.doctor?.id || originalInvoice.DoctorId || null,
-        InvoiceDate: new Date().toISOString(),
-        SubTotal: totalReturn,
-        Discount: 0,
+        InvoiceDate: toLocalISOString(new Date()),
+        SubTotal: subTotalReturn,
+        Discount: discountReturn,
         TotalAmount: totalReturn,
         PaymentStatus: "Pending",
         BillType: "Return",
@@ -170,6 +220,7 @@ function ReturnInvoiceContent() {
 
       for (const svc of toReturn) {
         await billingDetailService.create({
+          BillingId: billingRes.data.id,
           invoiceNo: retInvNo,
           serviceId: svc.serviceId,
           Qty: svc.returnQty,
@@ -178,6 +229,52 @@ function ReturnInvoiceContent() {
           SharePercent: 0,
           ShareAmount: 0,
         });
+      }
+
+      // Create refund credit payment entry
+      try {
+        await patientPaymentService.create({
+          visitId: originalInvoice.visitId,
+          mrn: originalInvoice.patientVisit?.patient?.mrn || mrn,
+          invoiceNo: retInvNo,
+          debit: 0,
+          credit: totalReturn,
+          payerType: "Patient",
+          remarks: remarks || `Refund for Return Invoice ${retInvNo} (Original: ${originalInvoice.InvoiceNo})`,
+          paymentDetails: [{ paymentMode: "Cash", amount: totalReturn }],
+        });
+      } catch (payErr) {
+        console.warn("Refund payment creation warning:", payErr);
+      }
+
+      // Cancel linked lab case tests for returned services
+      const returnedServiceIds = toReturn.map((s) => s.serviceId);
+      if (returnedServiceIds.length > 0) {
+        try {
+          await axios.post("/lab-cases/cancel-returned-tests", {
+            originalInvoiceNo: originalInvoice.InvoiceNo,
+            serviceIds: returnedServiceIds,
+          });
+        } catch (labErr) {
+          console.warn("Lab case test cancellation warning:", labErr);
+        }
+      }
+
+      // Update original invoice status to "Returned" if all items returned
+      const remainingTotal = services.reduce((sum, s) => {
+        const itemReturnedNow = toReturn.find((tr) => tr.serviceId === s.serviceId)?.returnQty || 0;
+        return sum + Math.max(0, s.originalQty - itemReturnedNow);
+      }, 0);
+
+      if (remainingTotal === 0) {
+        try {
+          await billingService.update(originalInvoice.id, {
+            ...originalInvoice,
+            PaymentStatus: "Returned",
+          });
+        } catch (updErr) {
+          console.warn("Failed to update original invoice PaymentStatus to Returned:", updErr);
+        }
       }
 
       setMessage({ type: "success", text: `Return invoice created: ${retInvNo}` });
@@ -328,11 +425,17 @@ function ReturnInvoiceContent() {
           </div>
           <div className="flex items-center justify-between border-t pt-3">
             <div className="space-y-1">
-              <div className="text-sm">
+              <div className="text-xs text-muted-foreground">
                 Selected: <strong>{selectedCount}</strong> of {services.length} services
               </div>
-              <div className="text-lg font-bold">
-                Total Return: <span className="text-destructive">{totalReturn.toFixed(2)}</span>
+              <div className="flex items-center gap-3 text-xs">
+                <span>Items SubTotal: <strong>Rs. {subTotalReturn.toFixed(2)}</strong></span>
+                {discountReturn > 0 && (
+                  <span className="text-amber-700 font-medium">Discount Deducted: <strong>-Rs. {discountReturn.toFixed(2)}</strong></span>
+                )}
+              </div>
+              <div className="text-base font-bold">
+                Net Refund Amount: <span className="text-destructive">Rs. {totalReturn.toFixed(2)}</span>
               </div>
             </div>
             <div className="flex gap-2">
@@ -375,8 +478,14 @@ function ReturnInvoiceContent() {
                   </div>
                 ))}
             </div>
-            <div className="text-right font-bold text-destructive">
-              Total: {totalReturn.toFixed(2)}
+            <div className="space-y-1 text-right border-t pt-2 text-xs">
+              <div className="text-muted-foreground">Items SubTotal: Rs. {subTotalReturn.toFixed(2)}</div>
+              {discountReturn > 0 && (
+                <div className="text-amber-700 font-medium">Discount Deducted: -Rs. {discountReturn.toFixed(2)}</div>
+              )}
+              <div className="font-bold text-destructive text-sm pt-0.5">
+                Net Refund Amount: Rs. {totalReturn.toFixed(2)}
+              </div>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowConfirm(false)}>Cancel</Button>

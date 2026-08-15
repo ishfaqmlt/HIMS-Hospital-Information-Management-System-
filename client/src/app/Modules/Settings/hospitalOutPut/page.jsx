@@ -416,7 +416,7 @@ export default function HospitalOutputSettingPage() {
                   email: "info@musahospital.com",
                 }}
                 title="INVOICE"
-                qrData="INV-0826-001|MRN-0726-001"
+                qrData="INV-0826-001|MRN-26-001"
               />
 
               {/* Sample Document Body with padding */}

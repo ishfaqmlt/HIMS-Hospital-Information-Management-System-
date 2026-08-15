@@ -9,8 +9,8 @@ import { Search, RotateCcw, User } from "lucide-react";
 
 function formatMrnCode(value) {
   const digits = value.replace(/\D/g, "");
-  if (digits.length <= 4) return digits;
-  return digits.slice(0, 4) + "-" + digits.slice(4);
+  if (digits.length <= 2) return digits;
+  return digits.slice(0, 2) + "-" + digits.slice(2);
 }
 
 function formatVisitNoCode(value) {

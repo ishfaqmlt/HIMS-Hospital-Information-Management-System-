@@ -94,6 +94,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/billing-details/{billingDetail}', [BillingDetailController::class, 'show']);
         Route::get('/patient-payments', [PatientPaymentController::class, 'index']);
         Route::get('/patient-payments/advance-balance', [PatientPaymentController::class, 'getAdvanceBalance']);
+        Route::get('/patient-payments/shift-summary', [PatientPaymentController::class, 'getShiftSummary']);
         Route::get('/patient-payments/{id}', [PatientPaymentController::class, 'show']);
     });
 
@@ -152,6 +153,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/lab-cases/tests/{testId}/status', [LabCaseController::class, 'updateTestStatus']);
     Route::delete('/lab-cases/{caseId}/tests', [LabCaseController::class, 'removeTests']);
     Route::post('/lab-cases/{caseId}/tests', [LabCaseController::class, 'addTests']);
+    Route::post('/lab-cases/cancel-returned-tests', [LabCaseController::class, 'cancelReturnedTests']);
     Route::apiResource('lab-cases', LabCaseController::class);
 
     Route::get('/accept-sample', [AcceptSampleController::class, 'index']);

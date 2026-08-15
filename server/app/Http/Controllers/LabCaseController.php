@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Models\AuditLog;
 
 class LabCaseController extends Controller
 {
@@ -861,5 +862,48 @@ class LabCaseController extends Controller
         }
 
         return response()->json(array_values($grouped));
+    }
+
+    public function cancelReturnedTests(Request $request)
+    {
+        $request->validate([
+            'originalInvoiceNo' => 'required|string',
+            'serviceIds' => 'required|array',
+            'serviceIds.*' => 'required|string',
+        ]);
+
+        $originalBillingId = DB::table('billings')->where('InvoiceNo', $request->originalInvoiceNo)->value('id');
+
+        if (!$originalBillingId) {
+            return response()->json(['message' => 'Original invoice not found'], 404);
+        }
+
+        $labCaseIds = DB::table('lab_cases')->where('billingId', $originalBillingId)->pluck('id')->toArray();
+
+        if (empty($labCaseIds)) {
+            return response()->json(['message' => 'No lab case found for this invoice']);
+        }
+
+        DB::table('lab_case_tests')
+            ->whereIn('caseId', $labCaseIds)
+            ->whereIn('serviceId', $request->serviceIds)
+            ->update([
+                'testStatus' => 'Cancelled',
+                'sampleStatus' => 'Rejected',
+                'rejectReason' => 'Invoice Returned & Refunded',
+                'updated_at' => now(),
+            ]);
+
+        AuditLog::logAction(
+            'Cancel Returned Lab Tests',
+            'Laboratory',
+            $originalBillingId,
+            [
+                'originalInvoiceNo' => $request->originalInvoiceNo,
+                'serviceIds' => $request->serviceIds,
+            ]
+        );
+
+        return response()->json(['message' => 'Lab case tests cancelled successfully']);
     }
 }

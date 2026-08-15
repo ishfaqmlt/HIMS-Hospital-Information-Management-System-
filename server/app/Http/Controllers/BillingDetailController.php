@@ -21,6 +21,14 @@ class BillingDetailController extends Controller
 
     public function store(Request $request)
     {
+        $billingId = $request->BillingId ?? $request->billingId;
+        if (!$billingId && ($request->invoiceNo || $request->InvoiceNo)) {
+            $invNo = $request->invoiceNo ?? $request->InvoiceNo;
+            $billingId = \Illuminate\Support\Facades\DB::table('billings')->where('InvoiceNo', $invNo)->value('id');
+        }
+
+        $request->merge(['BillingId' => $billingId]);
+
         $validated = $request->validate([
             'BillingId' => 'required|string|exists:billings,id',
             'serviceId' => 'required|string|exists:services,id',

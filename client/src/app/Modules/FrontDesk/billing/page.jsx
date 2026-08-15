@@ -43,7 +43,8 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { Loader2, Plus, Save, Printer, X, Trash2, UserPlus, Search, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, Plus, Save, Printer, X, Trash2, UserPlus, Search, Check, ChevronsUpDown, Wallet } from "lucide-react";
+import ShiftSummaryDialog from "@/components/billing/ShiftSummaryDialog";
 import { DataTable } from "@/components/data-table/data-table";
 import { getColumns } from "./invoiceColumns";
 import PatientDetailsCard from "@/components/patients/PatientDetailsCard";
@@ -120,6 +121,7 @@ export default function BillingPage() {
 
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [editingInvoiceId, setEditingInvoiceId] = useState(null);
+  const [isShiftSummaryOpen, setIsShiftSummaryOpen] = useState(false);
 
   const [invoices, setInvoices] = useState([]);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
@@ -858,6 +860,24 @@ export default function BillingPage() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Front Desk Billing</h1>
+          <p className="text-xs text-muted-foreground">Manage patient OPD/IPD invoices & receipts</p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 text-xs bg-sky-50 border-sky-300 text-sky-800 hover:bg-sky-100 font-semibold"
+          onClick={() => setIsShiftSummaryOpen(true)}
+        >
+          <Wallet className="h-3.5 w-3.5 mr-1.5 text-sky-700" />
+          Shift Handover Report
+        </Button>
+      </div>
+
+      <ShiftSummaryDialog open={isShiftSummaryOpen} onOpenChange={setIsShiftSummaryOpen} />
+
       {message && (
         <div className={`px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm ${message.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
           {message.type === "success" ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
@@ -1236,20 +1256,52 @@ export default function BillingPage() {
             </div> */}
 
             {advanceBalance > 0 && !editingInvoiceId && (
-              <div className="p-2 rounded bg-emerald-50 border border-emerald-200 flex flex-col gap-1">
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={applyAdvance}
-                    onChange={(e) => setApplyAdvance(e.target.checked)}
-                    className="h-3.5 w-3.5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <span className="text-[11px] font-medium text-emerald-800">Apply Advance</span>
-                </label>
-                <span className="text-[10px] text-emerald-700 font-semibold">Available: Rs. {advanceBalance.toFixed(2)}</span>
+              <div className="p-2.5 rounded-lg bg-emerald-50 border-2 border-emerald-400 flex flex-col gap-1.5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-900">Patient Advance Available</span>
+                  <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold text-xs">
+                    Rs. {advanceBalance.toFixed(2)}
+                  </Badge>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={applyAdvance}
+                      onChange={(e) => {
+                        const nextState = e.target.checked;
+                        setApplyAdvance(nextState);
+                        if (nextState) {
+                          const maxApplicable = Math.min(advanceBalance, netAmount);
+                          setValue("paid", maxApplicable);
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span className="text-xs font-semibold text-emerald-900">Use Advance Payment</span>
+                  </label>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-6 text-[10px] px-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                    onClick={() => {
+                      const nextState = !applyAdvance;
+                      setApplyAdvance(nextState);
+                      if (nextState) {
+                        const maxApplicable = Math.min(advanceBalance, netAmount);
+                        setValue("paid", maxApplicable);
+                      }
+                    }}
+                  >
+                    {applyAdvance ? "Remove" : "One-Click Apply"}
+                  </Button>
+                </div>
+
                 {applyAdvance && (
-                  <span className="text-[10px] text-emerald-600">
-                    (Applying Rs. {Math.min(advanceBalance, remaining).toFixed(2)})
+                  <span className="text-[10px] font-medium text-emerald-700 bg-emerald-100/60 p-1 rounded text-center">
+                    Applying Rs. {Math.min(advanceBalance, netAmount).toFixed(2)} towards invoice net total
                   </span>
                 )}
               </div>

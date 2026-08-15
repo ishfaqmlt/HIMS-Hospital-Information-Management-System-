@@ -44,6 +44,14 @@ class PatientController extends Controller
             $query->whereDate('created_at', now()->toDateString());
         }
 
+        if ($request->has('fromDate') && $request->fromDate) {
+            $query->where('created_at', '>=', $request->fromDate);
+        }
+
+        if ($request->has('toDate') && $request->toDate) {
+            $query->where('created_at', '<=', $request->toDate);
+        }
+
         return response()->json($query->latest()->get());
     }
 

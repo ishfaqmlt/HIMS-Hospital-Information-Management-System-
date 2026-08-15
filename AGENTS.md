@@ -275,7 +275,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 ## Patient Registration Rules
 
 ### ID Generation
-- **MRN**: `MRN-{MMYY}-{SEQ}` (e.g., `MRN-0726-1`, `MRN-0726-2`, `MRN-0726-100`) — resets monthly via prefix match (`system_sequences` table)
+- **MRN**: `MRN-{YY}-{SEQ}` (e.g., `MRN-26-1`, `MRN-26-2`, `MRN-26-100`) — resets yearly via prefix match (`system_sequences` table)
 - **VisitNo**: `V-{MMYY}-{SEQ}` (e.g., `V-0726-1`, `V-0726-2`) — resets monthly via prefix match (`system_sequences` table)
 - **InvoiceNo**: `INV-{MMYY}-{SEQ}` (e.g., `INV-0726-1`, `INV-0726-2`) — resets monthly via prefix match (`system_sequences` table)
 - All sequences are unpadded numbers without leading zeros (`1`, `2`, `3` ... `100`, `5000`)
