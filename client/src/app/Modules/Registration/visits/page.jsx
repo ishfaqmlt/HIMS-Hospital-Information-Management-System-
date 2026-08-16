@@ -254,7 +254,7 @@ export default function PatientVisitsPage() {
     if (visit.id) params.set("visitId", visit.id);
     if (visit.doctorId) params.set("doctorId", visit.doctorId);
     params.set("fromVisit", "1");
-    router.push(`/Modules/Billing?${params.toString()}`);
+    router.push(`/Modules/FrontDesk/billing?${params.toString()}`);
   };
 
   const handleNewVisit = async () => {

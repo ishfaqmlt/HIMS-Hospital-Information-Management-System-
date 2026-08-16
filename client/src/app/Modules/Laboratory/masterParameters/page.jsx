@@ -55,7 +55,7 @@ function MasterParametersContent() {
     id: "",
     master_test_id: testId || "",
     testName: testName || "",
-    sub_headers_id: "",
+    sub_headers_id: "none",
     parameterName: "",
     defaultValue: null,
     units: "",
@@ -183,7 +183,7 @@ function MasterParametersContent() {
       id: rowData.id || "",
       master_test_id: rowData.master_test_id || testId || "",
       testName: rowData.master_test?.testName || testName || "",
-      sub_headers_id: rowData.sub_headers_id || "",
+      sub_headers_id: rowData.sub_headers_id || "none",
       parameterName: rowData.parameterName || "",
       defaultValue: rowData.defaultValue || null,
       units: rowData.units || "",
@@ -209,6 +209,9 @@ function MasterParametersContent() {
     delete dataToSend.id;
     delete dataToSend.testName;
     if (dataToSend.sortNo === "") dataToSend.sortNo = 0;
+    if (dataToSend.sub_headers_id === "none" || !dataToSend.sub_headers_id) {
+      dataToSend.sub_headers_id = null;
+    }
 
     try {
       if (editingId) {
@@ -448,7 +451,7 @@ function MasterParametersContent() {
                   name="sub_headers_id"
                   control={control}
                   render={({ field }) => (
-                    <Select onValueChange={(val) => field.onChange(val === "none" ? null : val)} value={field.value || ""}>
+                    <Select onValueChange={(val) => field.onChange(val)} value={field.value || "none"}>
                       <SelectTrigger className="w-full h-9 text-xs">
                         <SelectValue placeholder="Select Sub-Header" />
                       </SelectTrigger>

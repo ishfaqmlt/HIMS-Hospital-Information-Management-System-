@@ -91,7 +91,7 @@ export const testParameterSchema = z.object({
     .string({ required_error: "Master test ID is required" })
     .uuid("Invalid Master Test ID"),
 
-  sub_headers_id: z.string().uuid("Invalid Sub Header ID").optional().nullable(),
+  sub_headers_id: z.string().optional().nullable(),
   parameterName: z
     .string({ required_error: "Parameter name is required" })
     .min(1, "Parameter name is required")

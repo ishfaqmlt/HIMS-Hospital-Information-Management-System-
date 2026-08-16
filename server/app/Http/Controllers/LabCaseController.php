@@ -743,16 +743,16 @@ class LabCaseController extends Controller
 
     private function generateCaseNo()
     {
-        $prefix = 'LAB-' . date('my') . '-';
+        $prefix = 'LAB-' . date('y') . '-';
         $last = DB::table('lab_cases')
             ->where('caseNo', 'like', $prefix . '%')
-            ->orderByDesc('caseNo')
+            ->orderByRaw('CAST(SUBSTRING(caseNo, ?) AS UNSIGNED) DESC', [strlen($prefix) + 1])
             ->value('caseNo');
 
         if ($last) {
             $seq = intval(substr($last, strlen($prefix))) + 1;
         } else {
-            $seq = 0;
+            $seq = 1;
         }
 
         return $prefix . $seq;
@@ -760,16 +760,16 @@ class LabCaseController extends Controller
 
     private function generateAnalyzerReffNo()
     {
-        $prefix = date('my');
-        $last = DB::table('lab_cases')
-            ->where('analyzerReffno', 'like', $prefix . '%')
-            ->orderByDesc('analyzerReffno')
-            ->value('analyzerReffno');
+        $prefix = date('y');
+         $last = DB::table('lab_cases')
+            ->where('caseNo', 'like', $prefix . '%')
+            ->orderByRaw('CAST(SUBSTRING(caseNo, ?) AS UNSIGNED) DESC', [strlen($prefix) + 1])
+            ->value('caseNo');
 
         if ($last) {
             $seq = intval(substr($last, strlen($prefix))) + 1;
         } else {
-            $seq = 0;
+            $seq = 1;
         }
 
         return $prefix . $seq;

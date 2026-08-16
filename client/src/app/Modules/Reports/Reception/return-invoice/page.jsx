@@ -58,7 +58,12 @@ function ReturnInvoiceContent() {
   const loadInvoice = async () => {
     setLoading(true);
     try {
-      const invoiceRes = await billingService.getAll({ search: invoiceNo });
+      // Parallel Batch 1: Concurrently fetch target invoice & any existing return vouchers using exact parameter indexing
+      const [invoiceRes, existingReturnsRes] = await Promise.all([
+        billingService.getAll({ invoiceNo }),
+        billingService.getAll({ ReturnInvoiceNo: invoiceNo }).catch(() => ({ data: [] })),
+      ]);
+
       const invoice = invoiceRes.data?.[0];
       if (!invoice) {
         setMessage({ type: "error", text: "Invoice not found" });
@@ -74,56 +79,62 @@ function ReturnInvoiceContent() {
 
       setOriginalInvoice(invoice);
 
-      const detailsRes = await billingDetailService.getAll({ BillingId: invoice.id });
+      const existingReturnInvoices = existingReturnsRes.data || [];
+      const returnDetailPromises = existingReturnInvoices.map((retInv) =>
+        billingDetailService.getAll({ BillingId: retInv.id }).catch(() => ({ data: [] }))
+      );
+
+      // Parallel Batch 2: Concurrently fetch line details for target invoice and all return vouchers
+      const [detailsRes, ...retDetailsResults] = await Promise.all([
+        billingDetailService.getAll({ BillingId: invoice.id }),
+        ...returnDetailPromises,
+      ]);
+
       const details = detailsRes.data || [];
 
-      // Query existing return invoices linked to this invoice
+      // Calculate previously returned quantities per service
       let returnedQtyMap = {};
-      try {
-        const existingReturnsRes = await billingService.getAll({ ReturnInvoiceNo: invoice.InvoiceNo });
-        const existingReturnInvoices = existingReturnsRes.data || [];
-
-        for (const retInv of existingReturnInvoices) {
-          const retDetailsRes = await billingDetailService.getAll({ BillingId: retInv.id });
-          const retDetails = retDetailsRes.data || [];
-          for (const rd of retDetails) {
-            const sId = rd.serviceId || rd.service?.id;
-            if (sId) {
-              returnedQtyMap[sId] = (returnedQtyMap[sId] || 0) + (Number(rd.Qty) || 0);
-            }
+      for (const retRes of retDetailsResults) {
+        const retDetails = retRes.data || [];
+        for (const rd of retDetails) {
+          const sId = rd.serviceId || rd.service?.id;
+          if (sId) {
+            returnedQtyMap[sId] = (returnedQtyMap[sId] || 0) + (Number(rd.Qty) || 0);
           }
         }
-      } catch (err) {
-        console.warn("Error fetching existing return invoices:", err);
       }
 
-      const loadedServices = details.map((d, idx) => {
-        const sId = d.serviceId || d.service?.id;
-        const totalOriginalQty = Number(d.Qty) || 1;
-        const alreadyReturnedQty = returnedQtyMap[sId] || 0;
-        const availableQty = Math.max(0, totalOriginalQty - alreadyReturnedQty);
+      const loadedServices = details
+        .map((d, idx) => {
+          const sId = d.serviceId || d.service?.id;
+          const totalOriginalQty = Number(d.Qty) || 1;
+          const alreadyReturnedQty = returnedQtyMap[sId] || 0;
+          const availableQty = Math.max(0, totalOriginalQty - alreadyReturnedQty);
 
-        return {
-          id: idx + 1,
-          billingDetailId: d.Id,
-          serviceId: sId,
-          serviceCode: d.service?.Code || "",
-          serviceName: d.service?.ServiceName || "",
-          rate: Number(d.Rate) || 0,
-          originalQty: availableQty,
-          totalOriginalQty,
-          alreadyReturnedQty,
-          returnQty: 0,
-          amount: Number(d.Amount) || 0,
-          selected: false,
-        };
-      });
+          return {
+            id: idx + 1,
+            billingDetailId: d.Id,
+            serviceId: sId,
+            serviceCode: d.service?.Code || "",
+            serviceName: d.service?.ServiceName || "",
+            rate: Number(d.Rate) || 0,
+            originalQty: availableQty,
+            totalOriginalQty,
+            alreadyReturnedQty,
+            returnQty: 0,
+            amount: Number(d.Amount) || 0,
+            selected: false,
+          };
+        })
+        .filter((s) => s.originalQty > 0);
 
       setServices(loadedServices);
 
       const totalAvailable = loadedServices.reduce((sum, s) => sum + s.originalQty, 0);
       if (totalAvailable === 0 || invoice.PaymentStatus === "Returned") {
         setMessage({ type: "error", text: `Invoice ${invoice.InvoiceNo} has already been fully returned.` });
+      } else if (invoice.PaymentStatus === "Partially Returned" || loadedServices.some((s) => s.alreadyReturnedQty > 0)) {
+        setMessage({ type: "info", text: `Note: Invoice ${invoice.InvoiceNo} has previous partial returns. You can return the remaining items below.` });
       }
     } catch (error) {
       console.error(error);
@@ -133,32 +144,56 @@ function ReturnInvoiceContent() {
     }
   };
 
+  const getSelectedReturnServices = () => {
+    return services
+      .filter((s) => s.selected || s.returnQty > 0)
+      .map((s) => {
+        const qty = s.returnQty > 0 ? s.returnQty : (s.originalQty > 0 ? s.originalQty : 1);
+        return { ...s, selected: true, returnQty: qty };
+      })
+      .filter((s) => s.returnQty > 0);
+  };
+
   const toggleService = (id) => {
     setServices((prev) =>
-      prev.map((s) =>
-        s.id === id ? { ...s, selected: !s.selected, returnQty: !s.selected ? s.originalQty : 0 } : s
-      )
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const nextSelected = !s.selected;
+        const defaultQty = s.originalQty > 0 ? s.originalQty : (s.totalOriginalQty > 0 ? s.totalOriginalQty : 1);
+        return {
+          ...s,
+          selected: nextSelected,
+          returnQty: nextSelected ? (s.returnQty > 0 ? s.returnQty : defaultQty) : 0,
+        };
+      })
     );
   };
 
   const toggleAll = () => {
     const allSelected = services.every((s) => s.selected);
     setServices((prev) =>
-      prev.map((s) => ({
-        ...s,
-        selected: !allSelected,
-        returnQty: !allSelected ? s.originalQty : 0,
-      }))
+      prev.map((s) => {
+        const nextSelected = !allSelected;
+        const defaultQty = s.originalQty > 0 ? s.originalQty : 1;
+        return {
+          ...s,
+          selected: nextSelected,
+          returnQty: nextSelected ? (s.returnQty > 0 ? s.returnQty : defaultQty) : 0,
+        };
+      })
     );
   };
 
   const returnAll = () => {
     setServices((prev) =>
-      prev.map((s) => ({
-        ...s,
-        selected: true,
-        returnQty: s.originalQty,
-      }))
+      prev.map((s) => {
+        const defaultQty = s.originalQty > 0 ? s.originalQty : 1;
+        return {
+          ...s,
+          selected: true,
+          returnQty: defaultQty,
+        };
+      })
     );
   };
 
@@ -166,16 +201,17 @@ function ReturnInvoiceContent() {
     setServices((prev) =>
       prev.map((s) => {
         if (s.id !== id) return s;
-        const newQty = Math.min(Math.max(Number(qty) || 0, 0), s.originalQty);
+        const maxLimit = s.originalQty > 0 ? s.originalQty : 999;
+        const parsed = Number(qty);
+        const newQty = Math.min(Math.max(isNaN(parsed) ? 0 : parsed, 0), maxLimit);
         return { ...s, returnQty: newQty, selected: newQty > 0 };
       })
     );
   };
 
-  const selectedCount = services.filter((s) => s.selected).length;
-  const subTotalReturn = services
-    .filter((s) => s.selected)
-    .reduce((sum, s) => sum + s.rate * s.returnQty, 0);
+  const selectedReturnServices = getSelectedReturnServices();
+  const selectedCount = selectedReturnServices.length;
+  const subTotalReturn = selectedReturnServices.reduce((sum, s) => sum + s.rate * s.returnQty, 0);
 
   const origSubTotal = Number(originalInvoice?.SubTotal) || 0;
   const origDiscount = Number(originalInvoice?.Discount) || 0;
@@ -185,16 +221,15 @@ function ReturnInvoiceContent() {
   const totalReturn = subTotalReturn - discountReturn;
 
   const handleReturnClick = () => {
-    const toReturn = services.filter((s) => s.selected && s.returnQty > 0);
-    if (toReturn.length === 0) {
-      setMessage({ type: "error", text: "Please select at least one service to return" });
+    if (selectedReturnServices.length === 0) {
+      setMessage({ type: "error", text: "Please select at least one service to return." });
       return;
     }
     setShowConfirm(true);
   };
 
   const handleReturn = async () => {
-    const toReturn = services.filter((s) => s.selected && s.returnQty > 0);
+    const toReturn = selectedReturnServices;
     if (toReturn.length === 0 || !originalInvoice) return;
 
     setShowConfirm(false);
@@ -260,21 +295,21 @@ function ReturnInvoiceContent() {
         }
       }
 
-      // Update original invoice status to "Returned" if all items returned
+      // Update original invoice status to "Returned" (fully returned) or "Partially Returned"
       const remainingTotal = services.reduce((sum, s) => {
         const itemReturnedNow = toReturn.find((tr) => tr.serviceId === s.serviceId)?.returnQty || 0;
         return sum + Math.max(0, s.originalQty - itemReturnedNow);
       }, 0);
 
-      if (remainingTotal === 0) {
-        try {
-          await billingService.update(originalInvoice.id, {
-            ...originalInvoice,
-            PaymentStatus: "Returned",
-          });
-        } catch (updErr) {
-          console.warn("Failed to update original invoice PaymentStatus to Returned:", updErr);
-        }
+      const nextStatus = remainingTotal === 0 ? "Returned" : "Partially Returned";
+
+      try {
+        await billingService.update(originalInvoice.id, {
+          ...originalInvoice,
+          PaymentStatus: nextStatus,
+        });
+      } catch (updErr) {
+        console.warn(`Failed to update original invoice PaymentStatus to ${nextStatus}:`, updErr);
       }
 
       setMessage({ type: "success", text: `Return invoice created: ${retInvNo}` });
@@ -316,7 +351,7 @@ function ReturnInvoiceContent() {
               </Button>
             </>
           )}
-          <Button variant="outline" onClick={() => router.push("/Modules/Billing")}>
+          <Button variant="outline" onClick={() => router.push("/Modules/FrontDesk/billing")}>
             <X className="h-4 w-4 mr-1" /> Close
           </Button>
         </div>
@@ -377,7 +412,14 @@ function ReturnInvoiceContent() {
                       />
                     </TableCell>
                     <TableCell className="text-xs py-1">{svc.serviceCode}</TableCell>
-                    <TableCell className="text-xs py-1">{svc.serviceName}</TableCell>
+                    <TableCell className="text-xs py-1">
+                      <span>{svc.serviceName}</span>
+                      {svc.alreadyReturnedQty > 0 && (
+                        <span className="text-[10px] bg-amber-100 text-amber-800 px-1 py-0.5 rounded ml-1.5 font-medium border border-amber-200">
+                          Prev Returned: {svc.alreadyReturnedQty} of {svc.totalOriginalQty}
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs py-1 text-center">{svc.originalQty}</TableCell>
                     <TableCell className="text-xs py-1 text-center">
                       <Input
@@ -439,7 +481,7 @@ function ReturnInvoiceContent() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => router.push("/Modules/Billing")} disabled={loading}>
+              <Button variant="outline" onClick={() => router.push("/Modules/FrontDesk/billing")} disabled={loading}>
                 Cancel
               </Button>
               {!returnInvoiceNo ? (
@@ -452,7 +494,7 @@ function ReturnInvoiceContent() {
                   Process Return
                 </Button>
               ) : (
-                <Button onClick={() => router.push("/Modules/Billing")}>
+                <Button onClick={() => router.push("/Modules/FrontDesk/billing")}>
                   Back to Billing
                 </Button>
               )}

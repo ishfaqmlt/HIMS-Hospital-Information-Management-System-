@@ -28,55 +28,55 @@ class LabMasterTestParameterSeeder extends Seeder
         $parameterData = [
             // 1201 CBC
             '1201' => [
-                ['name' => 'WBC Count', 'units' => 'x10^3/ul','decimal' => 1, 'range' => '4.0---11.0', 'sub' => null],
-                ['name' => 'Neutrophils', 'units' => '%', 'decimal' => 0, 'range' => '44---70', 'sub' => 'DLC'],
-                ['name' => 'Lymphocytes', 'units' => '%', 'decimal' => 0, 'range' => '22---44', 'sub' => 'DLC'],
-                ['name' => 'Monocytes', 'units' => '%', 'decimal' => 0, 'range' => 'Up to 8', 'sub' => 'DLC'],
-                ['name' => 'Eosinophils', 'units' => '%', 'decimal' => 0, 'range' => 'Up to 10', 'sub' => 'DLC'],
-                ['name' => 'Basophils', 'units' => '%', 'decimal' => 0, 'range' => '0---1', 'sub' => 'DLC'],
-                ['name' => 'RBC Count', 'units' => 'x10^6/ul', 'decimal' => 1, 'range' => '4.0---6.0', 'sub' => null],
-                ['name' => 'Hemoglobin (Hb)', 'units' => 'g/dl', 'decimal' => 1, 'range' => 'M: 13.5---17.5, F: 12.0---16.0', 'sub' => null],
-                ['name' => 'HCT', 'units' => '%', 'decimal' => 1, 'range' => '36---51', 'sub' => null],
-                ['name' => 'MCV', 'units' => 'fl', 'decimal' => 1, 'range' => '78---101', 'sub' => null],
-                ['name' => 'MCH', 'units' => 'pg', 'decimal' => 1, 'range' => '26---34', 'sub' => null],
-                ['name' => 'MCHC', 'units' => 'g/dl', 'decimal' => 1, 'range' => '31---37', 'sub' => null],
-                ['name' => 'Platelets Count', 'units' => 'x10^3/ul', 'decimal' => 0, 'range' => '150---450', 'sub' => null],
+                ['name' => 'WBC Count', 'units' => 'x10^3/ul','decimal' => 1, 'range' => '4.0---11.0','printOnReciept' => false, 'sub' => null],
+                ['name' => 'Neutrophils', 'units' => '%', 'decimal' => 0, 'range' => '44---70','printOnReciept' => false, 'sub' => 'DLC'],
+                ['name' => 'Lymphocytes', 'units' => '%', 'decimal' => 0, 'range' => '22---44','printOnReciept' => false, 'sub' => 'DLC'],
+                ['name' => 'Monocytes', 'units' => '%', 'decimal' => 0, 'range' => 'Up to 8','printOnReciept' => false, 'sub' => 'DLC'],
+                ['name' => 'Eosinophils', 'units' => '%', 'decimal' => 0, 'range' => 'Up to 10','printOnReciept' => false, 'sub' => 'DLC'],
+                ['name' => 'Basophils', 'units' => '%', 'decimal' => 0, 'range' => '0---1','printOnReciept' => false, 'sub' => 'DLC'],
+                ['name' => 'RBC Count', 'units' => 'x10^6/ul', 'decimal' => 1, 'range' => '4.0---6.0','printOnReciept' => false, 'sub' => null],
+                ['name' => 'Hemoglobin (Hb)', 'units' => 'g/dl', 'decimal' => 1, 'range' => 'M: 13.5---17.5, F: 12.0---16.0','printOnReciept' => false, 'sub' => null],
+                ['name' => 'HCT', 'units' => '%', 'decimal' => 1, 'range' => '36---51','printOnReciept' => false, 'sub' => null],
+                ['name' => 'MCV', 'units' => 'fl', 'decimal' => 1, 'range' => '78---101','printOnReciept' => false, 'sub' => null],
+                ['name' => 'MCH', 'units' => 'pg', 'decimal' => 1, 'range' => '26---34','printOnReciept' => false, 'sub' => null],
+                ['name' => 'MCHC', 'units' => 'g/dl', 'decimal' => 1, 'range' => '31---37','printOnReciept' => false, 'sub' => null],
+                ['name' => 'Platelets Count', 'units' => 'x10^3/ul', 'decimal' => 0, 'range' => '150---450','printOnReciept' => false, 'sub' => null],
                 
             ],
 
             // 1202 ESR
             '1202' => [
-                ['name' => 'ESR', 'units' => 'mm/1st hr', 'decimal' => 0, 'range' => 'Male: 0---15, Female: 0---25', 'sub' => null],
+                ['name' => 'ESR', 'units' => 'mm/1st hr', 'decimal' => 0, 'range' => 'Male: 0---15, Female: 0---25','printOnReciept' => false, 'sub' => null],
             ],
 
             // 1203 Malaria Test
             '1203' => [
                 ['name' => 'MP (ICT)', 'default' => 'Negative', 'sub' => null],
-                ['name' => 'MP (Slide)', 'default' => 'Not Seen', 'sub' => null],
+                ['name' => 'MP (Slide)', 'default' => 'Not Seen','printOnReciept' => false, 'sub' => null],
             ],
 
             // 1204 HB
             '1204' => [
-                ['name' => 'Hemoglobin', 'units' => 'g/dl', 'decimal' => 1, 'range' => 'M: 13.5---17.5, F: 12.0---16.0', 'sub' => null],
+                ['name' => 'Hemoglobin', 'units' => 'g/dl', 'decimal' => 1, 'range' => 'M: 13.5---17.5, F: 12.0---16.0','printOnReciept' => false, 'sub' => null],
             ],
 
             // 1205 TLC
             '1205' => [
-                ['name' => 'TLC', 'units' => 'x10^3/ul', 'decimal' => 1, 'range' => '4.0---11.0', 'sub' => null],
+                ['name' => 'TLC', 'units' => 'x10^3/ul', 'decimal' => 1, 'range' => '4.0---11.0','printOnReciept' => false, 'sub' => null],
             ],
 
             // 1206 DLC
             '1206' => [
-                ['name' => 'Neutrophils', 'units' => '%', 'decimal' => 0, 'range' => '44---70', 'sub' => 'DLC'],
-                ['name' => 'Lymphocytes', 'units' => '%', 'decimal' => 0, 'range' => '22---44', 'sub' => 'DLC'],
-                ['name' => 'Monocytes', 'units' => '%', 'decimal' => 0, 'range' => 'Up to 8', 'sub' => 'DLC'],
-                ['name' => 'Eosinophils', 'units' => '%', 'decimal' => 0, 'range' => 'Up to 10', 'sub' => 'DLC'],
-                ['name' => 'Basophils', 'units' => '%', 'decimal' => 0, 'range' => '0---1', 'sub' => 'DLC'],
+                ['name' => 'Neutrophils', 'units' => '%', 'decimal' => 0, 'range' => '44---70','printOnReciept' => false, 'sub' => 'DLC'],
+                ['name' => 'Lymphocytes', 'units' => '%', 'decimal' => 0, 'range' => '22---44','printOnReciept' => false, 'sub' => 'DLC'],
+                ['name' => 'Monocytes', 'units' => '%', 'decimal' => 0, 'range' => 'Up to 8','printOnReciept' => false, 'sub' => 'DLC'],
+                ['name' => 'Eosinophils', 'units' => '%', 'decimal' => 0, 'range' => 'Up to 10','printOnReciept' => false, 'sub' => 'DLC'],
+                ['name' => 'Basophils', 'units' => '%', 'decimal' => 0, 'range' => '0---1','printOnReciept' => false, 'sub' => 'DLC'],
             ],
 
             // 1207 Platelet Count
             '1207' => [
-                ['name' => 'Platelet Count', 'units' => 'x10^3/ul', 'decimal' => 0, 'range' => '150---450', 'sub' => null],
+                ['name' => 'Platelet Count', 'units' => 'x10^3/ul', 'decimal' => 0, 'range' => '150---450','printOnReciept' => false, 'sub' => null],
             ],
 
             // 1212 BSF
@@ -146,12 +146,12 @@ class LabMasterTestParameterSeeder extends Seeder
 
             // 1225 Serum Globulin
             '1225' => [
-                ['name' => 'Serum Globulin', 'units' => 'g/dl', 'decimal' => 1, 'range' => '2.0---3.5', 'sub' => null],
+                ['name' => 'Serum Globulin', 'units' => 'g/dl', 'decimal' => 1, 'range' => '2.0---3.5','printOnReciept' => false, 'sub' => null],
             ],
 
             // 1226 A/G Ratio
             '1226' => [
-                ['name' => 'A/G Ratio', 'units' => '', 'decimal' => 1, 'range' => '1.2---2.2', 'sub' => null],
+                ['name' => 'A/G Ratio', 'units' => '', 'decimal' => 1, 'range' => '1.2---2.2','printOnReciept' => false, 'sub' => null],
             ],
 
             // 1227 Serum Cholesterol
@@ -190,8 +190,8 @@ class LabMasterTestParameterSeeder extends Seeder
                 ['name' => 'Alkaline Phosphatase', 'units' => 'U/L', 'decimal' => 0, 'range' => 'Up to 258', 'sub' => 'Liver Function Tests'],
                 ['name' => 'Serum Total Protein', 'units' => 'g/dl', 'decimal' => 1, 'range' => '5.5---8.0', 'sub' => 'Liver Function Tests'],
                 ['name' => 'Serum Albumin', 'units' => 'g/dl', 'decimal' => 1, 'range' => '3.5---5.5', 'sub' => 'Liver Function Tests'],
-                ['name' => 'Serum Globulin', 'units' => 'g/dl', 'decimal' => 1, 'range' => '2.0---3.5', 'sub' => 'Liver Function Tests'],
-                ['name' => 'A/G Ratio', 'units' => '', 'decimal' => 1, 'range' => '1.2---2.2', 'sub' => 'Liver Function Tests'],
+                ['name' => 'Serum Globulin', 'units' => 'g/dl', 'decimal' => 1, 'range' => '2.0---3.5','printOnReciept' => false, 'sub' => 'Liver Function Tests'],
+                ['name' => 'A/G Ratio', 'units' => '', 'decimal' => 1, 'range' => '1.2---2.2','printOnReciept' => false, 'sub' => 'Liver Function Tests'],
             ],
 
             // 1233 Lipid Profile
@@ -200,60 +200,60 @@ class LabMasterTestParameterSeeder extends Seeder
                 ['name' => 'Serum Triglycerides', 'units' => 'mg/dl', 'decimal' => 0, 'range' => 'Desirable: <150', 'sub' => 'Lipid Profile'],
                 ['name' => 'HDL Cholesterol', 'units' => 'mg/dl', 'decimal' => 0, 'range' => 'Male: >40, Female: >50', 'sub' => 'Lipid Profile'],
                 ['name' => 'LDL Cholesterol', 'units' => 'mg/dl', 'decimal' => 0, 'range' => '<100', 'sub' => 'Lipid Profile'],
-                ['name' => 'VLDL Cholesterol', 'units' => 'mg/dl', 'decimal' => 0, 'range' => '5---40', 'sub' => 'Lipid Profile'],
-                ['name' => 'Cholesterol/HDL Ratio', 'units' => '', 'decimal' => 1, 'range' => '<4.5', 'sub' => 'Lipid Profile'],
+                ['name' => 'VLDL Cholesterol', 'units' => 'mg/dl', 'decimal' => 0, 'range' => '5---40','printOnReciept' => false, 'sub' => 'Lipid Profile'],
+                ['name' => 'Cholesterol/HDL Ratio', 'units' => '', 'decimal' => 1, 'range' => '<4.5','printOnReciept' => false, 'sub' => 'Lipid Profile'],
             ],
 
             // 1234 Blood Group
             '1234' => [
                 ['name' => 'Blood Group', 'units' => '', 'decimal' => 0, 'range' => '', 'sub' => null],
-                ['name' => 'Rh Factor', 'units' => '', 'decimal' => 0, 'range' => '', 'sub' => null],
+                ['name' => 'Rh Factor', 'units' => '', 'decimal' => 0, 'range' => '','printOnReciept' => false, 'sub' => null],
             ],
 
             // 1235 Urine R/E
             '1235' => [
-                ['name' => 'Color', 'default' => 'Pale Yellow', 'sub' => 'Physical Examination'],
-                ['name' => 'Appearance', 'default' => 'Clear', 'sub' => 'Physical Examination'],
-                ['name' => 'Specific Gravity', 'range' => '1.005---1.030', 'sub' => 'Physical Examination'],
-                ['name' => 'pH', 'range' => '4.6---8.0', 'sub' => 'Physical Examination'],
-                ['name' => 'Protein', 'default' => 'Nil', 'sub' => 'Chemical Examination'],
-                ['name' => 'Sugar', 'default' => 'Nil', 'sub' => 'Chemical Examination'],
-                ['name' => 'Ketone', 'default' => 'Nil', 'sub' => 'Chemical Examination'],
-                ['name' => 'Urobilinogen', 'default' => 'Normal', 'sub' => 'Chemical Examination'],
-                ['name' => 'Bilirubin', 'default' => 'Negative', 'sub' => 'Chemical Examination'],
-                ['name' => 'Blood', 'default' => 'Nil', 'sub' => 'Chemical Examination'],
-                ['name' => 'Sp. Gravity', 'default' => '1.030', 'sub' => 'Chemical Examination'],
-                ['name' => 'Nitrite', 'default' => 'Negative', 'sub' => 'Chemical Examination'],
+                ['name' => 'Color', 'default' => 'Pale Yellow','printOnReciept' => false, 'sub' => 'Physical Examination'],
+                ['name' => 'Appearance', 'default' => 'Clear','printOnReciept' => false, 'sub' => 'Physical Examination'],
+                ['name' => 'Specific Gravity', 'range' => '1.005---1.030','printOnReciept' => false, 'sub' => 'Physical Examination'],
+                ['name' => 'pH', 'range' => '4.6---8.0','printOnReciept' => false, 'sub' => 'Physical Examination'],
+                ['name' => 'Protein', 'default' => 'Nil','printOnReciept' => false, 'sub' => 'Chemical Examination'],
+                ['name' => 'Sugar', 'default' => 'Nil','printOnReciept' => false, 'sub' => 'Chemical Examination'],
+                ['name' => 'Ketone', 'default' => 'Nil','printOnReciept' => false, 'sub' => 'Chemical Examination'],
+                ['name' => 'Urobilinogen', 'default' => 'Normal','printOnReciept' => false, 'sub' => 'Chemical Examination'],
+                ['name' => 'Bilirubin', 'default' => 'Negative','printOnReciept' => false, 'sub' => 'Chemical Examination'],
+                ['name' => 'Blood', 'default' => 'Nil','printOnReciept' => false, 'sub' => 'Chemical Examination'],
+                ['name' => 'Sp. Gravity', 'default' => '1.030','printOnReciept' => false, 'sub' => 'Chemical Examination'],
+                ['name' => 'Nitrite', 'default' => 'Negative','printOnReciept' => false, 'sub' => 'Chemical Examination'],
                 ['name' => 'Pus Cells', 'units' => '/HPF', 'range' => '', 'sub' => 'Microscopic Examination'],
                 ['name' => 'RBCs', 'units' => '/HPF', 'range' => '', 'sub' => 'Microscopic Examination'],
                 ['name' => 'Epithelial Cells', 'units' => '/HPF', 'range' => '', 'sub' => 'Microscopic Examination'],
-                ['name' => 'Casts', 'default' => '', 'sub' => 'Microscopic Examination'],
-                ['name' => 'Crystals', 'default' => '', 'sub' => 'Microscopic Examination'],
-                ['name' => 'Miscellaneous', 'default' => '', 'sub' => 'Microscopic Examination'],
+                ['name' => 'Casts', 'default' => '','printOnReciept' => false, 'sub' => 'Microscopic Examination'],
+                ['name' => 'Crystals', 'default' => '', 'printOnReciept' => false, 'sub' => 'Microscopic Examination'],
+                ['name' => 'Miscellaneous', 'default' => '', 'printOnReciept' => false, 'sub' => 'Microscopic Examination'],
             ],
 
             // 1236 Stool R/E
             '1236' => [
-                ['name' => 'Color', 'default' => 'Brownish', 'sub' => 'Physical Examination'],
-                ['name' => 'Consistency', 'default' => 'Semi-Formed', 'sub' => 'Physical Examination'],
-                ['name' => 'Mucus', 'default' => 'Absent', 'sub' => 'Physical Examination'],
-                ['name' => 'PH', 'default' => 'Acidic', 'sub' => 'Chemical Examination'],
-                ['name' => 'Sugar', 'default' => 'Nil', 'sub' => 'Chemical Examination'],
-                ['name' => 'Pus Cells', 'units' => '/HPF', 'range' => '', 'sub' => 'Microscopic Examination'],
-                ['name' => 'RBCs', 'units' => '/HPF', 'range' => '', 'sub' => 'Microscopic Examination'],
-                ['name' => 'Ova / Cysts', 'default' => 'Not Seen', 'sub' => 'Microscopic Examination'],
-                ['name' => 'Flagelates', 'default' => 'Not Seen', 'sub' => 'Microscopic Examination'],
+                ['name' => 'Color', 'default' => 'Brownish','printOnReciept' => false, 'sub' => 'Physical Examination'],
+                ['name' => 'Consistency', 'default' => 'Semi-Formed','printOnReciept' => false, 'sub' => 'Physical Examination'],
+                ['name' => 'Mucus', 'default' => 'Absent', 'printOnReciept' => false, 'sub' => 'Physical Examination'],
+                ['name' => 'PH', 'default' => 'Acidic', 'printOnReciept' => false, 'sub' => 'Chemical Examination'],
+                ['name' => 'Sugar', 'default' => 'Nil', 'printOnReciept' => false, 'sub' => 'Chemical Examination'],
+                ['name' => 'Pus Cells', 'units' => '/HPF', 'range' => '', 'printOnReciept' => false, 'sub' => 'Microscopic Examination'],
+                ['name' => 'RBCs', 'units' => '/HPF', 'range' => '', 'printOnReciept' => false, 'sub' => 'Microscopic Examination'],
+                ['name' => 'Ova / Cysts', 'default' => 'Not Seen', 'printOnReciept' => false, 'sub' => 'Microscopic Examination'],
+                ['name' => 'Flagelates', 'default' => 'Not Seen', 'printOnReciept' => false, 'sub' => 'Microscopic Examination'],
             ],
 
             // 1237 Pregnancy Test
             '1237' => [
-                ['name' => 'Pregnancy test', 'default' => '', 'range' => '', 'sub' => null],
+                ['name' => 'Pregnancy test', 'default' => '', 'range' => '', 'printOnReciept' => false, 'sub' => null],
             ],
 
             // 1238 Widal Test
             '1238' => [
-                ['name' => 'Salmonella Typhi "O"', 'range' => '< 1:80', 'sub' => 'Widal Test'],
-                ['name' => 'Salmonella Typhi "H"', 'range' => '< 1:80', 'sub' => 'Widal Test'],
+                ['name' => 'Salmonella Typhi "O"', 'range' => '< 1:80',  'sub' => 'Widal Test'],
+                ['name' => 'Salmonella Typhi "H"', 'range' => '< 1:80',  'sub' => 'Widal Test'],
                 
             ],
 
@@ -307,7 +307,7 @@ class LabMasterTestParameterSeeder extends Seeder
             // 1249 PT / INR
             '1249' => [
                 ['name' => 'PT', 'units' => 'Sec', 'decimal' => 0, 'range' => '11---14', 'sub' => null],
-                ['name' => 'INR', 'units' => '', 'decimal' => 1, 'range' => '0.9---1.2', 'sub' => null],
+                ['name' => 'INR', 'units' => '', 'decimal' => 1, 'range' => '0.9---1.2','printOnReciept' => false, 'sub' => null],
             ],
 
             // 1250 APTT
@@ -317,17 +317,17 @@ class LabMasterTestParameterSeeder extends Seeder
 
             // 1251 Blood Culture
             '1251' => [
-                ['name' => 'Organism Isolated', 'default' => 'No Growth After 72 Hours', 'sub' => null],
+                ['name' => 'Organism Isolated', 'default' => 'No Growth After 72 Hours', 'printOnReciept' => false, 'sub' => null],
             ],
 
             // 1252 Urine Culture
             '1252' => [
-                ['name' => 'Organism Isolated', 'default' => 'No Growth After 48 Hours', 'sub' => null],
+                ['name' => 'Organism Isolated', 'default' => 'No Growth After 48 Hours', 'printOnReciept' => false, 'sub' => null],
             ],
 
             // 1253 Sputum AFB
             '1253' => [
-                ['name' => 'AFB Smear', 'default' => 'Negative for AFB', 'range' => '', 'sub' => null],
+                ['name' => 'AFB Smear', 'default' => 'Negative for AFB', 'range' => '', 'printOnReciept' => false, 'sub' => null],
             ],
 
             // 1254 Dengue NS1
@@ -349,13 +349,13 @@ class LabMasterTestParameterSeeder extends Seeder
 
             // 1257 Covid-19
             '1257' => [
-                ['name' => 'SARS-CoV-2 Ag', 'default' => 'Negative', 'range' => '', 'sub' => null],
+                ['name' => 'SARS-CoV-2 Ag', 'default' => 'Negative', 'range' => '','printOnReciept' => false, 'sub' => null],
             ],
 
             // 1258 Semen Analysis
             '1258' => [
                 
-                ['name' => 'Color', 'units' => '', 'range' => '', 'sub' => 'Physical Examination'],
+                ['name' => 'Color', 'units' => '', 'range' => '','printOnReciept' => false, 'sub' => 'Physical Examination'],
                 ['name' => 'Volume', 'units' => 'ml', 'decimal' => 1, 'range' => '>= 1.5', 'sub' => 'Physical Examination'],
                 ['name' => 'Consistency', 'units' => '', 'range' => '', 'sub' => 'Physical Examination'],
                 ['name' => 'pH', 'range' => '7.2---8.0', 'sub' => 'Physical Examination'],
@@ -367,9 +367,9 @@ class LabMasterTestParameterSeeder extends Seeder
                 ['name' => 'Progressive Motility', 'units' => '%', 'decimal' => 0, 'range' => '>= 32', 'sub' => 'Progressive Motility'],
                 ['name' => 'Non Progressive Motility', 'units' => '%', 'decimal' => 0, 'range' => '', 'sub' => 'Progressive Motility'],
                 ['name' => 'Normal', 'units' => '%','decimal' => 0,  'range' => 'WHO standard of crugar strict criteria 4% or greater is Normal', 'sub' => 'Morphology'],
-                ['name' => 'Abnormal', 'units' => '%', 'decimal' => 0, 'range' => '', 'sub' => 'Morphology'],
-                ['name' => 'WBCs', 'units' => '/HPF', 'decimal' => 0, 'range' => '', 'sub' => 'Microscopic Examination'],
-                ['name' => 'RBCs', 'units' => '/HPF', 'decimal' => 0, 'range' => '', 'sub' => 'Microscopic Examination'],
+                ['name' => 'Abnormal', 'units' => '%', 'decimal' => 0, 'range' => '','printOnReciept' => false, 'sub' => 'Morphology'],
+                ['name' => 'WBCs', 'units' => '/HPF', 'decimal' => 0, 'range' => '','printOnReciept' => false, 'sub' => 'Microscopic Examination'],
+                ['name' => 'RBCs', 'units' => '/HPF', 'decimal' => 0, 'range' => '','printOnReciept' => false, 'sub' => 'Microscopic Examination'],
             ],
 
             // 1259 RA Factor
@@ -416,7 +416,7 @@ class LabMasterTestParameterSeeder extends Seeder
                     'decimal' => $p['decimal'] ?? 0,
                     'normalRange' => $p['range'] ?? null,
                     'sortNo' => $sortNo++,
-                    'printOnReciept' => true,
+                    'printOnReciept' => $p['printOnReciept'] ?? true,
                     'isActive' => true,
                     'created_at' => now(),
                     'updated_at' => now(),

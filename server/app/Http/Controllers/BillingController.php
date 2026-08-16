@@ -51,6 +51,14 @@ class BillingController extends Controller
             });
         }
 
+        if ($request->has('invoiceNo') && $request->invoiceNo) {
+            $query->where('billings.InvoiceNo', $request->invoiceNo);
+        }
+
+        if ($request->has('ReturnInvoiceNo') && $request->ReturnInvoiceNo) {
+            $query->where('billings.ReturnInvoiceNo', $request->ReturnInvoiceNo);
+        }
+
         if ($request->has('mrn') && $request->mrn) {
             $query->where('patients.mrn', 'like', "%{$request->mrn}%");
         }
@@ -81,7 +89,45 @@ class BillingController extends Controller
 
         $rows = $query->orderBy('billings.InvoiceDate', 'desc')->get();
 
-        $billings = $rows->map(function ($row) {
+        $returnInvoices = DB::table('billings')
+            ->whereNotNull('ReturnInvoiceNo')
+            ->where('ReturnInvoiceNo', '!=', '')
+            ->get(['id', 'ReturnInvoiceNo']);
+
+        $origQtyByInv = DB::table('billing_details')
+            ->select('BillingId', DB::raw('SUM(Qty) as total_qty'))
+            ->groupBy('BillingId')
+            ->pluck('total_qty', 'BillingId')
+            ->toArray();
+
+        $returnBillingIds = $returnInvoices->pluck('id')->toArray();
+        $retQtyByReturnInvId = empty($returnBillingIds) ? [] : DB::table('billing_details')
+            ->whereIn('BillingId', $returnBillingIds)
+            ->select('BillingId', DB::raw('SUM(Qty) as total_qty'))
+            ->groupBy('BillingId')
+            ->pluck('total_qty', 'BillingId')
+            ->toArray();
+
+        $retQtyByOriginalInvNo = [];
+        foreach ($returnInvoices as $rInv) {
+            $rQty = $retQtyByReturnInvId[$rInv->id] ?? 0;
+            $retQtyByOriginalInvNo[$rInv->ReturnInvoiceNo] = ($retQtyByOriginalInvNo[$rInv->ReturnInvoiceNo] ?? 0) + $rQty;
+        }
+
+        $billings = $rows->map(function ($row) use ($origQtyByInv, $retQtyByOriginalInvNo) {
+            $origQty = (float)($origQtyByInv[$row->id] ?? 0);
+            $retQty = (float)($retQtyByOriginalInvNo[$row->InvoiceNo] ?? 0);
+
+            $status = $row->PaymentStatus;
+            if ($status === 'Returned' || ($origQty > 0 && $retQty >= $origQty)) {
+                $status = 'Returned';
+            } else if ($status === 'Partially Returned' || ($retQty > 0 && $retQty < $origQty)) {
+                $status = 'Partially Returned';
+            }
+
+            $isFullyReturned = ($status === 'Returned');
+            $isPartiallyReturned = ($status === 'Partially Returned');
+
             return [
                 'id' => $row->id,
                 'InvoiceNo' => $row->InvoiceNo,
@@ -91,7 +137,10 @@ class BillingController extends Controller
                 'SubTotal' => $row->SubTotal,
                 'Discount' => $row->Discount,
                 'TotalAmount' => $row->TotalAmount,
-                'PaymentStatus' => $row->PaymentStatus,
+                'PaymentStatus' => $status,
+                'isReturned' => $isFullyReturned,
+                'isFullyReturned' => $isFullyReturned,
+                'isPartiallyReturned' => $isPartiallyReturned,
                 'BillType' => $row->BillType,
                 'Notes' => $row->Notes,
                 'printedCount' => $row->printedCount,
@@ -125,7 +174,7 @@ class BillingController extends Controller
             'SubTotal' => 'required|numeric|min:0',
             'Discount' => 'required|numeric|min:0',
             'TotalAmount' => 'required|numeric|min:0',
-            'PaymentStatus' => 'required|in:Pending,Partial,Paid,Cancelled',
+            'PaymentStatus' => 'required|in:Pending,Partial,Paid,Cancelled,Returned,Partially Returned',
             'BillType' => 'required|in:Return,Normal',
             'ReturnInvoiceNo' => 'nullable|string',
             'Notes' => 'nullable|string',
@@ -161,7 +210,7 @@ class BillingController extends Controller
             'SubTotal' => 'required|numeric|min:0',
             'Discount' => 'required|numeric|min:0',
             'TotalAmount' => 'required|numeric|min:0',
-            'PaymentStatus' => 'required|in:Pending,Partial,Paid,Cancelled',
+            'PaymentStatus' => 'required|in:Pending,Partial,Paid,Cancelled,Returned,Partially Returned',
             'BillType' => 'required|in:Return,Normal',
             'Notes' => 'nullable|string',
         ]);

@@ -244,9 +244,7 @@ export default function SampleCollectionPage() {
                   {/* Case Info */}
                   <div style={{ marginBottom: "6px" }}>
                     <div><b>Case:</b> {labCopyCase.caseNo}</div>
-                    <div><b>Date:</b> {labCopyCase.caseDate
-                      ? formatDate(labCopyCase.caseDate)
-                      : "-"}</div>
+                    <div><b>Date:</b> {labCopyCase.caseDate ? formatDate(labCopyCase.caseDate) : "-"}</div>
                   </div>
 
                   {/* Patient Info */}
@@ -259,43 +257,27 @@ export default function SampleCollectionPage() {
                     <div><b>Priority:</b> {labCopyCase.priority}</div>
                   </div>
 
-                  {/* Tests */}
-                  <div style={{ fontWeight: "bold", fontSize: "12px", marginBottom: "4px" }}>TESTS:</div>
-                  {(labCopyCase.tests || []).map((test, tIdx) => (
+                  {/* Parameters */}
+                  <div style={{ fontWeight: "bold", fontSize: "12px", marginBottom: "4px" }}>Parameters / Result</div>
+                  {(labCopyCase.tests || []).map((test) => (
                     <div key={test.id} style={{ marginBottom: "6px" }}>
-                      <div style={{ fontWeight: "bold" }}>
-                        {tIdx + 1}. {test.testName}
-                      </div>
-                      <div style={{ fontSize: "10px", color: "#555" }}>({test.testCode})</div>
-                      {test.parameters && test.parameters.length > 0 ? (
+                      {test.parameters && test.parameters.length > 0 && (
                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px", marginTop: "2px" }}>
-                          <thead>
-                            <tr style={{ borderBottom: "1px solid #ccc" }}>
-                              <th style={{ textAlign: "left", padding: "1px 2px" }}>Parameter</th>
-                              <th style={{ textAlign: "right", padding: "1px 2px" }}>Ref</th>
-                            </tr>
-                          </thead>
                           <tbody>
                             {test.parameters.map((param, pIdx) => (
                               <tr key={pIdx}>
-                                <td style={{ padding: "1px 2px" }}>{param.parameterName}</td>
-                                <td style={{ textAlign: "right", padding: "1px 2px" }}>{param.normalRange || "-"}</td>
+                                <td style={{ padding: "1px 2px" }}>{param.parameterName} : ____________________</td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
-                      ) : (
-                        <div style={{ fontSize: "9px", color: "#999", fontStyle: "italic", marginLeft: "4px" }}>
-                          No parameters
-                        </div>
                       )}
                     </div>
                   ))}
 
                   {/* Footer */}
-                  <div style={{ borderTop: "1px dashed #000", paddingTop: "6px", marginTop: "6px", textAlign: "center", fontSize: "10px" }}>
-                    Thank you
-                  </div>
+                  <div style={{ marginTop: "50px", textAlign: "left", fontSize: "10px" }}>Signature: ________________________ </div>
+                 
                 </>
               )}
             </div>

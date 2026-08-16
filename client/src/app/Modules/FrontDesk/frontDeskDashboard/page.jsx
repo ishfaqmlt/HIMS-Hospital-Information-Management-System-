@@ -25,6 +25,7 @@ import {
   UserCheck,
   Zap,
   Sparkles,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,6 +75,7 @@ export default function FrontDeskDashboardPage() {
     todayRegistrations: 0,
     todayVisits: 0,
     todayBillingTotal: 0,
+    todayReturnedTotal: 0,
     todayCollections: 0,
   });
 
@@ -150,9 +152,23 @@ export default function FrontDeskDashboardPage() {
         : billingsList.data || [];
 
       const totalBillingSum = billingsArray.reduce((acc, curr) => {
-        const amt = parseFloat(curr.TotalAmount || curr.netAmount || curr.SubTotal || 0);
-        return acc + (isNaN(amt) ? 0 : amt);
+        if (curr.BillType !== "Return") {
+          const amt = parseFloat(curr.TotalAmount || curr.netAmount || curr.SubTotal || 0);
+          return acc + (isNaN(amt) ? 0 : amt);
+        }
+        return acc;
       }, 0);
+
+      const totalReturnedSum = billingsArray.reduce((acc, curr) => {
+        if (curr.BillType === "Return") {
+          const amt = parseFloat(curr.TotalAmount || curr.netAmount || curr.SubTotal || 0);
+          return acc + (isNaN(amt) ? 0 : amt);
+        }
+        return acc;
+      }, 0);
+
+      const totalRefundsFromPayments = paymentsArray.reduce((acc, curr) => acc + (parseFloat(curr.credit || 0) || 0), 0);
+      const finalReturnedTotal = Math.max(totalReturnedSum, totalRefundsFromPayments);
 
       // Calculate Department Breakdown
       const deptCounts = {};
@@ -171,6 +187,7 @@ export default function FrontDeskDashboardPage() {
         todayRegistrations: patientsArray.length,
         todayVisits: totalVisitsCount,
         todayBillingTotal: totalBillingSum,
+        todayReturnedTotal: finalReturnedTotal,
         todayCollections: totalCollectionsSum,
       });
 
@@ -273,8 +290,8 @@ export default function FrontDeskDashboardPage() {
         </Alert>
       )}
 
-      {/* Top 4 KPI Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Top 5 KPI Metrics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {/* Metric 1: Today's Registrations */}
         <Card className="border-0 shadow-md bg-gradient-to-br from-emerald-500/10 via-emerald-50/40 to-white dark:from-emerald-950/20 dark:to-background border-l-4 border-l-emerald-500 rounded-xl hover:shadow-lg transition-all duration-200">
           <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
@@ -358,6 +375,35 @@ export default function FrontDeskDashboardPage() {
             )}
             <CardDescription className="text-[11px] mt-1 text-slate-500 font-medium">
               Total counter billings created
+            </CardDescription>
+          </CardContent>
+        </Card>
+
+        {/* Metric 4: Today Returned */}
+        <Card className="border-0 shadow-md bg-gradient-to-br from-rose-500/10 via-rose-50/40 to-white dark:from-rose-950/20 dark:to-background border-l-4 border-l-rose-500 rounded-xl hover:shadow-lg transition-all duration-200">
+          <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-xs font-bold text-rose-900 dark:text-rose-300 uppercase tracking-wider">
+              Today Returned
+            </CardTitle>
+            <div className="h-10 w-10 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold shadow-sm">
+              <RotateCcw className="h-5 w-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-1">
+            {loading ? (
+              <Skeleton className="h-9 w-28 my-1" />
+            ) : (
+              <div className="flex items-baseline justify-between mt-1">
+                <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                  Rs. {stats.todayReturnedTotal.toLocaleString()}
+                </span>
+                <Badge className="text-[10px] bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200 font-bold border-0 px-2 py-0.5">
+                  Returned
+                </Badge>
+              </div>
+            )}
+            <CardDescription className="text-[11px] mt-1 text-slate-500 font-medium">
+              Total invoice return refunds
             </CardDescription>
           </CardContent>
         </Card>

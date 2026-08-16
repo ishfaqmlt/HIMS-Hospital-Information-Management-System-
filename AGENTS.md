@@ -276,6 +276,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 ### ID Generation
 - **MRN**: `MRN-{YY}-{SEQ}` (e.g., `MRN-26-1`, `MRN-26-2`, `MRN-26-100`) — resets yearly via prefix match (`system_sequences` table)
+- **CaseNo**: `LAB-{YY}-{SEQ}` (e.g., `LAB-26-1`, `LAB-26-2`, `LAB-26-100`) — resets yearly via prefix match (`lab_cases` table)
 - **VisitNo**: `V-{MMYY}-{SEQ}` (e.g., `V-0726-1`, `V-0726-2`) — resets monthly via prefix match (`system_sequences` table)
 - **InvoiceNo**: `INV-{MMYY}-{SEQ}` (e.g., `INV-0726-1`, `INV-0726-2`) — resets monthly via prefix match (`system_sequences` table)
 - All sequences are unpadded numbers without leading zeros (`1`, `2`, `3` ... `100`, `5000`)

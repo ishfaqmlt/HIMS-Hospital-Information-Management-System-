@@ -47,7 +47,7 @@ import {
 } from "lucide-react";
 
 const departments = [
-  { name: "Front Desk", icon: Calendar, color: "bg-blue-500", href: "/Modules/FrontDesk", permission: "view_appointments" },
+  { name: "Front Desk", icon: Calendar, color: "bg-blue-500", href: "/Modules/FrontDesk/frontDeskDashboard", permission: "view_appointments" },
   { name: "OPD", icon: Stethoscope, color: "bg-teal-500", href: "/Modules/OPD", permission: "view_opd" },
   { name: "IPD", icon: BedDouble, color: "bg-indigo-500", href: "/Modules/IPD", permission: "view_ipd" },
   { name: "Emergency", icon: Siren, color: "bg-red-500", href: "/Modules/Emergency", permission: "view_emergency" },
