@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSelector } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -22,6 +23,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -42,15 +50,19 @@ import {
   Pencil,
   X,
   EllipsisVertical,
+  Printer,
+  FileText,
+  User,
 } from "lucide-react";
 import { labCaseSchema } from "@/lib/zodeSchema";
 import patientVisitService from "@/services/patientVisitService";
 import doctorService from "@/services/doctor.service";
 import labCaseService from "@/services/labCase.service";
 import masterTestService from "@/services/masterTests.service";
-import PatientDetailsCard from "@/components/patients/PatientDetailsCard";
 import AddPatientDialog from "@/components/patients/AddPatientDialog";
-import { toLocalISOString } from "@/lib/utils";
+import LabBarcode from "@/components/lab/LabBarcode";
+import { useReactToPrint } from "react-to-print";
+import { toLocalISOString, calculateAge, formatDate } from "@/lib/utils";
 
 export default function PatientRegistrationPage() {
   const { user } = useSelector((state) => state.auth);
@@ -80,6 +92,39 @@ export default function PatientRegistrationPage() {
   const [testSearchResults, setTestSearchResults] = useState([]);
   const [testSearchLoading, setTestSearchLoading] = useState(false);
 
+  // Barcode print dialog state
+  const [barcodeDialogOpen, setBarcodeDialogOpen] = useState(false);
+  const [barcodeCase, setBarcodeCase] = useState(null);
+  const barcodePrintRef = useRef(null);
+
+  // Lab copy print dialog state
+  const [labCopyDialogOpen, setLabCopyDialogOpen] = useState(false);
+  const [labCopyCase, setLabCopyCase] = useState(null);
+  const labCopyPrintRef = useRef(null);
+
+  const handleOpenBarcode = (c) => {
+    setBarcodeCase(c);
+    setBarcodeDialogOpen(true);
+  };
+
+  const handlePrintBarcode = useReactToPrint({
+    contentRef: barcodePrintRef,
+    documentTitle: `Barcode-${barcodeCase?.caseNo || ""}`,
+    onAfterPrint: () => setBarcodeDialogOpen(false),
+  });
+
+  const handleOpenLabCopy = (c) => {
+    setLabCopyCase(c);
+    setLabCopyDialogOpen(true);
+  };
+
+  const handlePrintLabCopy = useReactToPrint({
+    contentRef: labCopyPrintRef,
+    documentTitle: `LabCopy-${labCopyCase?.caseNo || ""}`,
+    contentStyle: "@page { size: 80mm auto; margin: 0; } @media print { body { margin: 0; } }",
+    onAfterPrint: () => setLabCopyDialogOpen(false),
+  });
+
   const {
     register,
     handleSubmit,
@@ -105,6 +150,8 @@ export default function PatientRegistrationPage() {
   });
 
   const selectedTests = watch("selectedTests");
+  const selectedDoctorId = watch("doctorId");
+  const isConsultantSelected = Boolean(selectedDoctorId && selectedDoctorId !== "none");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -521,24 +568,6 @@ export default function PatientRegistrationPage() {
         </div>
       )}
 
-      {/* Patient Details */}
-      <PatientDetailsCard
-        mrnSearch={mrnSearch}
-        onMrnSearchChange={setMrnSearch}
-        onMrnSearch={handleSearchByMRN}
-        mobileSearch={mobileSearch}
-        onMobileSearchChange={setMobileSearch}
-        onMobileSearch={handleSearchByMobile}
-        cnicSearch={cnicSearch}
-        onCnicSearchChange={setCnicSearch}
-        onCnicSearch={handleSearchByCNIC}
-        visitNoSearch={visitNoSearch}
-        onVisitNoSearchChange={setVisitNoSearch}
-        onVisitNoSearch={handleSearchByVisitNo}
-        selectedPatient={selectedPatient}
-        onReset={handleReset}
-      />
-
       {/* Waiting Invoices + Case Details */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Waiting Invoices */}
@@ -625,7 +654,7 @@ export default function PatientRegistrationPage() {
           </CardContent>
         </Card>
 
-        {/* Case Details */}
+        {/* Case Details Column (4 Cols) */}
         <div className="lg:col-span-4 space-y-4">
           {/* Edit Mode Banner */}
           {editingCase && (
@@ -641,11 +670,35 @@ export default function PatientRegistrationPage() {
           {/* Case Details Form */}
           <form onSubmit={handleSubmit(onSubmit)}>
             <Card className="shadow-sm border border-border/50">
-              <CardHeader className="px-3 py-1.5 bg-sky-50">
-                <CardTitle className="text-xs font-semibold flex items-center gap-2 text-sky-700">
+              <CardHeader className="px-3 py-1.5 bg-sky-50 flex flex-row items-center justify-between gap-4">
+                <CardTitle className="text-xs font-semibold flex items-center gap-2 text-sky-700 shrink-0">
                   <FlaskConical className="h-3.5 w-3.5" />
                   Case Details
                 </CardTitle>
+
+                {/* Patient Details right-aligned in same header row */}
+                {selectedPatient ? (
+                  <div className="text-xs font-medium text-slate-800 dark:text-slate-200 flex flex-wrap items-center gap-2.5 justify-end">
+                    <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                      <User className="h-3.5 w-3.5 text-sky-600" />
+                      {selectedPatient.pName || "-"}
+                    </span>
+                    <span className="text-muted-foreground font-normal">|</span>
+                    <span>MRN: {selectedPatient.mrn || "-"}</span>
+                    <span className="text-muted-foreground font-normal">|</span>
+                    <span>Age: {calculateAge(selectedPatient.dob)}</span>
+                    <span className="text-muted-foreground font-normal">|</span>
+                    <span>Case: {selectedInvoice?.invoiceNo || editingCase?.caseNo || "NEW CASE"}</span>
+                    <span className="text-muted-foreground font-normal">|</span>
+                    <span>
+                      Dr. {selectedInvoice?.doctorName || selectedPatient.doctorName || (doctors.find((d) => d.id === selectedDoctorId)?.Name) || "-"}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground italic font-normal">
+                    Select a waiting voucher on the left to load patient details
+                  </span>
+                )}
               </CardHeader>
               <CardContent className="p-2 pt-1">
                 <div className="grid grid-cols-7 gap-3 items-end">
@@ -695,11 +748,14 @@ export default function PatientRegistrationPage() {
                       control={control}
                       render={({ field }) => (
                         <Select
-                          value={field.value || ""}
+                          value={field.value || "none"}
                           onValueChange={(val) => {
-                            field.onChange(val === "none" ? "" : val);
-                            const doc = doctors.find((d) => d.id === val);
-                            setValue("orReffBy", doc ? doc.Name : "");
+                            if (val === "none") {
+                              field.onChange("");
+                            } else {
+                              field.onChange(val);
+                              setValue("orReffBy", "");
+                            }
                           }}
                         >
                           <SelectTrigger className="w-full h-9 text-xs">
@@ -723,7 +779,8 @@ export default function PatientRegistrationPage() {
                     <Input
                       {...register("orReffBy")}
                       className="h-9 text-xs"
-                      placeholder="Referred by"
+                      placeholder={isConsultantSelected ? "" : "Referred by"}
+                      disabled={isConsultantSelected}
                     />
                   </div>
 
@@ -781,7 +838,7 @@ export default function PatientRegistrationPage() {
                         className="h-8 text-xs"
                       />
                       {testSearchResults.length > 0 && (
-                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-[150px] overflow-auto">
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-37.5 overflow-auto">
                           {testSearchResults.map((t) => (
                             <div
                               key={t.id}
@@ -796,7 +853,7 @@ export default function PatientRegistrationPage() {
                       )}
                     </div>
                   )}
-                  <div className="max-h-[300px] overflow-auto">
+                  <div className="max-h-75 overflow-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="h-8">
@@ -823,12 +880,13 @@ export default function PatientRegistrationPage() {
                               <TableCell className="text-xs text-right">
                                 <Input
                                   type="number"
+                                  
                                   value={test.rate}
                                   onChange={(e) => updateTestRate(test.id, e.target.value)}
                                   className="h-7 text-xs text-right w-24"
                                   min="0"
                                   step="0.01"
-                                  disabled={test.checked === false}
+                                  disabled
                                 />
                               </TableCell>
                               <TableCell className="text-center">
@@ -873,19 +931,20 @@ export default function PatientRegistrationPage() {
                           <TableHead className="text-xs">Patient</TableHead>
                           <TableHead className="text-xs">Tests</TableHead>
                           <TableHead className="text-xs">Status</TableHead>
+                          <TableHead className="text-xs">Prints</TableHead>
                           <TableHead className="text-xs w-10"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {todayCasesLoading ? (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center py-6">
+                            <TableCell colSpan={6} className="text-center py-6">
                               <Loader2 className="h-4 w-4 animate-spin mx-auto text-muted-foreground" />
                             </TableCell>
                           </TableRow>
                         ) : todayCases.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-6">
+                            <TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-6">
                               No cases today
                             </TableCell>
                           </TableRow>
@@ -906,6 +965,30 @@ export default function PatientRegistrationPage() {
                                 }`}>
                                   {c.status}
                                 </span>
+                              </TableCell>
+                              <TableCell className="text-xs">
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-1.5 text-[11px] text-blue-600 hover:text-blue-800 font-medium"
+                                    onClick={() => handleOpenBarcode(c)}
+                                    title="Print Barcode"
+                                  >
+                                    <Printer className="h-3 w-3 mr-1" /> Barcode
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-1.5 text-[11px] text-emerald-600 hover:text-emerald-800 font-medium"
+                                    onClick={() => handleOpenLabCopy(c)}
+                                    title="Print Lab Copy Thermal"
+                                  >
+                                    <FileText className="h-3 w-3 mr-1" /> Lab Copy
+                                  </Button>
+                                </div>
                               </TableCell>
                               <TableCell className="text-xs">
                                 {(c.status === "Registered" || c.status === "Sampled") && (
@@ -947,6 +1030,127 @@ export default function PatientRegistrationPage() {
         onOpenChange={setShowAddPatient}
         onPatientAdded={handlePatientAdded}
       />
+
+      {/* Print Barcode Dialog */}
+      <Dialog open={barcodeDialogOpen} onOpenChange={setBarcodeDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Print Barcode</DialogTitle>
+          </DialogHeader>
+          <div className="border rounded p-4 bg-white">
+            <div ref={barcodePrintRef} className="flex flex-col items-center gap-1">
+              {barcodeCase && (
+                <>
+                  <span className="text-xs font-bold">{barcodeCase.patient?.pName || ""}</span>
+                  <span className="text-[10px] text-gray-600">
+                    Age: {calculateAge(barcodeCase.patient?.dob)}
+                  </span>
+                  <LabBarcode
+                    value={barcodeCase.caseNo}
+                    width={2}
+                    height={50}
+                    fontSize={12}
+                    margin={5}
+                  />
+                  <span className="text-[10px] text-gray-600">
+                    Date: {barcodeCase.caseDate
+                      ? formatDate(barcodeCase.caseDate)
+                      : ""}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setBarcodeDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={() => handlePrintBarcode()}>
+              <Printer className="h-3 w-3 mr-1" />
+              Print
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Print Lab Copy Thermal Dialog */}
+      <Dialog open={labCopyDialogOpen} onOpenChange={setLabCopyDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Lab Copy (Thermal)</DialogTitle>
+          </DialogHeader>
+          <div className="border rounded p-2 bg-white max-h-[60vh] overflow-auto flex justify-center">
+            <div
+              ref={labCopyPrintRef}
+              style={{
+                width: "280px",
+                fontFamily: "'Courier New', monospace",
+                fontSize: "11px",
+                lineHeight: "1.4",
+                color: "#000",
+                padding: "10px",
+              }}
+            >
+              {labCopyCase && (
+                <>
+                  {/* Header */}
+                  <div style={{ textAlign: "center", borderBottom: "1px dashed #000", paddingBottom: "6px", marginBottom: "6px" }}>
+                    <div style={{ fontWeight: "bold", fontSize: "13px" }}>LABORATORY COPY</div>
+                  </div>
+
+                  {/* Case Info */}
+                  <div style={{ marginBottom: "6px" }}>
+                    <div><b>Case:</b> {labCopyCase.caseNo}</div>
+                    <div><b>Date:</b> {labCopyCase.caseDate ? formatDate(labCopyCase.caseDate) : "-"}</div>
+                  </div>
+
+                  {/* Patient Info */}
+                  <div style={{ borderBottom: "1px dashed #000", paddingBottom: "6px", marginBottom: "6px" }}>
+                    <div><b>Patient:</b> {labCopyCase.patient?.pName}</div>
+                    <div><b>MRN:</b> {labCopyCase.patient?.mrn}</div>
+                    <div><b>Age:</b> {calculateAge(labCopyCase.patient?.dob)}</div>
+                    <div><b>Gender:</b> {labCopyCase.patient?.gender}</div>
+                    <div><b>Doctor:</b> Dr. {labCopyCase.doctor?.Name}</div>
+                    <div><b>Priority:</b> {labCopyCase.priority}</div>
+                  </div>
+
+                  {/* Parameters */}
+                  <div style={{ fontWeight: "bold", fontSize: "12px", marginBottom: "4px" }}>Parameters:</div>
+                  {(labCopyCase.tests || []).map((test) => (
+                    <div key={test.id} style={{ marginBottom: "6px" }}>
+                      {test.parameters && test.parameters.length > 0 && (
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px", marginTop: "2px" }}>
+                          <tbody>
+                            {test.parameters.map((param, pIdx) => (
+                              <tr key={pIdx}>
+                                <td style={{ padding: "1px 2px" }}>{param.parameterName}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Footer */}
+                  <div style={{ borderTop: "1px dashed #000", paddingTop: "6px", marginTop: "6px", textAlign: "center", fontSize: "10px" }}>
+                    Thank you
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setLabCopyDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={() => handlePrintLabCopy()}>
+              <Printer className="h-3 w-3 mr-1" />
+              Print
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

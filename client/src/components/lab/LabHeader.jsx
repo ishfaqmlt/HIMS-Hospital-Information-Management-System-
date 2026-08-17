@@ -2,27 +2,7 @@
 
 import React from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { getImageUrl } from "@/lib/utils";
-
-const calculateAge = (dob) => {
-  if (!dob) return "";
-  const birth = new Date(dob);
-  if (isNaN(birth.getTime())) return "";
-
-  const now = new Date();
-  let years = now.getFullYear() - birth.getFullYear();
-  let months = now.getMonth() - birth.getMonth();
-  if (months < 0 || (months === 0 && now.getDate() < birth.getDate())) {
-    years--;
-  }
-  if (years > 0) return `${years} Year(s)`;
-
-  const diffTime = Math.abs(now - birth);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  if (diffDays < 30) return `${diffDays} Day(s)`;
-  const monthsTotal = Math.floor(diffDays / 30);
-  return `${monthsTotal} Month(s)`;
-};
+import { calculateAge, getImageUrl } from "@/lib/utils";
 
 const formatSexAndAge = (patient, caseData) => {
   const gender =
@@ -63,7 +43,7 @@ export default function LabHeader({ caseData, settings, hospitalProfile }) {
   return (
     <div className="w-full text-black space-y-3 font-sans">
       {/* Top Banner / Pre-printed Letterhead image or Dynamic Header */}
-      {showHeader && (
+      {showHeader ? (
         <div className="flex items-center justify-between border-b pb-2 border-red-700 mb-2">
           {/* Left Side (50% Width) - Header Image OR Default Logo & Info */}
           <div className="w-1/2 flex items-center gap-3">
@@ -107,6 +87,9 @@ export default function LabHeader({ caseData, settings, hospitalProfile }) {
             </div>
           )}
         </div>
+      ) : (
+        /* Empty Spacer reserved for pre-printed letterhead paper */
+        <div className="h-28 w-full block" />
       )}
 
       {/* Patient Demographics Box */}

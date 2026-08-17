@@ -113,8 +113,10 @@ class LabCaseController extends Controller
                     'services.Code as testCode',
                     'departments.DepartmentName as departmentName',
                     'lab_headers.header_name as headerName',
-                    'lab_headers.header_name as header_name'
+                    'lab_headers.header_name as header_name',
+                    'lab_headers.sortBy as headerSortBy'
                 )
+                ->orderByRaw('COALESCE(lab_headers.sortBy, 999999) ASC')
                 ->get();
 
             $tests->each(function ($test) {
@@ -437,7 +439,7 @@ class LabCaseController extends Controller
     public function updateTestStatus(Request $request, $testId)
     {
         $validated = $request->validate([
-            'status' => 'required|in:Registered,Sampled,InProcess,Reported,Approved,Cancelled',
+            'status' => 'nullable|in:Registered,Sampled,InProcess,Reported,Approved,Cancelled',
             'sampledAt' => 'nullable|date',
             'performedAt' => 'nullable|date',
             'approvedAt' => 'nullable|date',
@@ -451,38 +453,42 @@ class LabCaseController extends Controller
             return response()->json(['message' => 'Lab case test not found'], 404);
         }
 
-        $updateData = ['testStatus' => $validated['status'], 'updated_at' => now()];
+        $updateData = ['updated_at' => now()];
 
-        if ($request->has('remarks')) {
-            $updateData['remarks'] = $validated['remarks'];
-        }
+        if (!empty($validated['status'])) {
+            $updateData['testStatus'] = $validated['status'];
 
-        if ($validated['status'] === 'Sampled') {
-            $updateData['sampledAt'] = !empty($validated['sampledAt'])
-                ? date('Y-m-d H:i:s', strtotime($validated['sampledAt']))
-                : now();
-            $updateData['sampledBy'] = Auth::id();
-            $updateData['isPerformed'] = false;
-            $updateData['isApproved'] = false;
-        }
-
-        if ($validated['status'] === 'InProcess' || $validated['status'] === 'Reported') {
-            $updateData['isPerformed'] = true;
-            $updateData['performedAt'] = !empty($validated['performedAt'])
-                ? date('Y-m-d H:i:s', strtotime($validated['performedAt']))
-                : now();
-            $updateData['performedBy'] = Auth::id();
-            if ($validated['status'] === 'InProcess') {
+            if ($validated['status'] === 'Sampled') {
+                $updateData['sampledAt'] = !empty($validated['sampledAt'])
+                    ? date('Y-m-d H:i:s', strtotime($validated['sampledAt']))
+                    : now();
+                $updateData['sampledBy'] = Auth::id();
+                $updateData['isPerformed'] = false;
                 $updateData['isApproved'] = false;
+            }
+
+            if ($validated['status'] === 'InProcess' || $validated['status'] === 'Reported') {
+                $updateData['isPerformed'] = true;
+                $updateData['performedAt'] = !empty($validated['performedAt'])
+                    ? date('Y-m-d H:i:s', strtotime($validated['performedAt']))
+                    : now();
+                $updateData['performedBy'] = Auth::id();
+                if ($validated['status'] === 'InProcess') {
+                    $updateData['isApproved'] = false;
+                }
+            }
+
+            if ($validated['status'] === 'Approved') {
+                $updateData['isApproved'] = true;
+                $updateData['approvedAt'] = !empty($validated['approvedAt'])
+                    ? date('Y-m-d H:i:s', strtotime($validated['approvedAt']))
+                    : now();
+                $updateData['approvedBy'] = Auth::id();
             }
         }
 
-        if ($validated['status'] === 'Approved') {
-            $updateData['isApproved'] = true;
-            $updateData['approvedAt'] = !empty($validated['approvedAt'])
-                ? date('Y-m-d H:i:s', strtotime($validated['approvedAt']))
-                : now();
-            $updateData['approvedBy'] = Auth::id();
+        if ($request->has('remarks')) {
+            $updateData['remarks'] = $validated['remarks'];
         }
 
         if (isset($validated['showInterpretation'])) {
@@ -541,12 +547,14 @@ class LabCaseController extends Controller
     public function storeResults(Request $request, $testId)
     {
         $validated = $request->validate([
-            'results' => 'required|array|min:1',
-            'results.*.parameterId' => 'required|string|exists:lab_master_test_parameters,id',
-            'results.*.result' => 'nullable|string',
+            'results' => 'nullable|array',
+            'results.*.parameterId' => 'required|string',
+            'results.*.result' => 'nullable',
             'results.*.units' => 'nullable|string',
-            'results.*.paramStatus' => 'required|in:N,A,C',
+            'results.*.paramStatus' => 'nullable|string',
             'results.*.normalRange' => 'nullable|string',
+            'performedBy' => 'nullable',
+            'performedAt' => 'nullable|string',
         ]);
 
         $existing = DB::table('lab_case_tests')->where('id', $testId)->first();
@@ -556,26 +564,48 @@ class LabCaseController extends Controller
 
         DB::table('lab_case_test_results')->where('caseTestId', $testId)->delete();
 
-        foreach ($validated['results'] as $result) {
-            DB::table('lab_case_test_results')->insert([
-                'id' => Str::uuid(),
-                'caseTestId' => $testId,
-                'parameterId' => $result['parameterId'],
-                'result' => $result['result'] ?? null,
-                'units' => $result['units'] ?? null,
-                'paramStatus' => $result['paramStatus'],
-                'normalRange' => $result['normalRange'] ?? null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        if (!empty($validated['results'])) {
+            foreach ($validated['results'] as $result) {
+                if (isset($result['result']) && trim((string)$result['result']) !== '') {
+                    $paramId = $result['parameterId'];
+                    if (DB::table('lab_master_test_parameters')->where('id', $paramId)->exists()) {
+                        $pStatus = isset($result['paramStatus']) && in_array($result['paramStatus'], ['N', 'A', 'C'])
+                            ? $result['paramStatus']
+                            : 'N';
+
+                        DB::table('lab_case_test_results')->insert([
+                            'id' => (string) Str::uuid(),
+                            'caseTestId' => $testId,
+                            'parameterId' => $paramId,
+                            'result' => trim((string)$result['result']),
+                            'units' => $result['units'] ?? null,
+                            'paramStatus' => $pStatus,
+                            'normalRange' => $result['normalRange'] ?? null,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
+            }
         }
 
-        // Update testStatus to Reported in lab_case_tests
+        $performedBy = $request->input('performedBy');
+        if ($performedBy && !DB::table('users')->where('id', $performedBy)->exists()) {
+            $performedBy = Auth::id();
+        }
+        if (!$performedBy) {
+            $performedBy = Auth::id();
+        }
+
+        $performedAtInput = $request->input('performedAt');
+        $performedAt = $performedAtInput ? str_replace('T', ' ', $performedAtInput) : now();
+
+        // Update testStatus to Reported, isPerformed=1, performedBy, performedAt in lab_case_tests
         DB::table('lab_case_tests')->where('id', $testId)->update([
             'testStatus' => 'Reported',
-            'isPerformed' => true,
-            'performedAt' => now(),
-            'performedBy' => Auth::id(),
+            'isPerformed' => 1,
+            'performedAt' => $performedAt,
+            'performedBy' => $performedBy,
             'updated_at' => now(),
         ]);
 

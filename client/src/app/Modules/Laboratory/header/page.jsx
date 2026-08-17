@@ -39,6 +39,7 @@ export default function LabHeadersPage() {
     resolver: zodResolver(labHeaderSchema),
     defaultValues: {
       header_name: "",
+      sortBy: 1,
     },
   });
 
@@ -63,7 +64,8 @@ export default function LabHeadersPage() {
 
   const openCreate = () => {
     setEditingId(null);
-    reset({ header_name: "" });
+    const maxSort = headers.length > 0 ? Math.max(...headers.map((h) => h.sortBy || 0)) : 0;
+    reset({ header_name: "", sortBy: maxSort + 1 });
     setIsDialogOpen(true);
   };
 
@@ -73,7 +75,7 @@ export default function LabHeadersPage() {
       const res = await labHeaderService.getById(id);
       const data = res.data;
       setEditingId(data.id);
-      reset({ header_name: data.header_name || "" });
+      reset({ header_name: data.header_name || "", sortBy: data.sortBy ?? 0 });
       setIsDialogOpen(true);
     } catch (error) {
       setMessage({ type: "error", text: "Failed to load header" });
@@ -192,6 +194,20 @@ export default function LabHeadersPage() {
               {errors.header_name && (
                 <p className="text-xs text-destructive">
                   {errors.header_name.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Sort Order</Label>
+              <Input
+                type="number"
+                {...register("sortBy")}
+                className="h-9 text-xs"
+                placeholder="Enter sort order number"
+              />
+              {errors.sortBy && (
+                <p className="text-xs text-destructive">
+                  {errors.sortBy.message}
                 </p>
               )}
             </div>

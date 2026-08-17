@@ -14,18 +14,24 @@ export function toLocalISOString(date: Date): string {
   return `${y}-${m}-${d}T${h}:${min}`;
 }
 
-export function calculateAge(dob: string | null): string {
-  if (!dob) return "-";
+export function calculateAge(dob: string | Date | null | undefined): string {
+  if (!dob) return "";
   const birth = new Date(dob);
-  const today = new Date();
-  let years = today.getFullYear() - birth.getFullYear();
-  let months = today.getMonth() - birth.getMonth();
-  if (months < 0) {
+  if (isNaN(birth.getTime())) return "";
+
+  const now = new Date();
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+  if (months < 0 || (months === 0 && now.getDate() < birth.getDate())) {
     years--;
-    months += 12;
   }
-  if (years > 0) return `${years}Y ${months}M`;
-  return `${months}M`;
+  if (years > 0) return `${years} Year(s)`;
+
+  const diffTime = Math.abs(now.getTime() - birth.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  if (diffDays < 30) return `${diffDays} Day(s)`;
+  const monthsTotal = Math.floor(diffDays / 30);
+  return `${monthsTotal} Month(s)`;
 }
 
 export function calculateAgeLong(dob: string | null): string {

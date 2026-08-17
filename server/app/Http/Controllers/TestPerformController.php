@@ -71,8 +71,10 @@ class TestPerformController extends Controller
                     'lab_case_tests.performedAt',
                     'services.ServiceName as testName',
                     'services.Code as testCode',
+                    'lab_master_tests.testSort',
                     'lab_required_samples.required_sample_name as requiredSampleName'
                 )
+                ->orderByRaw('COALESCE(lab_master_tests.testSort, 999999) ASC')
                 ->get();
 
             return [
@@ -144,18 +146,33 @@ class TestPerformController extends Controller
 
         $data = $parameters->map(function ($param) use ($existingResults) {
             $existing = $existingResults->get($param->id);
+            $hasStoredResult = $existing && isset($existing->result) && trim((string)$existing->result) !== '';
+            $defaultVal = isset($param->defaultValue) ? trim((string)$param->defaultValue) : '';
+            $hasDefault = $defaultVal !== '';
+
+            if ($hasStoredResult) {
+                $finalResult = $existing->result;
+                $isPrint = true;
+            } elseif ($hasDefault) {
+                $finalResult = $param->defaultValue;
+                $isPrint = true;
+            } else {
+                $finalResult = '';
+                $isPrint = false;
+            }
+
             return [
                 'id' => $param->id,
                 'parameterName' => $param->parameterName,
                 'pCode' => $param->analyzerCode ?? '',
                 'subHeaderName' => $param->sub_header_name ?? '',
-                'units' => $existing ? $existing->units : ($param->units ?? ''),
-                'result' => $existing ? $existing->result : '',
-                'paramStatus' => $existing ? $existing->paramStatus : 'N',
-                'normalRange' => $existing ? $existing->normalRange : ($param->normalRange ?? ''),
+                'units' => $hasStoredResult ? ($existing->units ?? ($param->units ?? '')) : ($param->units ?? ''),
+                'result' => $finalResult,
+                'paramStatus' => $hasStoredResult ? ($existing->paramStatus ?? 'N') : 'N',
+                'normalRange' => $hasStoredResult ? ($existing->normalRange ?? ($param->normalRange ?? '')) : ($param->normalRange ?? ''),
                 'decimal' => $param->decimal ?? 0,
                 'sortNo' => $param->sortNo ?? 0,
-                'print' => false,
+                'print' => $isPrint,
             ];
         });
 

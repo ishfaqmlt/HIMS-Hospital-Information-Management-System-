@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('lab_headers', function (Blueprint $table) {
            $table->uuid('id')->primary();
             $table->string('header_name')->unique();
+            $table->integer('sortBy')->default(0);
             $table->boolean('isSynced')->default(false);
             $table->timestamps();
         });

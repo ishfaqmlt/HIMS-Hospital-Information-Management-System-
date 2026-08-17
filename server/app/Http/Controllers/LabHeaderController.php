@@ -9,16 +9,20 @@ class LabHeaderController extends Controller
 {
     public function index()
     {
-        return response()->json(LabHeader::all());
+        return response()->json(LabHeader::orderBy('sortBy', 'asc')->get());
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'header_name' => 'required|string|max:255|unique:lab_headers,header_name',
+            'sortBy' => 'nullable|integer',
         ]);
 
         $validated['id'] = \Illuminate\Support\Str::uuid();
+        if (!isset($validated['sortBy'])) {
+            $validated['sortBy'] = (LabHeader::max('sortBy') ?? 0) + 1;
+        }
         $item = LabHeader::create($validated);
 
         return response()->json($item, 201);
@@ -33,6 +37,7 @@ class LabHeaderController extends Controller
     {
         $validated = $request->validate([
             'header_name' => 'required|string|max:255|unique:lab_headers,header_name,' . $labHeader->id,
+            'sortBy' => 'nullable|integer',
         ]);
 
         $labHeader->update($validated);

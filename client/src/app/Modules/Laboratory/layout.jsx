@@ -33,11 +33,6 @@ const labMenuItems = [
     href: "/Modules/laboratory/caseRegistration",
   },
   {
-    label: "Sample Collection",
-    icon: TestTube,
-    href: "/Modules/laboratory/sampleCollection",
-  },
-  {
     label: "Accept Sample",
     icon: TestTube,
     href: "/Modules/laboratory/acceptSample",

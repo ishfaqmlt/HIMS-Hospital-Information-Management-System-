@@ -63,10 +63,10 @@ const workflowMenuItems = [
     bgLight: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
   },
   {
-    label: "Sample Collection",
-    desc: "Collect & receive lab samples",
+    label: "Accept Sample",
+    desc: "Accept & receive lab samples",
     icon: TestTube,
-    href: "/Modules/laboratory/sampleCollection",
+    href: "/Modules/laboratory/acceptSample",
     color: "from-amber-500 to-orange-600",
     bgLight: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
   },
@@ -291,10 +291,10 @@ export default function LabDashboardPage() {
                 + New Lab Case
               </Button>
             </Link>
-            <Link href="/Modules/laboratory/sampleCollection">
+            <Link href="/Modules/laboratory/testPerform">
               <Button size="sm" className="h-9 text-xs bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold shadow-md transition-all">
-                <TestTube className="h-4 w-4 mr-1.5" />
-                Sample Collection
+                <FlaskConical className="h-4 w-4 mr-1.5" />
+                Test Perform
               </Button>
             </Link>
           </div>

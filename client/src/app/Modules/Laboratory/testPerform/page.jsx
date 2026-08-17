@@ -39,6 +39,7 @@ const stripHtml = (str) => {
 
 const TestPerform = () => {
   const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth || {});
   const { boundings } = useSelector((state) => state.labBoundings || { boundings: [] });
 
   const [message, setMessage] = useState(null);
@@ -189,8 +190,42 @@ const TestPerform = () => {
   }, [dtFrom, dtTo, statusFilter]);
 
   useEffect(() => {
-    fetchCases();
-  }, []);
+    let isCancelled = false;
+    const loadInitialCases = async () => {
+      try {
+        setLoading(true);
+        const res = await testPerformService.getAll({
+          fromDate: dtFrom,
+          toDate: dtTo,
+          status: statusFilter,
+        });
+        if (!isCancelled) {
+          setCases(res.data || []);
+          setSelectedCase(null);
+          setSelectedTest(null);
+          setTestParameters([]);
+          setAnalyzerReffno("");
+          setSampledAt("");
+          setPerformedAt("");
+          setOrReffBy("");
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          console.error(err);
+          setMessage({ type: "error", text: "Failed to load cases." });
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadInitialCases();
+    return () => {
+      isCancelled = true;
+    };
+  }, [dtFrom, dtTo, statusFilter]);
 
   const handleSelectCase = async (c) => {
     setSelectedCase(c);
@@ -200,7 +235,7 @@ const TestPerform = () => {
     setSampledAt("");
     setPerformedAt("");
 
-    const tests = c.tests || [];
+    const tests = [...(c.tests || [])].sort((a, b) => Number(a.testSort ?? 999999) - Number(b.testSort ?? 999999));
     if (tests.length === 0) {
       setTestParameters([]);
       return;
@@ -272,6 +307,7 @@ const TestPerform = () => {
           if (field === "result") {
             const evalStatus = evaluateResultStatus(value, paramId);
             updated.paramStatus = evalStatus;
+            updated.print = value !== null && value !== undefined && String(value).trim() !== "";
           }
           return updated;
         }
@@ -374,43 +410,34 @@ const TestPerform = () => {
     if (!selectedCase) return;
     try {
       setSavingResults(true);
+      const currentUserId = user?.id || user?.userId || null;
+      const currentPerformedAt = performedAt || toLocalISOString(new Date());
 
-      if (selectedTest) {
+      const testsToSave = selectedTest ? [selectedTest] : (selectedCase.tests || []);
+
+      for (const test of testsToSave) {
+        const testParams = testParameters.filter((r) => r._testId === test.id);
+
+        // Filter: ONLY save rows where Print is checked (print === true) AND result is NOT empty
+        const validParams = testParams.filter((r) => {
+          const isPrinted = Boolean(r.print);
+          const hasResult = r.result !== null && r.result !== undefined && String(r.result).trim() !== "";
+          return isPrinted && hasResult;
+        });
+
         const payload = {
-          results: testParameters
-            .filter((r) => r._testId === selectedTest.id)
-            .map((r) => ({
-              parameterId: r.id,
-              result: r.result || null,
-              units: r.units || null,
-              paramStatus: r.paramStatus,
-              normalRange: r.normalRange || null,
-            })),
+          performedBy: currentUserId,
+          performedAt: currentPerformedAt,
+          results: validParams.map((r) => ({
+            parameterId: r.id,
+            result: String(r.result).trim(),
+            units: r.units || null,
+            paramStatus: r.paramStatus || "N",
+            normalRange: r.normalRange || null,
+          })),
         };
-        await testPerformService.storeResults(selectedTest.id, payload);
-        try {
-          await testPerformService.updateTestStatus(selectedTest.id, { status: "Reported" });
-        } catch (e) {}
-      } else {
-        const testsToSave = selectedCase.tests || [];
-        for (const test of testsToSave) {
-          const testParams = testParameters.filter((r) => r._testId === test.id);
-          if (testParams.length > 0) {
-            const payload = {
-              results: testParams.map((r) => ({
-                parameterId: r.id,
-                result: r.result || null,
-                units: r.units || null,
-                paramStatus: r.paramStatus,
-                normalRange: r.normalRange || null,
-              })),
-            };
-            await testPerformService.storeResults(test.id, payload);
-            try {
-              await testPerformService.updateTestStatus(test.id, { status: "Reported" });
-            } catch (e) {}
-          }
-        }
+
+        await testPerformService.storeResults(test.id, payload);
       }
 
       setMessage({ type: "success", text: "Results saved successfully." });
@@ -426,6 +453,18 @@ const TestPerform = () => {
   const displayParams = selectedTest
     ? testParameters.filter((p) => p._testId === selectedTest.id)
     : testParameters;
+
+  useEffect(() => {
+    if (!resultsLoading && displayParams && displayParams.length > 0) {
+      const timer = setTimeout(() => {
+        const firstParamId = displayParams[0]?.id;
+        if (firstParamId && resultInputRefs.current[firstParamId]) {
+          resultInputRefs.current[firstParamId].focus();
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [resultsLoading, selectedCase?.id, selectedTest?.id]);
 
   return (
     <div className="p-4 max-w-full mx-auto space-y-4">
@@ -643,7 +682,9 @@ const TestPerform = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      (selectedCase.tests || []).map((test, idx) => (
+                      [...(selectedCase.tests || [])]
+                        .sort((a, b) => Number(a.testSort ?? 999999) - Number(b.testSort ?? 999999))
+                        .map((test, idx) => (
                         <TableRow
                           key={test.id}
                           className={`h-7 cursor-pointer hover:bg-muted/50 ${

@@ -14,10 +14,12 @@ class LabHeader extends Model
 
     protected $fillable = [
         'header_name',
+        'sortBy',
         'isSynced',
     ];
 
     protected $casts = [
+        'sortBy' => 'integer',
         'isSynced' => 'boolean',
     ];
 

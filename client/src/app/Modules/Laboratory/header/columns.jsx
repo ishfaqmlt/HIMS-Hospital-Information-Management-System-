@@ -19,12 +19,27 @@ export const getColumns = ({ onEdit, onDelete }) => [
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Header Name
-          {/* <ArrowUpDown className="ml-2 h-4 w-4" /> */}
         </Button>
       );
     },
     cell: ({ row }) => (
       <span className="text-xs font-medium">{row.getValue("header_name")}</span>
+    ),
+  },
+  {
+    accessorKey: "sortBy",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Sort Order
+        </Button>
+      );
+    },
+    cell: ({ row }) => (
+      <span className="text-xs font-medium">{row.getValue("sortBy") ?? 0}</span>
     ),
   },
   {

@@ -149,6 +149,7 @@ export const subHeaderSchema = z.object({
 
 export const labHeaderSchema = z.object({
   header_name: z.string().min(1, "Header name is required"),
+  sortBy: z.coerce.number().optional().default(0),
 });
 
 export const branchSchema = z.object({

@@ -41,7 +41,7 @@ import labOutputSettingService from "@/services/labOutputSetting.service";
 import LabHeader from "@/components/lab/LabHeader";
 import LabFooter from "@/components/lab/LabFooter";
 import LabTestBarcodeStamp from "@/components/lab/LabTestBarcodeStamp";
-import { calculateAge, toLocalISOString } from "@/lib/utils";
+import { toLocalISOString } from "@/lib/utils";
 
 const stripHtml = (str) => {
   if (!str) return "";
@@ -132,6 +132,41 @@ export default function PatientReportsPage() {
   const handlePrintTrigger = useReactToPrint({
     contentRef: printContentRef,
     documentTitle: "Lab_Report",
+    pageStyle: `
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        thead {
+          display: table-header-group;
+        }
+        tfoot {
+          display: table-footer-group;
+        }
+        .print-footer-container {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          width: 100%;
+          background: white;
+          z-index: 9999;
+        }
+        .page-break-before {
+          page-break-before: always;
+          break-before: page;
+        }
+        .avoid-break, .break-inside-avoid, .page-break-inside-avoid {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+      }
+    `,
     onAfterPrint: () => {
       markTestsAsPrinted();
     },
@@ -143,16 +178,6 @@ export default function PatientReportsPage() {
     return () => clearTimeout(t);
   }, [message]);
 
-  const fetchOutputSettings = useCallback(async () => {
-    try {
-      const res = await labOutputSettingService.get();
-      if (res.data) {
-        setOutputSettings(res.data);
-      }
-    } catch (err) {
-      console.error("Failed to load output settings:", err);
-    }
-  }, []);
 
   const fetchCases = useCallback(async () => {
     try {
@@ -171,7 +196,6 @@ export default function PatientReportsPage() {
       const res = await labCaseService.getAll(params);
       const data = res.data || [];
       setCases(data);
-      // By default rows are NOT expanded!
     } catch (err) {
       console.error(err);
       setMessage({ type: "error", text: "Failed to load patient lab reports." });
@@ -181,9 +205,46 @@ export default function PatientReportsPage() {
   }, [dtFrom, dtTo, statusFilter, caseNoSearch]);
 
   useEffect(() => {
-    fetchCases();
-    fetchOutputSettings();
-  }, []);
+    let isCancelled = false;
+
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        const [casesRes, settingsRes] = await Promise.allSettled([
+          labCaseService.getAll({
+            fromDate: dtFrom,
+            toDate: dtTo,
+            ...(statusFilter && statusFilter !== "All" ? { status: statusFilter } : {}),
+            ...(caseNoSearch.trim() ? { search: caseNoSearch.trim() } : {}),
+          }),
+          labOutputSettingService.get(),
+        ]);
+
+        if (!isCancelled) {
+          if (casesRes.status === "fulfilled") {
+            setCases(casesRes.value.data || []);
+          }
+          if (settingsRes.status === "fulfilled" && settingsRes.value.data) {
+            setOutputSettings(settingsRes.value.data);
+          }
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          console.error(err);
+          setMessage({ type: "error", text: "Failed to load patient lab reports." });
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadInitialData();
+    return () => {
+      isCancelled = true;
+    };
+  }, [dtFrom, dtTo, statusFilter, caseNoSearch]);
 
   const handleCheckTest = (test, parentCase, checked) => {
     setCheckedTests((prev) => {
@@ -630,97 +691,133 @@ export default function PatientReportsPage() {
           {printData.map((caseGroup, caseIdx) => (
             <div
               key={caseGroup.caseObj?.id || caseIdx}
-              className={`min-h-[297mm] flex flex-col justify-between p-6 bg-white space-y-4 text-black ${
+              className={`relative min-h-[297mm] p-6 bg-white text-black ${
                 caseIdx > 0 ? "page-break-before" : ""
               }`}
             >
-              {/* Top Section: Header & All Case Tests */}
-              <div className="space-y-3">
-                {/* Top Header - Rendered ONCE per case */}
-                <LabHeader caseData={caseGroup.caseObj} settings={outputSettings} />
-
-                {/* Static Table Column Header - Rendered ONCE right below patient details */}
-                <div className="border-y-2 border-black bg-gray-100/90 py-1.5 px-3 grid grid-cols-12 text-xs font-bold text-black uppercase tracking-wider">
-                  <div className="col-span-5">Test Name</div>
-                  <div className="col-span-2">Result</div>
-                  <div className="col-span-2">Units</div>
-                  <div className="col-span-3">Reference Range</div>
-                </div>
-
-                {/* Sequential List of Tests Grouped by Header & PerformedAt */}
-                <div className="space-y-4 pt-1">
-                  {groupTestsByHeaderAndPerformedAt(caseGroup.tests).map(
-                    (headerGroup, hIdx) => {
-                      const subHeaderGroups = groupParametersBySubHeader(
-                        headerGroup.testItems
-                      );
-                      const firstTest = headerGroup.testItems[0]?.testObj;
-
-                      return (
-                        <div key={hIdx} className="space-y-1">
-                          <LabTestBarcodeStamp
-                            testName={headerGroup.headerName}
-                            caseNo={caseGroup.caseObj?.caseNo}
-                            testId={firstTest?.id}
-                            approvedAt={
-                              headerGroup.performedAt || firstTest?.approvedAt
-                            }
-                            settings={outputSettings}
-                          />
-
-                          <div className="border border-gray-300 text-xs divide-y divide-gray-200">
-                            {subHeaderGroups.length === 0 ||
-                            subHeaderGroups.every(
-                              (g) => g.parameters.length === 0
-                            ) ? (
-                              <div className="text-center text-gray-500 py-2">
-                                No result parameters recorded for this test.
-                              </div>
-                            ) : (
-                              subHeaderGroups.map((subGroup, sIdx) => (
-                                <React.Fragment key={sIdx}>
-                                  {subGroup.subHeaderName ? (
-                                    <div className="bg-gray-100/80 font-bold text-xs text-black uppercase tracking-wide py-1 px-3 border-b border-gray-300">
-                                      {subGroup.subHeaderName}
-                                    </div>
-                                  ) : null}
-
-                                  {subGroup.parameters.map((p, pIdx) => (
-                                    <div
-                                      key={p.id || pIdx}
-                                      className="grid grid-cols-12 py-1 px-3 items-center hover:bg-gray-50/50 border-b border-gray-100 last:border-b-0 text-[11px]"
-                                    >
-                                      <div
-                                        className={`col-span-5 font-medium text-slate-900 ${
-                                          subGroup.subHeaderName ? "pl-4" : ""
-                                        }`}
-                                      >
-                                        {p.parameterName}
-                                      </div>
-                                      <div className="col-span-2 font-bold text-black">
-                                        {p.result || "-"}
-                                      </div>
-                                      <div className="col-span-2 text-slate-700">
-                                        {p.units || "-"}
-                                      </div>
-                                      <div className="col-span-3 text-slate-700">
-                                        {stripHtml(p.normalRange) || "-"}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </React.Fragment>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-                  )}
-                </div>
+              {/* Pinned Bottom Footer for Printing - Fixed at physical bottom of every page */}
+              <div className="print-footer-container hidden print:block px-6 pb-4 bg-white">
+                <LabFooter settings={outputSettings} />
               </div>
 
-              {/* Bottom Section: Footer - Rendered ONCE per case at page bottom */}
-              <div className="pt-4">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="p-0 font-normal text-left border-none">
+                      <div className="pb-2 space-y-3">
+                        {/* Top Header - Repeats on every page */}
+                        <LabHeader caseData={caseGroup.caseObj} settings={outputSettings} />
+
+                        {/* Static Table Column Header - Repeats on every page */}
+                        <div className="border-y-2 border-black bg-gray-100/90 py-1.5 px-3 grid grid-cols-12 text-xs font-bold text-black uppercase tracking-wider">
+                          <div className="col-span-5">Test Name</div>
+                          <div className="col-span-2">Result</div>
+                          <div className="col-span-2">Units</div>
+                          <div className="col-span-3">Reference Range</div>
+                        </div>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="p-0 border-none">
+                      {/* Sequential List of Tests Grouped by Header & PerformedAt */}
+                      <div className="space-y-4 pt-1">
+                        {groupTestsByHeaderAndPerformedAt(caseGroup.tests).map(
+                          (headerGroup, hIdx) => {
+                            const subHeaderGroups = groupParametersBySubHeader(
+                              headerGroup.testItems
+                            );
+                            const firstTest = headerGroup.testItems[0]?.testObj;
+
+                            return (
+                              <div
+                                key={hIdx}
+                                className="space-y-1 break-inside-avoid avoid-break"
+                                style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
+                              >
+                                <LabTestBarcodeStamp
+                                  testName={headerGroup.headerName}
+                                  caseNo={caseGroup.caseObj?.caseNo}
+                                  testId={firstTest?.id}
+                                  approvedAt={
+                                    headerGroup.performedAt || firstTest?.approvedAt
+                                  }
+                                  settings={outputSettings}
+                                />
+
+                                <div
+                                  className="border border-gray-300 text-xs divide-y divide-gray-200 break-inside-avoid avoid-break"
+                                  style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
+                                >
+                                  {subHeaderGroups.length === 0 ||
+                                  subHeaderGroups.every(
+                                    (g) => g.parameters.length === 0
+                                  ) ? (
+                                    <div className="text-center text-gray-500 py-2">
+                                      No result parameters recorded for this test.
+                                    </div>
+                                  ) : (
+                                    subHeaderGroups.map((subGroup, sIdx) => (
+                                      <div
+                                        key={sIdx}
+                                        className="break-inside-avoid avoid-break"
+                                        style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
+                                      >
+                                        {subGroup.subHeaderName ? (
+                                          <div className="bg-gray-100/80 font-bold text-xs text-black uppercase tracking-wide py-1 px-3 border-b border-gray-300">
+                                            {subGroup.subHeaderName}
+                                          </div>
+                                        ) : null}
+
+                                        {subGroup.parameters.map((p, pIdx) => (
+                                          <div
+                                            key={p.id || pIdx}
+                                            className="grid grid-cols-12 py-1 px-3 items-center hover:bg-gray-50/50 border-b border-gray-100 last:border-b-0 text-[11px]"
+                                          >
+                                            <div
+                                              className={`col-span-5 font-medium text-slate-900 ${
+                                                subGroup.subHeaderName ? "pl-4" : ""
+                                              }`}
+                                            >
+                                              {p.parameterName}
+                                            </div>
+                                            <div className="col-span-2 font-bold text-black">
+                                              {p.result || "-"}
+                                            </div>
+                                            <div className="col-span-2 text-slate-700">
+                                              {p.units || "-"}
+                                            </div>
+                                            <div className="col-span-3 text-slate-700">
+                                              {stripHtml(p.normalRange) || "-"}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td className="p-0 font-normal text-left border-none">
+                      {/* Reserve matching vertical height in table so content never overlaps fixed footer */}
+                      <div className="h-28 w-full" />
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              {/* On-screen preview fallback footer */}
+              <div className="print:hidden pt-4">
                 <LabFooter settings={outputSettings} />
               </div>
             </div>
