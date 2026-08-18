@@ -17,7 +17,6 @@ return new class extends Migration
             $table->string('units')->nullable();
             $table->integer('decimal')->default(0);
             $table->string('resultTemplets')->nullable();
-            $table->string('formula')->nullable();
             $table->string('analyzerCode')->nullable();
             $table->integer('sortNo')->default(0);
             $table->boolean('printOnReciept')->default(true);

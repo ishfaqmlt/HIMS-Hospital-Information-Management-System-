@@ -31,6 +31,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchLabBoundings } from "@/reduxToolKit/slices/labBoundingSlice";
 import testPerformService from "@/services/testPerform.service";
 import { calculateAge, calculateAgeInDays, toLocalISOString } from "@/lib/utils";
+import { evaluateTestParameters } from "@/lib/formulaEvaluator";
 
 const stripHtml = (str) => {
   if (!str) return "";
@@ -246,7 +247,7 @@ const TestPerform = () => {
       const allParams = [];
       for (const test of tests) {
         const res = await testPerformService.getParameters(test.id);
-        const params = (res.data || []).map((p) => {
+        const rawParams = (res.data || []).map((p) => {
           const evalStatus = p.paramStatus || evaluateResultStatus(p.result, p.id);
           return {
             ...p,
@@ -255,6 +256,7 @@ const TestPerform = () => {
             _testName: test.testName,
           };
         });
+        const params = evaluateTestParameters(rawParams);
         allParams.push(...params);
       }
       setTestParameters(allParams);
@@ -275,7 +277,7 @@ const TestPerform = () => {
 
     try {
       const res = await testPerformService.getParameters(test.id);
-      const newParams = (res.data || []).map((p) => {
+      const rawParams = (res.data || []).map((p) => {
         const evalStatus = p.paramStatus || evaluateResultStatus(p.result, p.id);
         return {
           ...p,
@@ -284,6 +286,7 @@ const TestPerform = () => {
           _testName: test.testName,
         };
       });
+      const newParams = evaluateTestParameters(rawParams);
       setTestParameters((prev) => {
         const otherParams = prev.filter((p) => p._testId !== test.id);
         return [...otherParams, ...newParams];
@@ -300,8 +303,8 @@ const TestPerform = () => {
   };
 
   const handleResultChange = (paramId, field, value) => {
-    setTestParameters((prev) =>
-      prev.map((p) => {
+    setTestParameters((prev) => {
+      const updatedList = prev.map((p) => {
         if (p.id === paramId) {
           const updated = { ...p, [field]: value };
           if (field === "result") {
@@ -312,8 +315,32 @@ const TestPerform = () => {
           return updated;
         }
         return p;
-      })
-    );
+      });
+
+      if (field === "result") {
+        const testGroups = {};
+        updatedList.forEach((p) => {
+          const tid = p._testId || "default";
+          if (!testGroups[tid]) testGroups[tid] = [];
+          testGroups[tid].push(p);
+        });
+
+        const finalCalculatedList = [];
+        Object.values(testGroups).forEach((groupParams) => {
+          const calculatedGroup = evaluateTestParameters(groupParams);
+          calculatedGroup.forEach((cp) => {
+            if (cp.isCalculated) {
+              cp.paramStatus = evaluateResultStatus(cp.result, cp.id);
+            }
+          });
+          finalCalculatedList.push(...calculatedGroup);
+        });
+
+        return finalCalculatedList;
+      }
+
+      return updatedList;
+    });
   };
 
   const formatResultValue = useCallback((val, decimalPlaces = 0) => {

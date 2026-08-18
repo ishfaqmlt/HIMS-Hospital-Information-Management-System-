@@ -20,7 +20,6 @@ class LabMasterTestParameter extends Model
         'units',
         'decimal',
         'resultTemplets',
-        'formula',
         'analyzerCode',
         'sortNo',
         'printOnReciept',
