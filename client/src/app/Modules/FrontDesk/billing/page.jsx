@@ -654,11 +654,40 @@ export default function BillingPage() {
     router.push(`/Modules/Reports/Reception/return-invoice?invoiceNo=${invoice.InvoiceNo}`);
   };
 
+  const handlePostInvoice = async (invoice) => {
+    const targetId = invoice?.id || invoice?.Id;
+    if (!targetId || loading) return;
+    const isAlreadyPosted = invoice.isPosted === 1 || invoice.isPosted === true || invoice.isPosted === "1" || invoice.isPosted === "true";
+    if (isAlreadyPosted) {
+      setMessage({ type: "error", text: `Invoice ${invoice.InvoiceNo} is already posted.` });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await billingService.post(targetId);
+      setMessage({ type: "success", text: `Invoice ${invoice.InvoiceNo} posted and locked successfully.` });
+      setInvoices((prev) =>
+        prev.map((inv) => (inv.id === targetId || inv.Id === targetId ? { ...inv, isPosted: 1 } : inv))
+      );
+      await searchInvoices();
+    } catch (error) {
+      console.error(error);
+      setMessage({
+        type: "error",
+        text: error.response?.data?.message || "Failed to post invoice",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const invoiceColumns = getColumns({
     onPrint: handlePrintSlip,
     onPrintA4: handlePrintSlipA4,
     onEdit: handleEditInvoice,
     onReturn: handleReturnInvoice,
+    onPost: handlePostInvoice,
   });
 
   const onSubmit = async (formData) => {

@@ -29,6 +29,9 @@ class BillingController extends Controller
                 'billings.Discount',
                 'billings.TotalAmount',
                 'billings.PaymentStatus',
+                'billings.isPosted',
+                'billings.postedBy',
+                'billings.postedAt',
                 'billings.BillType',
                 'billings.Notes',
                 'billings.printedCount',
@@ -138,6 +141,9 @@ class BillingController extends Controller
                 'Discount' => $row->Discount,
                 'TotalAmount' => $row->TotalAmount,
                 'PaymentStatus' => $status,
+                'isPosted' => (bool)$row->isPosted,
+                'postedBy' => $row->postedBy,
+                'postedAt' => $row->postedAt,
                 'isReturned' => $isFullyReturned,
                 'isFullyReturned' => $isFullyReturned,
                 'isPartiallyReturned' => $isPartiallyReturned,
@@ -201,6 +207,10 @@ class BillingController extends Controller
 
     public function update(Request $request, Billing $billing)
     {
+        if ($billing->isPosted) {
+            return response()->json(['message' => 'Cannot modify a posted invoice.'], 422);
+        }
+
         $validated = $request->validate([
             'visitId' => 'required|string|exists:patient_visits,id',
             'DepartmentId' => 'nullable|string|exists:departments,id',
@@ -255,8 +265,38 @@ class BillingController extends Controller
         });
     }
 
+    public function postBill(Request $request, $id)
+    {
+        $billing = DB::table('billings')->where('id', $id)->first();
+        if (!$billing) {
+            return response()->json(['message' => 'Invoice not found'], 404);
+        }
+
+        if ($billing->isPosted) {
+            return response()->json(['message' => 'Invoice is already posted'], 400);
+        }
+
+        DB::table('billings')->where('id', $id)->update([
+            'isPosted' => true,
+            'postedBy' => Auth::id(),
+            'postedAt' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $updated = DB::table('billings')->where('id', $id)->first();
+
+        return response()->json([
+            'message' => 'Invoice posted successfully',
+            'data' => $updated,
+        ]);
+    }
+
     public function destroy(Billing $billing)
     {
+        if ($billing->isPosted) {
+            return response()->json(['message' => 'Cannot delete a posted invoice.'], 422);
+        }
+
         return DB::transaction(function () use ($billing) {
             DB::table('billing_payments')->where('billingId', $billing->id)->delete();
             $billing->delete();

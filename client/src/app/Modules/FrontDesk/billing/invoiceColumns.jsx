@@ -1,10 +1,16 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Printer, FileText, Pencil, RotateCcw } from "lucide-react";
+import { Printer, FileText, Pencil, RotateCcw, Lock, CheckCircle2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
-export const getColumns = ({ onPrint, onPrintA4, onEdit, onReturn }) => [
+const checkIsPosted = (val) => {
+  if (val === null || val === undefined) return false;
+  if (val === 0 || val === "0" || val === false || val === "false") return false;
+  return Boolean(val);
+};
+
+export const getColumns = ({ onPrint, onPrintA4, onEdit, onReturn, onPost }) => [
   {
     accessorKey: "InvoiceNo",
     header: "Invoice No",
@@ -63,7 +69,10 @@ export const getColumns = ({ onPrint, onPrintA4, onEdit, onReturn }) => [
     accessorKey: "PaymentStatus",
     header: "Status",
     cell: ({ row }) => {
+      const item = row.original;
       const status = row.getValue("PaymentStatus");
+      const isPosted = checkIsPosted(item.isPosted);
+
       const color =
         status === "Paid"
           ? "bg-green-100 text-green-700"
@@ -76,10 +85,18 @@ export const getColumns = ({ onPrint, onPrintA4, onEdit, onReturn }) => [
           : status === "Cancelled"
           ? "bg-red-100 text-red-700"
           : "bg-gray-100 text-gray-700";
+
       return (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>
-          {status}
-        </span>
+        <div className="flex items-center gap-1">
+          <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${color}`}>
+            {status}
+          </span>
+          {isPosted && (
+            <span className="px-1.5 py-0.5 rounded bg-emerald-700 text-white text-[10px] font-semibold flex items-center gap-0.5" title="Invoice Posted">
+              <Lock className="h-2.5 w-2.5" /> Posted
+            </span>
+          )}
+        </div>
       );
     },
   },
@@ -88,17 +105,24 @@ export const getColumns = ({ onPrint, onPrintA4, onEdit, onReturn }) => [
     header: "Actions",
     cell: ({ row }) => {
       const item = row.original;
+      const isPosted = checkIsPosted(item.isPosted);
       const isFullyReturned = item.PaymentStatus === "Returned" || item.isFullyReturned;
       const isPartiallyReturned = item.PaymentStatus === "Partially Returned" || item.isPartiallyReturned;
 
-      const canEdit = item.BillType !== "Return" && item.PaymentStatus !== "Cancelled" && !isFullyReturned && !isPartiallyReturned;
+      const canEdit = !isPosted && item.BillType !== "Return" && item.PaymentStatus !== "Cancelled" && !isFullyReturned && !isPartiallyReturned;
       const canReturn = item.BillType !== "Return" && item.PaymentStatus !== "Cancelled" && !isFullyReturned;
+      const canPost = !isPosted && item.PaymentStatus !== "Cancelled";
 
       return (
         <div className="flex gap-1">
           {canEdit && (
             <Button variant="outline" size="sm" onClick={() => onEdit(item)} title="Edit Invoice">
               <Pencil className="h-4 w-4" />
+            </Button>
+          )}
+          {canPost && onPost && (
+            <Button variant="outline" size="sm" className="text-emerald-700 hover:text-emerald-900 border-emerald-300 hover:bg-emerald-50" onClick={() => onPost(item)} title="Post Invoice (Lock Record)">
+              <CheckCircle2 className="h-4 w-4" />
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => onPrint(item)} title="Print Thermal">

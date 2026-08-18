@@ -41,7 +41,7 @@ const handleLogout = async () => {
 </Link>
 {/* right */}
 <div className="flex items-center gap-4">
-<Link href="/">Dashboard</Link>
+<Link href="/Modules/Dashboard" className="text-sm font-medium hover:underline">Dashboard</Link>
 {/* Theme Menu  */}
  <DropdownMenu>
       <DropdownMenuTrigger asChild>

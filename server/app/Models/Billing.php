@@ -31,6 +31,7 @@ class Billing extends Model
         'ReturnBillingId',
         'isEditLocked',
         'Notes',
+        'isPosted',
         'postedBy',
         'postedAt',
         'createdBy',
@@ -45,6 +46,7 @@ class Billing extends Model
         'TotalAmount' => 'decimal:2',
         'printedCount' => 'integer',
         'isEditLocked' => 'boolean',
+        'isPosted' => 'boolean',
         'isSynced' => 'boolean',
         'postedAt' => 'datetime',
     ];

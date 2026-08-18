@@ -20,6 +20,9 @@ return new class extends Migration
             $table->decimal('Discount', 12, 2)->default(0);
             $table->decimal('TotalAmount', 12, 2)->default(0);
             $table->enum('PaymentStatus', ['Pending', 'Partial', 'Paid', 'Cancelled', 'Returned', 'Partially Returned'])->default('Pending');
+            $table->boolean('isPosted')->default(false);
+            $table->foreignId('postedBy')->nullable()->constrained('users');
+            $table->dateTime('postedAt')->nullable();
             $table->enum('BillType', [ 'Return', 'Normal'])->default('Normal');
             $table->string('ReturnInvoiceNo', 20)->nullable();
             $table->integer('printedCount')->default(0);

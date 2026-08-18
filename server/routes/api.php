@@ -33,6 +33,8 @@ use App\Http\Controllers\HospitalOutputSettingController;
 use App\Http\Controllers\LabSubHeaderController;
 use App\Http\Controllers\LabRequiredSampleController;
 use App\Http\Controllers\LabMasterTestController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\CashHandoverController;
 use App\Http\Controllers\LabMasterTestParameterController;
 use App\Http\Controllers\LabBoundingController;
 use App\Http\Controllers\LabCaseController;
@@ -96,6 +98,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/patient-payments/advance-balance', [PatientPaymentController::class, 'getAdvanceBalance']);
         Route::get('/patient-payments/shift-summary', [PatientPaymentController::class, 'getShiftSummary']);
         Route::get('/patient-payments/{id}', [PatientPaymentController::class, 'show']);
+
+        // Reports Endpoints
+        Route::get('/reports/payments/summary', [ReportController::class, 'getPaymentCollectionSummary']);
+        Route::get('/reports/payments/department-wise', [ReportController::class, 'getDepartmentRevenueSummary']);
+        Route::get('/reports/payments/patient-dues', [ReportController::class, 'getPatientDueBalanceReport']);
+        Route::get('/reports/doctor-shares/summary', [ReportController::class, 'getDoctorShareSummary']);
+        Route::get('/reports/doctor-shares/detailed', [ReportController::class, 'getDoctorShareDetailed']);
+        // Cash Handover Endpoints
+        Route::get('/cash-handovers', [CashHandoverController::class, 'index']);
+        Route::get('/cash-handovers/current-summary', [CashHandoverController::class, 'getCurrentShiftSummary']);
     });
 
     Route::middleware('permission:create_billing')->group(function () {
@@ -104,13 +116,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/patient-payments', [PatientPaymentController::class, 'store']);
         Route::post('/patient-payments/apply-advance', [PatientPaymentController::class, 'applyAdvance']);
         Route::post('/patient-payments/refund-advance', [PatientPaymentController::class, 'refundAdvance']);
+        Route::post('/cash-handovers', [CashHandoverController::class, 'store']);
     });
 
     Route::middleware('permission:edit_billing')->group(function () {
         Route::put('/billings/{billing}', [BillingController::class, 'update']);
+        Route::post('/billings/{id}/post', [BillingController::class, 'postBill']);
         Route::put('/billing-details/{billingDetail}', [BillingDetailController::class, 'update']);
         Route::put('/patient-payments/{id}', [PatientPaymentController::class, 'update']);
         Route::put('/patient-payments/{id}/cancel', [PatientPaymentController::class, 'cancel']);
+        Route::post('/cash-handovers/{id}/accept', [CashHandoverController::class, 'acceptHandover']);
+        Route::post('/cash-handovers/{id}/reject', [CashHandoverController::class, 'rejectHandover']);
     });
 
     Route::middleware('permission:delete_billing')->group(function () {
