@@ -30,5 +30,7 @@ npm-debug.log*
 server/storage/*.key
 server/bootstrap/cache/*
 
-# Temp folders
+# Temp & Backup folders
 temp-*/
+*backup*/
+server/analyzer-bridge/node_modules/

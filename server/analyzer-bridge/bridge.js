@@ -44,18 +44,29 @@ async function postResultsToHims(analyzerInfo, parsedData) {
     return;
   }
 
+  const payloadResults = parsedData.results.map((r) => ({
+    analyzerId: analyzerInfo.id || null,
+    caseNo: (r.caseNo && r.caseNo.trim()) ? r.caseNo.trim() : (parsedData.caseNo || "UNKNOWN"),
+    tdate: r.tdate || new Date().toISOString().slice(0, 19).replace("T", " "),
+    paramName: r.paramName,
+    result: r.result,
+    unit: r.unit || "",
+    flag: r.flag || "N",
+    isSynced: false,
+  }));
+
+  // Display clean formatted CBC table in console
+  console.log("\n==================================================================");
+  console.log(`📋 [${analyzerInfo.name}] PARSED CBC RESULTS (Case: ${payloadResults[0]?.caseNo} | Date: ${payloadResults[0]?.tdate})`);
+  console.log("------------------------------------------------------------------");
+  for (const res of payloadResults) {
+    console.log(`  ${res.paramName.padEnd(10)} : ${res.result.padEnd(10)} ${res.unit}`);
+  }
+  console.log("==================================================================\n");
+
   const payload = {
     analyzerId: analyzerInfo.id || null,
-    results: parsedData.results.map((r) => ({
-      analyzerId: analyzerInfo.id || null,
-      caseNo: r.caseNo || parsedData.caseNo || "UNKNOWN",
-      tdate: r.tdate || new Date().toISOString().slice(0, 19).replace("T", " "),
-      paramName: r.paramName,
-      result: r.result,
-      unit: r.unit || "",
-      flag: r.flag || "N",
-      isSynced: false,
-    })),
+    results: payloadResults,
   };
 
   try {
@@ -66,7 +77,7 @@ async function postResultsToHims(analyzerInfo, parsedData) {
 
     const response = await axios.post(`${HIMS_API_URL}/lab-analyzer-data`, payload, { headers });
     console.log(
-      `✅ [SUCCESS] [${analyzerInfo.name}] Sent ${payload.results.length} result(s) for Case [${payload.results[0]?.caseNo}]. Response: ${response.data.message || "OK"}`
+      `✅ [SUCCESS] [${analyzerInfo.name}] Saved ${payload.results.length} result(s) into database for Case [${payload.results[0]?.caseNo}]. Server Response: ${response.data.message || "OK"}`
     );
   } catch (err) {
     console.error(
@@ -75,29 +86,49 @@ async function postResultsToHims(analyzerInfo, parsedData) {
   }
 }
 
+const sessionBuffers = new Map();
+
 /**
  * Handle incoming raw machine buffer stream (TCP Socket or Serial Port)
  */
 function handleMachineBuffer(analyzerInfo, socketOrPort, dataBuffer) {
+  const machineKey = analyzerInfo.id || analyzerInfo.name;
+
   // 1. Check ASTM ENQ Handshake (0x05)
-  if (dataBuffer.length === 1 && dataBuffer[0] === CONTROL_CHARS.ENQ[0]) {
+  if (dataBuffer.includes(CONTROL_CHARS.ENQ[0])) {
     console.log(`🤝 [HANDSHAKE] [${analyzerInfo.name}] Received ENQ -> Sending ACK.`);
+    sessionBuffers.set(machineKey, []);
     socketOrPort.write(CONTROL_CHARS.ACK);
     return;
   }
 
-  // 2. Determine protocol and parse frame
-  const protocol = (analyzerInfo.protocol || "ASTM").toUpperCase();
-  let parsed = { caseNo: null, results: [] };
+  // 2. Accumulate incoming chunks
+  let currentChunks = sessionBuffers.get(machineKey) || [];
+  currentChunks.push(dataBuffer);
+  sessionBuffers.set(machineKey, currentChunks);
 
-  if (protocol === "HL7") {
-    parsed = parseHl7Message(dataBuffer);
-  } else {
-    parsed = parseAstmFrame(dataBuffer);
+  const fullBuffer = Buffer.concat(currentChunks);
+  const fullText = fullBuffer.toString("ascii");
+
+  // 3. Check for Mindray BC-3000 AAA Packet or EOT (0x04)
+  const isEot = dataBuffer.includes(CONTROL_CHARS.EOT[0]);
+  const isBc3000Payload = fullText.includes("AAA") && fullText.length >= 100;
+
+  if (isEot || isBc3000Payload) {
+    const protocol = (analyzerInfo.protocol || "ASTM").toUpperCase();
+    const parsed = protocol === "HL7" ? parseHl7Message(fullBuffer) : parseAstmFrame(fullBuffer);
+
+    if (parsed.results && parsed.results.length > 0) {
+      sessionBuffers.delete(machineKey);
+      postResultsToHims(analyzerInfo, parsed);
+      return;
+    }
   }
 
-  if (parsed.results && parsed.results.length > 0) {
-    postResultsToHims(analyzerInfo, parsed);
+  // 4. Send ACK (0x06) back for each frame received in ASTM protocol
+  const protocol = (analyzerInfo.protocol || "ASTM").toUpperCase();
+  if (protocol === "ASTM") {
+    socketOrPort.write(CONTROL_CHARS.ACK);
   }
 }
 
@@ -139,16 +170,22 @@ function startSerialListener(analyzerInfo) {
   }
 
   const comPort = analyzerInfo.comPort || "COM1";
-  const baudRate = analyzerInfo.baudRate || 9600;
+  const baudRate = parseInt(analyzerInfo.baudRate || 9600, 10);
+  const dataBits = parseInt(analyzerInfo.dataBits || 8, 10);
+  const stopBits = parseFloat(analyzerInfo.stopBits || 1);
+  const parity = (analyzerInfo.parity || "none").toLowerCase();
 
   try {
     const port = new SerialPort({
       path: comPort,
       baudRate: baudRate,
+      dataBits: dataBits,
+      stopBits: stopBits,
+      parity: parity,
       autoOpen: true,
     });
 
-    console.log(`📟 [SERIAL LISTENING] [${analyzerInfo.name}] Opened ${comPort} @ ${baudRate} baud (${analyzerInfo.protocol})`);
+    console.log(`📟 [SERIAL LISTENING] [${analyzerInfo.name}] Opened ${comPort} @ ${baudRate} baud, ${dataBits}N${stopBits} (${analyzerInfo.protocol})`);
 
     port.on("data", (data) => {
       handleMachineBuffer(analyzerInfo, port, data);
@@ -191,7 +228,8 @@ async function initBridge() {
     console.log(`✅ Loaded ${analyzers.length} analyzer(s) from HIMS API.`);
 
     for (const machine of analyzers) {
-      if (machine.isActive === false) {
+      const isActive = machine.isActive === true || machine.isActive === 1 || machine.isActive === "1";
+      if (!isActive) {
         console.log(`⏸️ [SKIPPED] [${machine.name}] is marked INACTIVE.`);
         continue;
       }

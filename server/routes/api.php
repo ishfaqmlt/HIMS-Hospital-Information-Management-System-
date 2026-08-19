@@ -48,6 +48,8 @@ use Illuminate\Support\Facades\Route;
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/lab-analyzers', [LabAnalyzerController::class, 'index']);
+Route::post('/lab-analyzer-data', [LabAnalyzerDataController::class, 'store']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -166,10 +168,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('lab-master-test-parameters', LabMasterTestParameterController::class);
     Route::apiResource('lab-boundings', LabBoundingController::class);
     Route::apiResource('lab-short-keys', LabShortKeyController::class);
-    Route::apiResource('lab-analyzers', LabAnalyzerController::class);
+    Route::apiResource('lab-analyzers', LabAnalyzerController::class)->except(['index']);
     Route::get('/lab-analyzer-data/case/{caseNo}', [LabAnalyzerDataController::class, 'getByCaseNo']);
     Route::post('/lab-analyzer-data/mark-synced', [LabAnalyzerDataController::class, 'markSynced']);
-    Route::apiResource('lab-analyzer-data', LabAnalyzerDataController::class);
+    Route::apiResource('lab-analyzer-data', LabAnalyzerDataController::class)->except(['store']);
 
     Route::get('/lab-cases/waiting-invoices', [LabCaseController::class, 'waitingInvoices']);
     Route::post('/lab-cases/{testId}/results', [LabCaseController::class, 'storeResults']);

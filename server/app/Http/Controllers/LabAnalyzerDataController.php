@@ -50,19 +50,21 @@ class LabAnalyzerDataController extends Controller
         $inserted = [];
 
         foreach ($records as $item) {
-            if (empty($item['caseNo']) || empty($item['paramName'])) {
+            $paramName = isset($item['paramName']) ? trim($item['paramName']) : null;
+            if (empty($paramName)) {
                 continue;
             }
 
+            $caseNo = !empty($item['caseNo']) ? trim($item['caseNo']) : 'UNKNOWN';
             $id = (string) Str::uuid();
             $tdate = !empty($item['tdate']) ? $item['tdate'] : now();
 
             DB::table('lab_analyzer_data')->insert([
                 'id' => $id,
                 'analyzerId' => $item['analyzerId'] ?? null,
-                'caseNo' => trim($item['caseNo']),
+                'caseNo' => $caseNo,
                 'tdate' => $tdate,
-                'paramName' => trim($item['paramName']),
+                'paramName' => $paramName,
                 'result' => isset($item['result']) ? trim((string)$item['result']) : null,
                 'unit' => isset($item['unit']) ? trim((string)$item['unit']) : null,
                 'flag' => isset($item['flag']) ? trim((string)$item['flag']) : null,
