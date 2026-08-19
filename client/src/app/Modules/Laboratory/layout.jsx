@@ -66,6 +66,7 @@ const masterSettingsItems = [
   { label: "Required Samples", href: "/Modules/laboratory/requiredSamples" },
   { label: "Master Tests", href: "/Modules/laboratory/masterTests" },
   { label: "Out Put Settings", href: "/Modules/laboratory/labOutPut" },
+  { label: "Analyzer Settings", href: "/Modules/laboratory/analyzerSetup" },
   
 ];
 

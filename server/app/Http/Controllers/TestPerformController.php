@@ -152,10 +152,10 @@ class TestPerformController extends Controller
 
             if ($hasStoredResult) {
                 $finalResult = $existing->result;
-                $isPrint = true;
+                $isPrint = isset($existing->isPrint) && ($existing->isPrint == 1 || $existing->isPrint === true || $existing->isPrint === '1');
             } elseif ($hasDefault) {
                 $finalResult = $param->defaultValue;
-                $isPrint = true;
+                $isPrint = false;
             } else {
                 $finalResult = '';
                 $isPrint = false;
@@ -173,6 +173,7 @@ class TestPerformController extends Controller
                 'decimal' => $param->decimal ?? 0,
                 'sortNo' => $param->sortNo ?? 0,
                 'print' => $isPrint,
+                'isPrint' => $isPrint,
             ];
         });
 

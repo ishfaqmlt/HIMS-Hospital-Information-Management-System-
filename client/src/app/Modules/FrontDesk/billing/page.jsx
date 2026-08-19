@@ -889,18 +889,20 @@ export default function BillingPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      {/* Top Header Banner */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 p-4 rounded-xl text-white shadow-md">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Front Desk Billing</h1>
-          <p className="text-xs text-muted-foreground">Manage patient OPD/IPD invoices & receipts</p>
+          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            Front Desk Billing & Invoicing
+          </h1>
+          <p className="text-xs text-slate-300 mt-0.5">Generate patient OPD/IPD invoices, record payments, and manage shift closures</p>
         </div>
         <Button
           size="sm"
-          variant="outline"
-          className="h-8 text-xs bg-sky-50 border-sky-300 text-sky-800 hover:bg-sky-100 font-semibold"
+          className="h-8 text-xs bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs border-0"
           onClick={() => setIsShiftSummaryOpen(true)}
         >
-          <Wallet className="h-3.5 w-3.5 mr-1.5 text-sky-700" />
+          <Wallet className="h-3.5 w-3.5 mr-1.5 text-teal-100" />
           Shift Handover Report
         </Button>
       </div>
@@ -908,20 +910,20 @@ export default function BillingPage() {
       <ShiftSummaryDialog open={isShiftSummaryOpen} onOpenChange={setIsShiftSummaryOpen} />
 
       {message && (
-        <div className={`px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2 shadow-sm ${message.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
-          {message.type === "success" ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+        <div className={`px-4 py-3 rounded-lg text-xs font-semibold flex items-center gap-2 shadow-xs border ${message.type === "success" ? "bg-emerald-50 text-emerald-900 border-emerald-300" : "bg-rose-50 text-rose-900 border-rose-300"}`}>
+          {message.type === "success" ? <Check className="h-4 w-4 text-emerald-600" /> : <X className="h-4 w-4 text-rose-600" />}
           {message.text}
         </div>
       )}
 
       {editingInvoice && (
-        <div className="px-4 py-3 rounded-lg text-sm font-medium bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-between shadow-sm">
+        <div className="px-4 py-2.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-900 border border-amber-300 flex items-center justify-between shadow-xs">
           <span className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center h-5 px-2 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">EDIT</span>
-            Invoice: <strong>{editingInvoice.InvoiceNo}</strong> | MRN: {editingInvoice.patientVisit?.patient?.mrn}
+            <span className="inline-flex items-center justify-center h-5 px-2 rounded-full bg-amber-200 text-amber-900 text-[10px] font-bold uppercase tracking-wider">EDITING MODE</span>
+            Invoice: <strong className="font-mono">{editingInvoice.InvoiceNo}</strong> | MRN: <span className="font-mono">{editingInvoice.patientVisit?.patient?.mrn}</span>
           </span>
-          <Button size="sm" variant="ghost" onClick={handleNew} className="text-amber-700 hover:bg-amber-100">
-            <X className="h-4 w-4 mr-1" /> Cancel
+          <Button size="sm" variant="ghost" onClick={handleNew} className="text-amber-900 hover:bg-amber-100 h-7 text-xs">
+            <X className="h-3.5 w-3.5 mr-1" /> Cancel Edit
           </Button>
         </div>
       )}
@@ -947,25 +949,25 @@ export default function BillingPage() {
       {/* Three Column Layout: Left (Select Service) | Center (Selected Services) | Right (Bill Details) */}
       <div className="grid grid-cols-12 gap-3 items-start">
         {/* Left Column - Select Service */}
-        <Card className="col-span-12 lg:col-span-3 shadow-xs border border-border/50">
-          <CardHeader className="py-2.5 bg-gradient-to-r from-primary/90 to-primary text-primary-foreground rounded-t-lg">
-            <CardTitle className="text-xs font-semibold flex items-center gap-2">
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-foreground/20 text-[10px]">1</span>
-              Select Service
+        <Card className="col-span-12 lg:col-span-3 shadow-xs border border-slate-200">
+          <CardHeader className="py-2.5 bg-gradient-to-r from-teal-800 to-slate-800 text-white rounded-t-lg">
+            <CardTitle className="text-xs font-bold tracking-wide flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-teal-400/20 text-teal-200 text-[10px] font-bold border border-teal-400/30">1</span>
+              SELECT SERVICE
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-3 space-y-2.5">
+          <CardContent className="p-3 space-y-2.5 bg-slate-50/40">
             <div className="space-y-1">
-              <Label className="text-[10px] font-medium text-muted-foreground">Token No</Label>
+              <Label className="text-[11px] font-semibold text-slate-700">Token No</Label>
               <Input
                 type="number"
                 {...register("tokenNo")}
-                className="h-7 text-[11px]"
+                className="h-8 text-xs font-mono bg-white border-slate-200 focus:border-teal-500"
                 placeholder="Auto"
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px] font-medium text-muted-foreground">Consultant</Label>
+              <Label className="text-[11px] font-semibold text-slate-700">Consultant Doctor</Label>
               <Controller
                 name="selectedConsultant"
                 control={control}
@@ -979,11 +981,11 @@ export default function BillingPage() {
                     }}
                     disabled={fromVisit || serviceFields.length > 0}
                   >
-                    <SelectTrigger className="w-full h-7 text-[11px]">
-                      <SelectValue placeholder="Select" />
+                    <SelectTrigger className="w-full h-8 text-xs bg-white border-slate-200">
+                      <SelectValue placeholder="Select consultant..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="self">Self</SelectItem>
+                      <SelectItem value="self">Self / OPD Direct</SelectItem>
                       {doctors.map((d) => (
                         <SelectItem key={d.id} value={d.id}>{d.Name}</SelectItem>
                       ))}
@@ -993,7 +995,7 @@ export default function BillingPage() {
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px] font-medium text-muted-foreground">Department</Label>
+              <Label className="text-[11px] font-semibold text-slate-700">Department</Label>
               <Controller
                 name="selectedDepartment"
                 control={control}
@@ -1006,8 +1008,8 @@ export default function BillingPage() {
                     }}
                     disabled={serviceFields.length > 0}
                   >
-                    <SelectTrigger className="w-full h-7 text-[11px]">
-                      <SelectValue placeholder="Select" />
+                    <SelectTrigger className="w-full h-8 text-xs bg-white border-slate-200">
+                      <SelectValue placeholder="Select department..." />
                     </SelectTrigger>
                     <SelectContent>
                       {(watchedConsultant === "self"
@@ -1022,12 +1024,12 @@ export default function BillingPage() {
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px] font-medium text-muted-foreground">Service Code Search</Label>
+              <Label className="text-[11px] font-semibold text-slate-700">Service Code Search</Label>
               <div className="flex gap-1">
                 <Input
                   value={serviceCodeSearch}
                   onChange={(e) => setServiceCodeSearch(e.target.value)}
-                  className="h-7 text-[11px]"
+                  className="h-8 text-xs font-mono bg-white border-slate-200"
                   placeholder="e.g. 401.402"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -1036,13 +1038,13 @@ export default function BillingPage() {
                     }
                   }}
                 />
-                <Button size="sm" className="h-7 px-2 shrink-0" onClick={handleServiceCodeSearch} disabled={!serviceCodeSearch.trim()}>
-                  <Plus className="h-3 w-3" />
+                <Button size="sm" className="h-8 px-2.5 shrink-0 bg-teal-700 hover:bg-teal-800 text-white" onClick={handleServiceCodeSearch} disabled={!serviceCodeSearch.trim()}>
+                  <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px] font-medium text-muted-foreground">Select Service</Label>
+              <Label className="text-[11px] font-semibold text-slate-700">Select Service Name</Label>
               <div className="flex gap-1">
                 <Controller
                   name="selectedService"
@@ -1057,14 +1059,14 @@ export default function BillingPage() {
                           ref={serviceTriggerRef}
                           nativeButton={false}
                           render={<div />}
-                          className="flex h-7 w-full items-center justify-between rounded-md border border-input bg-background px-2 py-1 text-[11px] ring-offset-background placeholder:text-muted-foreground focus:outline-none cursor-pointer"
+                          className="flex h-8 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs ring-offset-background placeholder:text-muted-foreground focus:outline-none cursor-pointer"
                         >
                           <span className="truncate">{selectedSvc ? selectedSvc.ServiceName : "Select service..."}</span>
-                          <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                          <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50 text-slate-500" />
                         </PopoverTrigger>
                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                           <Command>
-                            <CommandInput placeholder="Search service..." className="h-7 text-xs" />
+                            <CommandInput placeholder="Search service..." className="h-8 text-xs" />
                             <CommandList>
                               <CommandEmpty>No service found.</CommandEmpty>
                               <CommandGroup>
@@ -1077,7 +1079,7 @@ export default function BillingPage() {
                                       setServicePopoverOpen(false);
                                     }}
                                   >
-                                    <Check className={`mr-2 h-3 w-3 ${field.value === s.id ? "opacity-100" : "opacity-0"}`} />
+                                    <Check className={`mr-2 h-3 w-3 ${field.value === s.id ? "opacity-100 text-teal-600" : "opacity-0"}`} />
                                     {s.ServiceName}
                                   </CommandItem>
                                 ))}
@@ -1089,8 +1091,8 @@ export default function BillingPage() {
                     );
                   }}
                 />
-                <Button size="sm" className="h-7 px-2 shrink-0" onClick={addService} disabled={!watch("selectedService")}>
-                  <Plus className="h-3 w-3" />
+                <Button size="sm" className="h-8 px-2.5 shrink-0 bg-teal-700 hover:bg-teal-800 text-white" onClick={addService} disabled={!watch("selectedService")}>
+                  <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
@@ -1098,13 +1100,13 @@ export default function BillingPage() {
         </Card>
 
         {/* Center Column - Selected Services Table */}
-        <Card className="col-span-12 lg:col-span-6 shadow-xs border border-border/50">
-          <CardHeader className="py-2.5 bg-gradient-to-r from-primary/90 to-primary text-primary-foreground rounded-t-lg">
-            <CardTitle className="text-xs font-semibold flex items-center gap-2">
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-foreground/20 text-[10px]">2</span>
-              Selected Services
+        <Card className="col-span-12 lg:col-span-6 shadow-xs border border-slate-200">
+          <CardHeader className="py-2.5 bg-gradient-to-r from-slate-800 to-slate-900 text-white rounded-t-lg">
+            <CardTitle className="text-xs font-bold tracking-wide flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-bold border border-slate-600">2</span>
+              SELECTED SERVICES
               {serviceFields.length > 0 && (
-                <span className="ml-auto inline-flex items-center justify-center h-5 px-2 rounded-full bg-primary-foreground/20 text-[10px] font-bold">
+                <span className="ml-auto inline-flex items-center justify-center h-5 px-2.5 rounded-full bg-slate-700/80 text-teal-300 font-mono text-[11px] font-bold border border-slate-600">
                   {serviceFields.length} Item(s)
                 </span>
               )}
@@ -1113,29 +1115,29 @@ export default function BillingPage() {
           <CardContent className="p-0 overflow-x-auto min-h-[260px]">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/70 hover:bg-muted/70">
-                  <TableHead className="text-xs h-8 font-semibold w-10">Flag</TableHead>
-                  <TableHead className="text-xs h-8 font-semibold">Code</TableHead>
-                  <TableHead className="text-xs h-8 font-semibold">Service Name</TableHead>
-                  <TableHead className="text-xs h-8 font-semibold">Charges</TableHead>
-                  <TableHead className="text-xs h-8 font-semibold w-16">Qty</TableHead>
-                  <TableHead className="text-xs h-8 font-semibold">Amount</TableHead>
-                  <TableHead className="text-xs h-8 font-semibold text-center w-12">Delete</TableHead>
+                <TableRow className="bg-slate-100/80 hover:bg-slate-100/80">
+                  <TableHead className="text-[11px] h-8 font-bold text-slate-700 w-10">Flag</TableHead>
+                  <TableHead className="text-[11px] h-8 font-bold text-slate-700">Code</TableHead>
+                  <TableHead className="text-[11px] h-8 font-bold text-slate-700">Service Name</TableHead>
+                  <TableHead className="text-[11px] h-8 font-bold text-slate-700">Charges</TableHead>
+                  <TableHead className="text-[11px] h-8 font-bold text-slate-700 w-16">Qty</TableHead>
+                  <TableHead className="text-[11px] h-8 font-bold text-slate-700">Amount</TableHead>
+                  <TableHead className="text-[11px] h-8 font-bold text-slate-700 text-center w-12">Delete</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {serviceFields.length > 0 ? (
                   serviceFields.map((field, index) => (
-                    <TableRow key={field.fieldId} className={index % 2 === 0 ? "bg-background" : "bg-muted/20"}>
-                      <TableCell className="text-xs py-1">
-                        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold ${field.flag === "I" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
+                    <TableRow key={field.fieldId} className={index % 2 === 0 ? "bg-white hover:bg-teal-50/30" : "bg-slate-50/50 hover:bg-teal-50/30"}>
+                      <TableCell className="text-xs py-1.5">
+                        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold border ${field.flag === "I" ? "bg-emerald-100 text-emerald-800 border-emerald-300" : "bg-sky-100 text-sky-800 border-sky-300"}`}>
                           {field.flag}
                         </span>
                       </TableCell>
-                      <TableCell className="text-xs py-1 font-mono text-[11px]">{field.serviceCode}</TableCell>
-                      <TableCell className="text-xs py-1 font-medium">{field.serviceName}</TableCell>
-                      <TableCell className="text-xs py-1">{field.fee}</TableCell>
-                      <TableCell className="text-xs py-1">
+                      <TableCell className="text-xs py-1.5 font-mono text-slate-600 font-medium">{field.serviceCode}</TableCell>
+                      <TableCell className="text-xs py-1.5 font-medium text-slate-900">{field.serviceName}</TableCell>
+                      <TableCell className="text-xs py-1.5 font-mono font-medium text-slate-700">{field.fee}</TableCell>
+                      <TableCell className="text-xs py-1.5">
                         <Input
                           type="number"
                           min={1}
@@ -1147,33 +1149,33 @@ export default function BillingPage() {
                               }, 0);
                             },
                           })}
-                          className="h-6 text-xs w-14"
+                          className="h-6 text-xs w-14 font-mono text-center border-slate-200"
                         />
                       </TableCell>
-                      <TableCell className="text-xs py-1 font-semibold text-primary">
-                        {(Number(field.fee) || 0) * (Number(field.qty) || 0)}
+                      <TableCell className="text-xs py-1.5 font-mono font-bold text-emerald-700">
+                        {((Number(field.fee) || 0) * (Number(field.qty) || 0)).toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-xs py-1 text-center">
+                      <TableCell className="text-xs py-1.5 text-center">
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                          className="h-6 w-6 p-0 text-rose-600 hover:bg-rose-100 hover:text-rose-700"
                           onClick={() => removeService(index)}
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-10">
-                      <div className="flex flex-col items-center gap-1.5">
-                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                          <Plus className="h-5 w-5 text-muted-foreground/50" />
+                    <TableCell colSpan={7} className="text-center text-xs text-slate-400 py-12">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+                          <Plus className="h-5 w-5 text-slate-400" />
                         </div>
-                        <p className="font-medium">No services added yet</p>
-                        <p className="text-[11px] text-muted-foreground/70">Select a service on the left and click Add</p>
+                        <p className="font-semibold text-slate-600">No services added yet</p>
+                        <p className="text-[11px] text-slate-400">Select a service on the left or search by service code</p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1184,35 +1186,35 @@ export default function BillingPage() {
         </Card>
 
         {/* Right Column - Bill Details */}
-        <Card className="col-span-12 lg:col-span-3 shadow-xs border border-border/50">
-          <CardHeader className="py-2.5 bg-gradient-to-r from-primary/90 to-primary text-primary-foreground rounded-t-lg">
-            <CardTitle className="text-xs font-semibold flex items-center gap-2">
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-foreground/20 text-[10px]">3</span>
-              Bill Details
+        <Card className="col-span-12 lg:col-span-3 shadow-xs border border-slate-200">
+          <CardHeader className="py-2.5 bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 text-white rounded-t-lg">
+            <CardTitle className="text-xs font-bold tracking-wide flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-400/20 text-emerald-200 text-[10px] font-bold border border-emerald-400/30">3</span>
+              BILL DETAILS
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-3 space-y-2">
+          <CardContent className="p-3 space-y-2.5 bg-slate-50/30">
             <div className="space-y-1">
-              <Label className="text-[10px] font-medium text-muted-foreground">Date & Time</Label>
+              <Label className="text-[11px] font-semibold text-slate-700">Date & Time</Label>
               <Input
                 type="datetime-local"
                 {...register("regDate")}
-                className="h-7 text-[11px]"
+                className="h-8 text-xs font-mono bg-white border-slate-200"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-[10px] font-medium text-muted-foreground">SubTotal</Label>
+                <Label className="text-[11px] font-semibold text-slate-700">SubTotal</Label>
                 <Input
                   type="number"
                   value={totalBill}
-                  className="h-7 text-[11px] bg-muted/50 font-semibold"
+                  className="h-8 text-xs font-mono font-bold bg-slate-100 text-slate-800 border-slate-200"
                   disabled
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[10px] font-medium text-muted-foreground">Discount %</Label>
+                <Label className="text-[11px] font-semibold text-slate-700">Discount %</Label>
                 <Input
                   type="number"
                   value={watchedDiscountPercent}
@@ -1223,14 +1225,14 @@ export default function BillingPage() {
                     setValue("discount", disc);
                     setValue("paid", totalBill - disc);
                   }}
-                  className="h-7 text-[11px]"
+                  className="h-8 text-xs font-mono bg-white border-slate-200"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-[10px] font-medium text-muted-foreground">Discount Amt</Label>
+                <Label className="text-[11px] font-semibold text-slate-700">Discount Amt</Label>
                 <Input
                   type="number"
                   value={watchedDiscount}
@@ -1241,15 +1243,15 @@ export default function BillingPage() {
                     setValue("discountPercent", pct);
                     setValue("paid", totalBill - disc);
                   }}
-                  className="h-7 text-[11px]"
+                  className="h-8 text-xs font-mono bg-white border-slate-200"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[10px] font-medium text-muted-foreground">Net Total</Label>
+                <Label className="text-[11px] font-bold text-emerald-800">Net Total</Label>
                 <Input
                   type="number"
                   value={netAmount}
-                  className="h-7 text-[11px] bg-primary/10 font-bold text-primary"
+                  className="h-8 text-xs font-mono font-extrabold bg-emerald-50 text-emerald-950 border-2 border-emerald-300"
                   disabled
                 />
               </div>
@@ -1257,38 +1259,29 @@ export default function BillingPage() {
 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-[10px] font-medium text-muted-foreground">Paid Amount</Label>
+                <Label className="text-[11px] font-semibold text-slate-700">Paid Amount</Label>
                 <Input
                   type="number"
                   {...register("paid", { valueAsNumber: true })}
-                  className="h-7 text-[11px] font-semibold text-emerald-700"
+                  className="h-8 text-xs font-mono font-bold text-emerald-800 bg-white border-slate-200 focus:border-emerald-500"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[10px] font-medium text-muted-foreground">Balance</Label>
+                <Label className="text-[11px] font-semibold text-slate-700">Balance</Label>
                 <Input
                   type="number"
                   value={remaining}
-                  className={`h-7 text-[11px] font-semibold ${remaining > 0 ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}
+                  className={`h-8 text-xs font-mono font-extrabold ${remaining > 0 ? "bg-amber-50 text-amber-900 border-amber-300" : "bg-emerald-50 text-emerald-900 border-emerald-300"}`}
                   disabled
                 />
               </div>
             </div>
 
-            {/* <div className="space-y-1 pt-1">
-              <Label className="text-[10px] font-medium text-muted-foreground">Remarks / Notes</Label>
-              <Input
-                {...register("remarks")}
-                className="h-7 text-[11px]"
-                placeholder="Optional remarks"
-              />
-            </div> */}
-
             {advanceBalance > 0 && !editingInvoiceId && (
-              <div className="p-2.5 rounded-lg bg-emerald-50 border-2 border-emerald-400 flex flex-col gap-1.5 shadow-sm">
+              <div className="p-2.5 rounded-lg bg-emerald-50 border-2 border-emerald-400 flex flex-col gap-1.5 shadow-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-900">Patient Advance Available</span>
-                  <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold text-xs">
+                  <span className="text-xs font-bold text-emerald-950">Patient Advance Available</span>
+                  <Badge variant="outline" className="bg-emerald-100 text-emerald-900 border-emerald-400 font-mono font-bold text-xs">
                     Rs. {advanceBalance.toFixed(2)}
                   </Badge>
                 </div>
@@ -1314,7 +1307,7 @@ export default function BillingPage() {
                   <Button
                     type="button"
                     size="sm"
-                    className="h-6 text-[10px] px-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                    className="h-6 text-[10px] px-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold"
                     onClick={() => {
                       const nextState = !applyAdvance;
                       setApplyAdvance(nextState);
@@ -1329,18 +1322,18 @@ export default function BillingPage() {
                 </div>
 
                 {applyAdvance && (
-                  <span className="text-[10px] font-medium text-emerald-700 bg-emerald-100/60 p-1 rounded text-center">
+                  <span className="text-[10px] font-medium text-emerald-800 bg-emerald-100/80 p-1 rounded text-center font-mono">
                     Applying Rs. {Math.min(advanceBalance, netAmount).toFixed(2)} towards invoice net total
                   </span>
                 )}
               </div>
             )}
 
-            <div className="flex gap-2 items-center justify-end pt-2 border-t mt-2">
-              <Button variant="outline" size="sm" className="h-8 flex-1 text-xs" onClick={handleNewInvoice} disabled={loading}>
+            <div className="flex gap-2 items-center justify-end pt-3 border-t border-slate-200 mt-2">
+              <Button variant="outline" size="sm" className="h-8 flex-1 text-xs font-medium border-slate-200" onClick={handleNewInvoice} disabled={loading}>
                 <Plus className="h-3.5 w-3.5 mr-1" /> New
               </Button>
-              <Button size="sm" className="h-8 flex-1 text-xs bg-primary font-bold shadow-xs" onClick={handleSubmit(onSubmit)} disabled={loading}>
+              <Button size="sm" className="h-8 flex-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold tracking-wide shadow-sm" onClick={handleSubmit(onSubmit)} disabled={loading}>
                 {loading ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
                 {editingInvoiceId ? "Update Bill" : "Save Invoice"}
               </Button>
@@ -1439,42 +1432,42 @@ export default function BillingPage() {
 
       {/* Invoice List Section */}
       <div className="mt-6 space-y-4">
-        <Card>
-          <CardHeader className="py-2 bg-primary text-primary-foreground">
-            <CardTitle className="text-sm font-semibold">Invoice List</CardTitle>
+        <Card className="shadow-xs border border-slate-200">
+          <CardHeader className="py-2.5 bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 text-white rounded-t-lg">
+            <CardTitle className="text-xs font-bold tracking-wide">INVOICE HISTORY & SEARCH</CardTitle>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
             <div className="grid grid-cols-12 gap-3">
               <div className="col-span-3 space-y-1">
-                <Label className="text-xs">MRN</Label>
+                <Label className="text-xs font-semibold text-slate-700">MRN</Label>
                 <Input
                   value={searchMrn}
                   onChange={(e) => setSearchMrn(e.target.value)}
-                  className="h-8 text-xs"
+                  className="h-8 text-xs font-mono bg-white border-slate-200"
                   placeholder=""
                 />
               </div>
               <div className="col-span-3 space-y-1">
-                <Label className="text-xs">From Date</Label>
+                <Label className="text-xs font-semibold text-slate-700">From Date</Label>
                 <Input
                   type="datetime-local"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="h-8 text-xs"
+                  className="h-8 text-xs font-mono bg-white border-slate-200"
                 />
               </div>
               <div className="col-span-3 space-y-1">
-                <Label className="text-xs">To Date</Label>
+                <Label className="text-xs font-semibold text-slate-700">To Date</Label>
                 <Input
                   type="datetime-local"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="h-8 text-xs"
+                  className="h-8 text-xs font-mono bg-white border-slate-200"
                 />
               </div>
               <div className="col-span-2 flex items-end">
-                <Button size="sm" className="w-full" onClick={searchInvoices} disabled={invoiceLoading}>
-                  {invoiceLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4 mr-1" />}
+                <Button size="sm" className="w-full h-8 text-xs bg-slate-800 hover:bg-slate-900 text-white font-medium" onClick={searchInvoices} disabled={invoiceLoading}>
+                  {invoiceLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Search className="h-3.5 w-3.5 mr-1" />}
                   Search
                 </Button>
               </div>

@@ -420,3 +420,20 @@ export const labCaseSchema = z.object({
     rate: z.coerce.number().default(0),
   })).min(1, "Select at least one test"),
 });
+
+export const analyzerSchema = z.object({
+  name: z.string().min(1, "Analyzer name is required").max(100),
+  manufacturer: z.string().optional().nullable(),
+  model: z.string().optional().nullable(),
+  communicationType: z.enum(["TCP", "SERIAL"]),
+  protocol: z.enum(["ASTM", "HL7", "CUSTOM"]),
+  direction: z.enum(["UNIDIRECTIONAL", "BIDIRECTIONAL"]),
+  host: z.string().optional().nullable(),
+  port: z.coerce.number().optional().nullable(),
+  comPort: z.string().optional().nullable(),
+  baudRate: z.coerce.number().optional().nullable(),
+  parity: z.enum(["None", "Even", "Odd", "Mark", "Space"]).optional().nullable(),
+  dataBits: z.coerce.number().optional().nullable(),
+  stopBits: z.coerce.number().optional().nullable(),
+  isActive: z.coerce.boolean(),
+});

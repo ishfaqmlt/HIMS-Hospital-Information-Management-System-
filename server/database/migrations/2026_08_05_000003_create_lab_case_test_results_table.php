@@ -15,6 +15,7 @@ return new class extends Migration
             $table->string('result')->nullable();
             $table->string('units')->nullable();
             $table->enum('paramStatus', ['N', 'A', 'C'])->default('N');
+            $table->boolean('isPrint')->default(false);
             $table->string('normalRange')->nullable();
             $table->timestamps();
         });

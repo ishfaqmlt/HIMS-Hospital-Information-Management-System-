@@ -114,15 +114,17 @@ Route::middleware(['auth:sanctum', 'permission:module_name'])->group(function ()
 ```
 
 ### DataTable Pattern
-- Create `columns.jsx` file next to the page
-- Export `getColumns` function
-- Use shadcn DataTable component
-- `filterColumn` prop must match column `id` or `accessorKey`
+- **STRICT RULE**: ALL data listing tables across ALL pages MUST strictly use the shadcn `DataTable` wrapper (`@/components/data-table/data-table`).
+- Never use raw `<Table>` / `<TableBody>` custom table rendering for data lists when `DataTable` can be used.
+- Create `columns.jsx` file next to the page.
+- Export `getColumns` function returning the column definitions array.
+- `filterColumn` prop must match column `id` or `accessorKey`.
 
 ```jsx
 import { DataTable } from "@/components/data-table/data-table";
 import { getColumns } from "./columns";
 
+const columns = getColumns({ onEdit, onDelete });
 <DataTable columns={columns} data={items} filterColumn="columnName" />
 ```
 

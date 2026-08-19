@@ -35,6 +35,9 @@ use App\Http\Controllers\LabRequiredSampleController;
 use App\Http\Controllers\LabMasterTestController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CashHandoverController;
+use App\Http\Controllers\LabShortKeyController;
+use App\Http\Controllers\LabAnalyzerController;
+use App\Http\Controllers\LabAnalyzerDataController;
 use App\Http\Controllers\LabMasterTestParameterController;
 use App\Http\Controllers\LabBoundingController;
 use App\Http\Controllers\LabCaseController;
@@ -162,6 +165,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('lab-master-tests', LabMasterTestController::class);
     Route::apiResource('lab-master-test-parameters', LabMasterTestParameterController::class);
     Route::apiResource('lab-boundings', LabBoundingController::class);
+    Route::apiResource('lab-short-keys', LabShortKeyController::class);
+    Route::apiResource('lab-analyzers', LabAnalyzerController::class);
+    Route::get('/lab-analyzer-data/case/{caseNo}', [LabAnalyzerDataController::class, 'getByCaseNo']);
+    Route::post('/lab-analyzer-data/mark-synced', [LabAnalyzerDataController::class, 'markSynced']);
+    Route::apiResource('lab-analyzer-data', LabAnalyzerDataController::class);
 
     Route::get('/lab-cases/waiting-invoices', [LabCaseController::class, 'waitingInvoices']);
     Route::post('/lab-cases/{testId}/results', [LabCaseController::class, 'storeResults']);

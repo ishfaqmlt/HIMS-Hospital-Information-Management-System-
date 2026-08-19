@@ -18,7 +18,12 @@ class LabCaseTestResult extends Model
         'result',
         'units',
         'paramStatus',
+        'isPrint',
         'normalRange',
+    ];
+
+    protected $casts = [
+        'isPrint' => 'boolean',
     ];
 
     protected static function boot()

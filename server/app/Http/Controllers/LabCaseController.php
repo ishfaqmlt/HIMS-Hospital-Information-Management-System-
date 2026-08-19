@@ -573,6 +573,10 @@ class LabCaseController extends Controller
                             ? $result['paramStatus']
                             : 'N';
 
+                        $isPrint = isset($result['isPrint'])
+                            ? ($result['isPrint'] === true || $result['isPrint'] === 1 || $result['isPrint'] === '1' || $result['isPrint'] === 'true' ? 1 : 0)
+                            : (isset($result['print']) ? ($result['print'] === true || $result['print'] === 1 || $result['print'] === '1' || $result['print'] === 'true' ? 1 : 0) : 0);
+
                         DB::table('lab_case_test_results')->insert([
                             'id' => (string) Str::uuid(),
                             'caseTestId' => $testId,
@@ -580,6 +584,7 @@ class LabCaseController extends Controller
                             'result' => trim((string)$result['result']),
                             'units' => $result['units'] ?? null,
                             'paramStatus' => $pStatus,
+                            'isPrint' => $isPrint,
                             'normalRange' => $result['normalRange'] ?? null,
                             'created_at' => now(),
                             'updated_at' => now(),

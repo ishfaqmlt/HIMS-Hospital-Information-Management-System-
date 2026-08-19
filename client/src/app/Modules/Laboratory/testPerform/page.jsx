@@ -29,6 +29,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchLabBoundings } from "@/reduxToolKit/slices/labBoundingSlice";
+import { fetchLabShortKeys } from "@/reduxToolKit/slices/labShortKeysSlice";
 import testPerformService from "@/services/testPerform.service";
 import { calculateAge, calculateAgeInDays, toLocalISOString } from "@/lib/utils";
 import { evaluateTestParameters } from "@/lib/formulaEvaluator";
@@ -42,6 +43,7 @@ const TestPerform = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth || {});
   const { boundings } = useSelector((state) => state.labBoundings || { boundings: [] });
+  const { items: shortKeys } = useSelector((state) => state.labShortKeys || { items: [] });
 
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -69,6 +71,7 @@ const TestPerform = () => {
 
   useEffect(() => {
     dispatch(fetchLabBoundings());
+    dispatch(fetchLabShortKeys());
   }, [dispatch]);
 
   useEffect(() => {
@@ -249,9 +252,11 @@ const TestPerform = () => {
         const res = await testPerformService.getParameters(test.id);
         const rawParams = (res.data || []).map((p) => {
           const evalStatus = p.paramStatus || evaluateResultStatus(p.result, p.id);
+          const isPrinted = p.isPrint === 1 || p.isPrint === true || p.isPrint === "1" || p.isPrint === "true" || p.print === true || p.print === 1 || p.print === "1";
           return {
             ...p,
             paramStatus: evalStatus,
+            print: isPrinted,
             _testId: test.id,
             _testName: test.testName,
           };
@@ -279,9 +284,11 @@ const TestPerform = () => {
       const res = await testPerformService.getParameters(test.id);
       const rawParams = (res.data || []).map((p) => {
         const evalStatus = p.paramStatus || evaluateResultStatus(p.result, p.id);
+        const isPrinted = p.isPrint === 1 || p.isPrint === true || p.isPrint === "1" || p.isPrint === "true" || p.print === true || p.print === 1 || p.print === "1";
         return {
           ...p,
           paramStatus: evalStatus,
+          print: isPrinted,
           _testId: test.id,
           _testName: test.testName,
         };
@@ -369,20 +376,49 @@ const TestPerform = () => {
     return cvalue;
   }, []);
 
+  const applyShortKeyAndFormat = useCallback(
+    (rawInput, decimalPlaces = 0, paramId) => {
+      if (rawInput === null || rawInput === undefined) {
+        return { result: "", paramStatus: "N", print: false };
+      }
+
+      let valStr = String(rawInput).trim();
+
+      const keysList = Array.isArray(shortKeys)
+        ? shortKeys
+        : (shortKeys && Array.isArray(shortKeys.data) ? shortKeys.data : []);
+
+      if (valStr !== "" && keysList.length > 0) {
+        const matchedKey = keysList.find((k) => {
+          const key = (k.sKey || k.skey || k.SKey || "").toString().trim().toLowerCase();
+          return key === valStr.toLowerCase();
+        });
+        if (matchedKey) {
+          valStr = (matchedKey.correctedKey || matchedKey.correctedkey || matchedKey.CorrectedKey || valStr).toString();
+        }
+      }
+
+      const formattedVal = formatResultValue(valStr, decimalPlaces);
+      const evalStatus = evaluateResultStatus(formattedVal, paramId);
+
+      return {
+        result: formattedVal,
+        paramStatus: evalStatus || "N",
+        print: formattedVal.trim() !== "",
+      };
+    },
+    [shortKeys, formatResultValue, evaluateResultStatus]
+  );
+
   const handleResultBlur = (paramId) => {
     const param = testParameters.find((p) => p.id === paramId);
     if (param) {
       if (!param.result || param.result.trim() === "") {
         handleResultChange(paramId, "print", false);
       } else {
-        const formattedVal = formatResultValue(param.result, param.decimal ?? 0);
-        const evalStatus = evaluateResultStatus(formattedVal, paramId);
+        const processed = applyShortKeyAndFormat(param.result, param.decimal ?? 0, paramId);
         setTestParameters((prev) =>
-          prev.map((p) =>
-            p.id === paramId
-              ? { ...p, result: formattedVal, paramStatus: evalStatus, print: true }
-              : p
-          )
+          prev.map((p) => (p.id === paramId ? { ...p, ...processed } : p))
         );
       }
     }
@@ -393,22 +429,10 @@ const TestPerform = () => {
       e.preventDefault();
       const param = displayParams.find((p) => p.id === paramId);
       if (param) {
-        let valStr = param.result || "";
-        valStr = formatResultValue(valStr, param.decimal ?? 0);
-
-        const evaluatedStatus = evaluateResultStatus(valStr, paramId);
+        const processed = applyShortKeyAndFormat(param.result, param.decimal ?? 0, paramId);
 
         setTestParameters((prev) =>
-          prev.map((p) =>
-            p.id === paramId
-              ? {
-                  ...p,
-                  result: valStr,
-                  paramStatus: evaluatedStatus || "N",
-                  print: valStr !== "",
-                }
-              : p
-          )
+          prev.map((p) => (p.id === paramId ? { ...p, ...processed } : p))
         );
       }
       const currentIdx = displayParams.findIndex((p) => p.id === paramId);
@@ -445,11 +469,8 @@ const TestPerform = () => {
       for (const test of testsToSave) {
         const testParams = testParameters.filter((r) => r._testId === test.id);
 
-        // Filter: ONLY save rows where Print is checked (print === true) AND result is NOT empty
         const validParams = testParams.filter((r) => {
-          const isPrinted = Boolean(r.print);
-          const hasResult = r.result !== null && r.result !== undefined && String(r.result).trim() !== "";
-          return isPrinted && hasResult;
+          return r.result !== null && r.result !== undefined && String(r.result).trim() !== "";
         });
 
         const payload = {
@@ -460,6 +481,7 @@ const TestPerform = () => {
             result: String(r.result).trim(),
             units: r.units || null,
             paramStatus: r.paramStatus || "N",
+            isPrint: r.print ? 1 : 0,
             normalRange: r.normalRange || null,
           })),
         };

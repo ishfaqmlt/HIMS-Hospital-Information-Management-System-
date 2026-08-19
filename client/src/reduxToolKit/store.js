@@ -5,6 +5,7 @@ import masterTestsReducer from "./slices/masterTestsSlice";
 import doctorReducer from "./slices/doctorSlice";
 import billingDataReducer from "./slices/billingDataSlice";
 import labBoundingsReducer from "./slices/labBoundingSlice";
+import labShortKeysReducer from "./slices/labShortKeysSlice";
 
 export const store = configureStore({
   reducer: {
@@ -14,5 +15,6 @@ export const store = configureStore({
     fetchDoctors: doctorReducer,
     billingData: billingDataReducer,
     labBoundings: labBoundingsReducer,
+    labShortKeys: labShortKeysReducer,
   },
 });
