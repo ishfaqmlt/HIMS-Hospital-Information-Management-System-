@@ -18,8 +18,9 @@ class LabAnalyzerDataController extends Controller
             ->leftJoin('lab_analyzers', 'lab_analyzer_data.analyzerId', '=', 'lab_analyzers.id')
             ->select('lab_analyzer_data.*', 'lab_analyzers.name as analyzerName');
 
-        if ($request->has('caseNo') && !empty($request->caseNo)) {
-            $query->where('lab_analyzer_data.caseNo', trim($request->caseNo));
+        $reffNo = $request->input('analyzerReffno') ?? $request->input('caseNo');
+        if (!empty($reffNo)) {
+            $query->where('lab_analyzer_data.analyzerReffno', trim($reffNo));
         }
 
         if ($request->has('analyzerId') && !empty($request->analyzerId)) {
@@ -55,14 +56,17 @@ class LabAnalyzerDataController extends Controller
                 continue;
             }
 
-            $caseNo = !empty($item['caseNo']) ? trim($item['caseNo']) : 'UNKNOWN';
+            $reffNo = !empty($item['analyzerReffno'])
+                ? trim($item['analyzerReffno'])
+                : (!empty($item['caseNo']) ? trim($item['caseNo']) : 'UNKNOWN');
+
             $id = (string) Str::uuid();
             $tdate = !empty($item['tdate']) ? $item['tdate'] : now();
 
             DB::table('lab_analyzer_data')->insert([
                 'id' => $id,
                 'analyzerId' => $item['analyzerId'] ?? null,
-                'caseNo' => $caseNo,
+                'analyzerReffno' => $reffNo,
                 'tdate' => $tdate,
                 'paramName' => $paramName,
                 'result' => isset($item['result']) ? trim((string)$item['result']) : null,
@@ -81,12 +85,12 @@ class LabAnalyzerDataController extends Controller
     }
 
     /**
-     * Fetch unsynced analyzer results by Case Number (for testPerform auto-fill)
+     * Fetch unsynced analyzer results by Analyzer Reference / Case Number (for testPerform auto-fill)
      */
-    public function getByCaseNo($caseNo)
+    public function getByAnalyzerReffno($analyzerReffno)
     {
         $results = DB::table('lab_analyzer_data')
-            ->where('caseNo', trim($caseNo))
+            ->where('analyzerReffno', trim($analyzerReffno))
             ->orderBy('tdate', 'desc')
             ->get();
 
@@ -99,16 +103,16 @@ class LabAnalyzerDataController extends Controller
     public function markSynced(Request $request)
     {
         $ids = $request->input('ids', []);
-        $caseNo = $request->input('caseNo');
+        $reffNo = $request->input('analyzerReffno') ?? $request->input('caseNo');
 
         $query = DB::table('lab_analyzer_data');
 
         if (!empty($ids) && is_array($ids)) {
             $query->whereIn('id', $ids);
-        } elseif (!empty($caseNo)) {
-            $query->where('caseNo', trim($caseNo));
+        } elseif (!empty($reffNo)) {
+            $query->where('analyzerReffno', trim($reffNo));
         } else {
-            return response()->json(['message' => 'Specify ids or caseNo to mark synced'], 422);
+            return response()->json(['message' => 'Specify ids or analyzerReffno to mark synced'], 422);
         }
 
         $affected = $query->update(['isSynced' => true]);

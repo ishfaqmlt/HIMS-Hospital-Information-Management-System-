@@ -34,3 +34,4 @@ server/bootstrap/cache/*
 temp-*/
 *backup*/
 server/analyzer-bridge/node_modules/
+*.exe

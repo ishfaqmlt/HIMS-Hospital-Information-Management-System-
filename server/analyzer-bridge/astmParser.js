@@ -145,6 +145,7 @@ function parseAstmFrame(rawBuffer) {
 
       if (paramName && resultVal !== "") {
         results.push({
+          analyzerReffno: currentCaseNo,
           caseNo: currentCaseNo,
           paramName: paramName.trim(),
           result: resultVal.trim(),
@@ -156,7 +157,7 @@ function parseAstmFrame(rawBuffer) {
     }
   }
 
-  return { caseNo: currentCaseNo, results };
+  return { analyzerReffno: currentCaseNo, caseNo: currentCaseNo, results };
 }
 
 module.exports = {

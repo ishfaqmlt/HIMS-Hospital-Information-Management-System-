@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('lab_analyzer_data', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('analyzerId')->nullable()->constrained('lab_analyzers')->onDelete('cascade');
-            $table->string('caseNo', 50)->index();
+            $table->string('analyzerReffno', 50)->index();
             $table->dateTime('tdate')->nullable();
             $table->string('paramName', 100);
             $table->string('result', 100)->nullable();

@@ -16,7 +16,7 @@ class LabAnalyzerData extends Model
     protected $fillable = [
         'id',
         'analyzerId',
-        'caseNo',
+        'analyzerReffno',
         'tdate',
         'paramName',
         'result',

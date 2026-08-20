@@ -838,6 +838,17 @@ export default function BillingPage() {
       }
 
       setMessage({ type: "success", text: `${editingInvoiceId ? "Invoice updated" : "Bill saved"} successfully. Invoice: ${invoiceNo}` });
+
+      // Automatically call thermal print right after saving the invoice
+      try {
+        const fullInvRes = await billingService.getById(billingId);
+        if (fullInvRes?.data) {
+          handlePrintSlip(fullInvRes.data);
+        }
+      } catch (printErr) {
+        console.error("Auto thermal print error:", printErr);
+      }
+
       handleNewInvoice();
       searchInvoices();
     } catch (error) {
@@ -846,6 +857,19 @@ export default function BillingPage() {
       setLoading(false);
     }
   };
+
+  // Keyboard Shortcuts Listener (Ctrl + S for Save/Update Invoice)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        handleSubmit(onSubmit)();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleSubmit, onSubmit]);
 
   useEffect(() => {
     if (doctors.length === 0) dispatch(fetchBillingDoctors());
@@ -1335,7 +1359,7 @@ export default function BillingPage() {
               </Button>
               <Button size="sm" className="h-8 flex-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold tracking-wide shadow-sm" onClick={handleSubmit(onSubmit)} disabled={loading}>
                 {loading ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
-                {editingInvoiceId ? "Update Bill" : "Save Invoice"}
+                {editingInvoiceId ? "Update Bill (Ctrl+S)" : "Save Invoice (Ctrl+S)"}
               </Button>
             </div>
           </CardContent>

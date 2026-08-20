@@ -3,9 +3,18 @@
   "version": "1.0.0",
   "description": "Production Node.js Laboratory Analyzer Socket & Serial Bridge Daemon for HIMS",
   "main": "bridge.js",
+  "bin": "bridge.js",
   "scripts": {
     "start": "node bridge.js",
-    "dev": "node --watch bridge.js"
+    "dev": "node --watch bridge.js",
+    "build": "npx @yao-pkg/pkg . --targets node18-win-x64 --output HIMS-Analyzer-Bridge.exe"
+  },
+  "pkg": {
+    "assets": [
+      ".env.example",
+      "astmParser.js",
+      "hl7Parser.js"
+    ]
   },
   "keywords": [
     "hims",

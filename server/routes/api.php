@@ -169,7 +169,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('lab-boundings', LabBoundingController::class);
     Route::apiResource('lab-short-keys', LabShortKeyController::class);
     Route::apiResource('lab-analyzers', LabAnalyzerController::class)->except(['index']);
-    Route::get('/lab-analyzer-data/case/{caseNo}', [LabAnalyzerDataController::class, 'getByCaseNo']);
+    Route::get('/lab-analyzer-data/reff-no/{analyzerReffno}', [LabAnalyzerDataController::class, 'getByAnalyzerReffno']);
+    Route::get('/lab-analyzer-data/case/{caseNo}', [LabAnalyzerDataController::class, 'getByAnalyzerReffno']);
     Route::post('/lab-analyzer-data/mark-synced', [LabAnalyzerDataController::class, 'markSynced']);
     Route::apiResource('lab-analyzer-data', LabAnalyzerDataController::class)->except(['store']);
 
