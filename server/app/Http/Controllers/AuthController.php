@@ -63,6 +63,14 @@ class AuthController extends Controller
         }
 
         $user = User::where('email', $request->email)->firstOrFail();
+
+        if (isset($user->is_active) && !$user->is_active) {
+            Auth::logout();
+            throw ValidationException::withMessages([
+                'email' => ['Your account has been deactivated. Please contact Administrator.'],
+            ]);
+        }
+
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json($this->formatResponse($user, $token));
@@ -77,7 +85,14 @@ class AuthController extends Controller
 
     public function user(Request $request)
     {
-        $user = $request->user()->load('roles', 'permissions');
+        $user = $request->user();
+
+        if (isset($user->is_active) && !$user->is_active) {
+            $user->tokens()->delete();
+            return response()->json(['message' => 'Account deactivated'], 403);
+        }
+
+        $user->load('roles', 'permissions');
         $permissions = $user->getAllPermissions()->pluck('name')->toArray();
 
         if ($user->hasRole('super_admin')) {

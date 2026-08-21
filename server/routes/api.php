@@ -76,6 +76,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:edit_administration')->group(function () {
         Route::put('/users/{user}', [UserController::class, 'update']);
         Route::put('/users/{user}/roles', [UserController::class, 'updateRoles']);
+        Route::put('/users/{user}/status', [UserController::class, 'toggleStatus']);
         Route::put('/roles/{role}', [RoleController::class, 'update']);
         Route::put('/hospital-profile', [HospitalProfileController::class, 'update']);
     });
@@ -152,6 +153,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('patient-appointments', PatientAppointmentController::class);
 
     // Clinical Modules
+    Route::get('/opd-visits/queue', [OpdVisitController::class, 'getOpdQueue']);
     Route::apiResource('opd-visits', OpdVisitController::class);
     Route::apiResource('ipd-admissions', IpdAdmissionController::class);
     Route::apiResource('emergency-cases', EmergencyCaseController::class);

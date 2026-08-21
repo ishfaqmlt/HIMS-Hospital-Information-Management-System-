@@ -9,7 +9,7 @@ class DoctorController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Doctor::query();
+        $query = Doctor::with('user');
 
         if ($request->has('opd') && $request->opd) {
             $query->where('Opd', true);
@@ -21,6 +21,7 @@ class DoctorController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'user_id' => 'nullable|exists:users,id',
             'Name' => 'required|string|max:100',
             'Gender' => 'nullable|in:Male,Female,Other',
             'Dob' => 'nullable|date',
@@ -39,17 +40,18 @@ class DoctorController extends Controller
 
         $doctor = Doctor::create($validated);
 
-        return response()->json($doctor, 201);
+        return response()->json($doctor->load('user'), 201);
     }
 
     public function show(Doctor $doctor)
     {
-        return response()->json($doctor);
+        return response()->json($doctor->load('user'));
     }
 
     public function update(Request $request, Doctor $doctor)
     {
         $validated = $request->validate([
+            'user_id' => 'nullable|exists:users,id',
             'Name' => 'required|string|max:100',
             'Gender' => 'nullable|in:Male,Female,Other',
             'Dob' => 'nullable|date',
@@ -68,7 +70,7 @@ class DoctorController extends Controller
 
         $doctor->update($validated);
 
-        return response()->json($doctor);
+        return response()->json($doctor->load('user'));
     }
 
     public function destroy(Doctor $doctor)

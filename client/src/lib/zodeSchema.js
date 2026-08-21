@@ -18,6 +18,7 @@ export const registerSchema = z
   });
 
 export const doctorSchema = z.object({
+  user_id: z.string().optional().nullable(),
   Name: z.string().min(1, "Doctor name is required").max(100),
   Gender: z.enum(["Male", "Female", "Other"]).optional(),
   Dob: z.string().optional(),

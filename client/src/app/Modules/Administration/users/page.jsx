@@ -62,6 +62,7 @@ export default function UsersPage() {
     register: registerRole,
     handleSubmit: handleRoleSubmit,
     reset: resetRole,
+    setValue: setRoleValue,
     formState: { errors: roleErrors },
   } = useForm({
     resolver: zodResolver(roleAssignSchema),
@@ -119,6 +120,17 @@ export default function UsersPage() {
     }
   };
 
+  const onToggleStatus = async (user) => {
+    const action = user.is_active !== false ? "deactivate" : "activate";
+    if (!confirm(`Are you sure you want to ${action} ${user.name}?`)) return;
+    try {
+      await userService.toggleStatus(user.id);
+      fetchData();
+    } catch (error) {
+      console.error("Failed to update user status:", error);
+    }
+  };
+
   const onDeleteUser = async (userId) => {
     if (!confirm("Are you sure you want to delete this user?")) return;
     try {
@@ -131,7 +143,9 @@ export default function UsersPage() {
 
   const openRoleDialog = (user) => {
     setSelectedUser(user);
-    setSelectedAssignRole(user.roles?.[0]?.name || "");
+    const initialRole = user.roles?.[0]?.name || "";
+    setSelectedAssignRole(initialRole);
+    setRoleValue("role", initialRole, { shouldValidate: true });
     setRoleOpen(true);
   };
 
@@ -139,7 +153,7 @@ export default function UsersPage() {
     () =>
       getColumns({
         onAssignRole: openRoleDialog,
-        onDelete: onDeleteUser,
+        onToggleStatus: onToggleStatus,
       }),
     []
   );
@@ -279,7 +293,7 @@ export default function UsersPage() {
                 value={selectedAssignRole}
                 onValueChange={(val) => {
                   setSelectedAssignRole(val);
-                  registerRole("role").onChange({ target: { value: val } });
+                  setRoleValue("role", val, { shouldValidate: true });
                 }}
               >
                 <SelectTrigger>
@@ -293,7 +307,6 @@ export default function UsersPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <input type="hidden" {...registerRole("role")} />
               {roleErrors.role && (
                 <p className="text-sm text-destructive">
                   {roleErrors.role.message}

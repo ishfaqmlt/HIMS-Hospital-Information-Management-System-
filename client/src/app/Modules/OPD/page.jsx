@@ -75,9 +75,44 @@ export default function OPDPage() {
     },
   });
 
+  async function loadDoctors() {
+    try {
+      const res = await doctorService.getAll({ opd: true });
+      setDoctors(res.data.filter((d) => d.Name !== "Self"));
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function loadDepartments() {
+    try {
+      const res = await departmentService.getAll();
+      setDepartments(res.data);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function loadTodaysVisits() {
+    try {
+      setLoading(true);
+      setSearchTerm("");
+      const res = await opdVisitService.getQueue();
+      setVisits(res.data);
+      if (res.data.length === 0) {
+        setMessage({ type: "error", text: "No OPD token queue found for today" });
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "Failed to load OPD queue" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
     loadDoctors();
     loadDepartments();
+    loadTodaysVisits();
   }, []);
 
   useEffect(() => {
@@ -85,24 +120,6 @@ export default function OPDPage() {
     const t = setTimeout(() => setMessage(null), 4000);
     return () => clearTimeout(t);
   }, [message]);
-
-  const loadDoctors = async () => {
-    try {
-      const res = await doctorService.getAll({ opd: true });
-      setDoctors(res.data.filter((d) => d.Name !== "Self"));
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const loadDepartments = async () => {
-    try {
-      const res = await departmentService.getAll();
-      setDepartments(res.data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -112,29 +129,13 @@ export default function OPDPage() {
     }
     try {
       setLoading(true);
-      const res = await opdVisitService.getAll({ search: searchTerm });
+      const res = await opdVisitService.getQueue({ search: searchTerm });
       setVisits(res.data);
       if (res.data.length === 0) {
         setMessage({ type: "error", text: "No visits found" });
       }
     } catch (error) {
       setMessage({ type: "error", text: "Search failed" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadTodaysVisits = async () => {
-    try {
-      setLoading(true);
-      setSearchTerm("");
-      const res = await opdVisitService.getAll({ today: true });
-      setVisits(res.data);
-      if (res.data.length === 0) {
-        setMessage({ type: "error", text: "No visits found for today" });
-      }
-    } catch (error) {
-      setMessage({ type: "error", text: "Failed to load visits" });
     } finally {
       setLoading(false);
     }

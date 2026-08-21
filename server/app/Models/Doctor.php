@@ -14,6 +14,7 @@ class Doctor extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
+        'user_id',
         'Name',
         'Gender',
         'Dob',
@@ -30,6 +31,11 @@ class Doctor extends Model
         'Anesthetist',
         'isSynced',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
     protected $casts = [
         'Dob' => 'date',

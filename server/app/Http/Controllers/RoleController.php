@@ -10,7 +10,7 @@ class RoleController extends Controller
 {
     public function index()
     {
-        $roles = Role::with('permissions')->get();
+        $roles = Role::with('permissions')->where('guard_name', 'sanctum')->get();
         return response()->json($roles);
     }
 
@@ -22,10 +22,16 @@ class RoleController extends Controller
             'permissions.*' => 'string|exists:permissions,name',
         ]);
 
-        $role = Role::create(['name' => $validated['name']]);
+        $role = Role::create([
+            'name' => $validated['name'],
+            'guard_name' => $request->input('guard_name', 'sanctum'),
+        ]);
 
         if (isset($validated['permissions'])) {
-            $role->syncPermissions($validated['permissions']);
+            $permissions = Permission::whereIn('name', $validated['permissions'])
+                ->where('guard_name', $role->guard_name)
+                ->get();
+            $role->syncPermissions($permissions);
         }
 
         return response()->json($role->load('permissions'), 201);
@@ -47,7 +53,10 @@ class RoleController extends Controller
         $role->update(['name' => $validated['name']]);
 
         if (isset($validated['permissions'])) {
-            $role->syncPermissions($validated['permissions']);
+            $permissions = Permission::whereIn('name', $validated['permissions'])
+                ->where('guard_name', $role->guard_name)
+                ->get();
+            $role->syncPermissions($permissions);
         }
 
         return response()->json($role->load('permissions'));

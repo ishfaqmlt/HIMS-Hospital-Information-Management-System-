@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('doctors', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('Name', 100)->nullable();
             $table->enum('Gender', ['Male', 'Female', 'Other'])->nullable();
             $table->date('Dob')->nullable();

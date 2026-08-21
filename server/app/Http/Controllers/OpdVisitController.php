@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\OpdVisit;
+use App\Models\Doctor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class OpdVisitController extends Controller
@@ -46,6 +48,70 @@ class OpdVisitController extends Controller
         }
 
         return response()->json($query->latest('VisitDate')->get());
+    }
+
+    public function getOpdQueue(Request $request)
+    {
+        $user = Auth::user();
+
+        // Find doctor linked by user_id or Email
+        $doctor = Doctor::where('user_id', $user->id)
+            ->orWhere('Email', $user->email)
+            ->first();
+
+        $query = DB::table('billings')
+            ->leftJoin('patient_visits', 'billings.visitId', '=', 'patient_visits.id')
+            ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.id')
+            ->leftJoin('departments', 'billings.DepartmentId', '=', 'departments.id')
+            ->leftJoin('doctors', 'billings.DoctorId', '=', 'doctors.id')
+            ->select(
+                'billings.id as billing_id',
+                'billings.InvoiceNo',
+                'billings.InvoiceDate',
+                'billings.tokenNo',
+                'billings.SubTotal',
+                'billings.TotalAmount',
+                'billings.PaymentStatus',
+                'billings.DoctorId',
+                'billings.DepartmentId',
+                'patients.id as patient_id',
+                'patients.pName as patient_name',
+                'patients.mrn as patient_mrn',
+                'patients.mobile as patient_mobile',
+                'patients.gender as patient_gender',
+                'patient_visits.id as visit_id',
+                'patient_visits.visitNo',
+                'departments.DepartmentName as department_name',
+                'doctors.Name as doctor_name'
+            )
+            ->where('billings.tokenNo', '>', 0);
+
+        if ($request->has('date') && $request->date) {
+            $query->whereDate('billings.InvoiceDate', $request->date);
+        } else {
+            $query->whereDate('billings.InvoiceDate', Carbon::today());
+        }
+
+        if ($doctor && !$user->hasRole(['super_admin', 'admin'])) {
+            $query->where('billings.DoctorId', $doctor->id);
+        } elseif ($request->has('DoctorId') && $request->DoctorId) {
+            $query->where('billings.DoctorId', $request->DoctorId);
+        }
+
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('billings.InvoiceNo', 'like', "%{$search}%")
+                  ->orWhere('billings.tokenNo', 'like', "%{$search}%")
+                  ->orWhere('patients.pName', 'like', "%{$search}%")
+                  ->orWhere('patients.mrn', 'like', "%{$search}%")
+                  ->orWhere('patients.mobile', 'like', "%{$search}%");
+            });
+        }
+
+        $queue = $query->orderBy('billings.tokenNo', 'asc')->get();
+
+        return response()->json($queue);
     }
 
     public function store(Request $request)

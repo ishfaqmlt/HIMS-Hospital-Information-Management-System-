@@ -429,6 +429,7 @@ const toLocalISOString = (date) => {
 - Services: `camelCase.service.js` (frontend), `PascalCaseController.php` (backend)
 
 ### Pushing to GitHub
-- **DO NOT push code or data to GitHub unless explicitly instructed by the user.**
-- Only run `git push` when the user specifically requests to push or sync data to GitHub.
+- **STRICT DIRECTIVE**: DO NOT push code, commits, or data to GitHub automatically or after every prompt.
+- Only run `git push` when the user explicitly and specifically instructs you to push or upload to GitHub.
+- Never offer or execute `git push` on your own initiative.
 - When explicitly requested by the user: verify all changes compile (`npm run build` if needed), check for unused imports/variables, and test key flows before pushing.

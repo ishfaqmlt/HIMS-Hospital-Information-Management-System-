@@ -135,7 +135,7 @@ export default function PatientReportsPage() {
     pageStyle: `
       @page {
         size: A4 portrait;
-        margin: 10mm;
+        margin: 12mm 10mm 10mm 10mm;
       }
       @media print {
         body {
@@ -298,8 +298,11 @@ export default function PatientReportsPage() {
   const handlePrintSingleTest = async (test, parentCase) => {
     try {
       setPrintLoading(true);
-      const res = await testPerformService.getParameters(test.id);
-      const params = res.data || [];
+      const res = await testPerformService.getParameters(test.id, { for_print: 1 });
+      const rawParams = res.data || [];
+      const params = rawParams.filter((p) => {
+        return p.result !== null && p.result !== undefined && String(p.result).trim() !== "";
+      });
 
       setPrintData([
         {
@@ -346,10 +349,15 @@ export default function PatientReportsPage() {
           };
         }
 
-        const res = await testPerformService.getParameters(item.test.id);
+        const res = await testPerformService.getParameters(item.test.id, { for_print: 1 });
+        const rawParams = res.data || [];
+        const params = rawParams.filter((p) => {
+          return p.result !== null && p.result !== undefined && String(p.result).trim() !== "";
+        });
+
         caseMap[caseId].tests.push({
           testObj: item.test,
-          parameters: res.data || [],
+          parameters: params,
         });
       }
 
@@ -691,7 +699,7 @@ export default function PatientReportsPage() {
           {printData.map((caseGroup, caseIdx) => (
             <div
               key={caseGroup.caseObj?.id || caseIdx}
-              className={`relative min-h-[297mm] p-6 bg-white text-black ${
+              className={`relative min-h-[297mm] px-6 pb-6 pt-0 bg-white text-black ${
                 caseIdx > 0 ? "page-break-before" : ""
               }`}
             >
@@ -703,7 +711,7 @@ export default function PatientReportsPage() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
-                    <th className="p-0 font-normal text-left border-none">
+                    <th className="p-0 pt-3 font-normal text-left border-none">
                       <div className="pb-2 space-y-3">
                         {/* Top Header - Repeats on every page */}
                         <LabHeader caseData={caseGroup.caseObj} settings={outputSettings} />

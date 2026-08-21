@@ -120,7 +120,7 @@ export default function PatientRegistrationPage() {
 
   const handlePrintBarcode = useReactToPrint({
     contentRef: barcodePrintRef,
-    documentTitle: `Barcode-${barcodeCase?.caseNo || ""}`,
+    documentTitle: `Barcode-${barcodeCase?.analyzerReffno || barcodeCase?.caseNo || ""}`,
     onAfterPrint: () => setBarcodeDialogOpen(false),
   });
 
@@ -1102,7 +1102,7 @@ export default function PatientRegistrationPage() {
                     Age: {calculateAge(barcodeCase.patient?.dob)}
                   </span>
                   <LabBarcode
-                    value={barcodeCase.caseNo}
+                    value={barcodeCase.analyzerReffno || barcodeCase.caseNo}
                     width={2}
                     height={50}
                     fontSize={12}

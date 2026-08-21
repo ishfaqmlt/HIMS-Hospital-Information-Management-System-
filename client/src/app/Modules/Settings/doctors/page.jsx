@@ -25,11 +25,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { doctorSchema } from "@/lib/zodeSchema";
 import doctorService from "@/services/doctor.service";
+import userService from "@/services/user.service";
 import { Loader2, Plus, Search } from "lucide-react";
 
 export default function DoctorsPage() {
   const [loading, setLoading] = useState(true);
   const [doctors, setDoctors] = useState([]);
+  const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [message, setMessage] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -45,6 +47,7 @@ export default function DoctorsPage() {
   } = useForm({
     resolver: zodResolver(doctorSchema),
     defaultValues: {
+      user_id: "",
       Name: "",
       Gender: "",
       Dob: "",
@@ -64,8 +67,13 @@ export default function DoctorsPage() {
 
   const genderValue = watch("Gender");
   const statusValue = watch("EmployeementStatus");
+  const userIdValue = watch("user_id");
 
-  useEffect(() => { loadDoctors(); }, []);
+  useEffect(() => {
+    loadDoctors();
+    loadUsers();
+  }, []);
+
   useEffect(() => {
     if (!message) return;
     const t = setTimeout(() => setMessage(null), 4000);
@@ -84,10 +92,19 @@ export default function DoctorsPage() {
     }
   };
 
+  const loadUsers = async () => {
+    try {
+      const res = await userService.getAll();
+      setUsers(res.data);
+    } catch (error) {
+      console.error("Failed to load users:", error);
+    }
+  };
+
   const openCreate = () => {
     setEditingId(null);
     reset({
-      Name: "", Gender: "", Dob: "", Email: "", Phone: "", Cnic: "",
+      user_id: "", Name: "", Gender: "", Dob: "", Email: "", Phone: "", Cnic: "",
       RegistrationNo: "", Address: "", JoiningDate: "",
       EmployeementStatus: "Active", Stamp: "",
       Opd: false, Surgeon: false, Anesthetist: false,
@@ -98,6 +115,7 @@ export default function DoctorsPage() {
   const openEdit = (doctor) => {
     setEditingId(doctor.id);
     reset({
+      user_id: doctor.user_id ? String(doctor.user_id) : "",
       Name: doctor.Name || "",
       Gender: doctor.Gender || "",
       Dob: doctor.Dob ? doctor.Dob.split("T")[0] : "",
@@ -118,12 +136,17 @@ export default function DoctorsPage() {
 
   const onSubmit = async (data) => {
     try {
+      const payload = {
+        ...data,
+        user_id: data.user_id ? data.user_id : null,
+      };
+
       if (editingId) {
-        await doctorService.update(editingId, data);
-        setMessage({ type: "success", text: "Doctor updated" });
+        await doctorService.update(editingId, payload);
+        setMessage({ type: "success", text: "Doctor updated successfully" });
       } else {
-        await doctorService.create(data);
-        setMessage({ type: "success", text: "Doctor created" });
+        await doctorService.create(payload);
+        setMessage({ type: "success", text: "Doctor created successfully" });
       }
       setIsDialogOpen(false);
       loadDoctors();
@@ -202,6 +225,23 @@ export default function DoctorsPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2 col-span-1 md:col-span-2">
+                <Label>Linked User Account (Login)</Label>
+                <Select value={userIdValue || "none"} onValueChange={(val) => setValue("user_id", val === "none" ? "" : val)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select user account to link for doctor login" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">-- No Linked Account --</SelectItem>
+                    {users.map((u) => (
+                      <SelectItem key={u.id} value={String(u.id)}>
+                        {u.name} ({u.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label>Name *</Label>
                 <Input {...register("Name")} placeholder="Doctor name" />

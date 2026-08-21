@@ -91,4 +91,19 @@ class UserController extends Controller
             'permissions' => $user->getAllPermissions()->pluck('name'),
         ]);
     }
+
+    public function toggleStatus(User $user)
+    {
+        $user->is_active = !$user->is_active;
+        $user->save();
+
+        if (!$user->is_active) {
+            $user->tokens()->delete();
+        }
+
+        return response()->json([
+            'message' => 'User status updated successfully',
+            'user' => $user->load('roles'),
+        ]);
+    }
 }

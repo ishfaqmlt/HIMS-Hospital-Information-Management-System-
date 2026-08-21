@@ -8,6 +8,7 @@ const userService = {
   delete: (id) => api.delete(`/users/${id}`),
   assignRole: (userId, role) => api.post(`/users/${userId}/role`, { role }),
   updateRoles: (userId, roles) => api.put(`/users/${userId}/roles`, { roles }),
+  toggleStatus: (userId) => api.put(`/users/${userId}/status`),
 };
 
 export default userService;

@@ -164,6 +164,7 @@ class TestPerformController extends Controller
             return [
                 'id' => $param->id,
                 'parameterName' => $param->parameterName,
+                'analyzerCode' => $param->analyzerCode ?? '',
                 'pCode' => $param->analyzerCode ?? '',
                 'subHeaderName' => $param->sub_header_name ?? '',
                 'units' => $hasStoredResult ? ($existing->units ?? ($param->units ?? '')) : ($param->units ?? ''),
@@ -176,6 +177,12 @@ class TestPerformController extends Controller
                 'isPrint' => $isPrint,
             ];
         });
+
+        if ($request->has('for_print') && ($request->input('for_print') == '1' || $request->input('for_print') === 'true' || $request->boolean('for_print'))) {
+            $data = $data->filter(function ($param) {
+                return isset($param['result']) && trim((string)$param['result']) !== '';
+            })->values();
+        }
 
         return response()->json($data);
     }

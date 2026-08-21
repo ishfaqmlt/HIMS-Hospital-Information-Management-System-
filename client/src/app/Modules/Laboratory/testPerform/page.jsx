@@ -31,6 +31,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchLabBoundings } from "@/reduxToolKit/slices/labBoundingSlice";
 import { fetchLabShortKeys } from "@/reduxToolKit/slices/labShortKeysSlice";
 import testPerformService from "@/services/testPerform.service";
+import labAnalyzerDataService from "@/services/labAnalyzerData.service";
 import { calculateAge, calculateAgeInDays, toLocalISOString } from "@/lib/utils";
 import { evaluateTestParameters } from "@/lib/formulaEvaluator";
 
@@ -60,6 +61,7 @@ const TestPerform = () => {
 
   const [testParameters, setTestParameters] = useState([]);
   const [resultsLoading, setResultsLoading] = useState(false);
+  const [fetchingAnalyzer, setFetchingAnalyzer] = useState(false);
   const [savingResults, setSavingResults] = useState(false);
 
   const [analyzerReffno, setAnalyzerReffno] = useState("");
@@ -252,11 +254,12 @@ const TestPerform = () => {
         const res = await testPerformService.getParameters(test.id);
         const rawParams = (res.data || []).map((p) => {
           const evalStatus = p.paramStatus || evaluateResultStatus(p.result, p.id);
-          const isPrinted = p.isPrint === 1 || p.isPrint === true || p.isPrint === "1" || p.isPrint === "true" || p.print === true || p.print === 1 || p.print === "1";
+          const isPrinted = p.isPrint === 1 || p.isPrint === true || p.isPrint === "1" || p.isPrint === "true";
           return {
             ...p,
             paramStatus: evalStatus,
             print: isPrinted,
+            isPrint: isPrinted,
             _testId: test.id,
             _testName: test.testName,
           };
@@ -284,11 +287,12 @@ const TestPerform = () => {
       const res = await testPerformService.getParameters(test.id);
       const rawParams = (res.data || []).map((p) => {
         const evalStatus = p.paramStatus || evaluateResultStatus(p.result, p.id);
-        const isPrinted = p.isPrint === 1 || p.isPrint === true || p.isPrint === "1" || p.isPrint === "true" || p.print === true || p.print === 1 || p.print === "1";
+        const isPrinted = p.isPrint === 1 || p.isPrint === true || p.isPrint === "1" || p.isPrint === "true";
         return {
           ...p,
           paramStatus: evalStatus,
           print: isPrinted,
+          isPrint: isPrinted,
           _testId: test.id,
           _testName: test.testName,
         };
@@ -336,8 +340,10 @@ const TestPerform = () => {
         Object.values(testGroups).forEach((groupParams) => {
           const calculatedGroup = evaluateTestParameters(groupParams);
           calculatedGroup.forEach((cp) => {
-            if (cp.isCalculated) {
-              cp.paramStatus = evaluateResultStatus(cp.result, cp.id);
+            if (cp.isCalculated && cp.result !== null && cp.result !== undefined && String(cp.result).trim() !== "") {
+              const formattedVal = formatResultValue(String(cp.result).trim(), cp.decimal ?? 0);
+              cp.result = formattedVal;
+              cp.paramStatus = evaluateResultStatus(formattedVal, cp.id);
             }
           });
           finalCalculatedList.push(...calculatedGroup);
@@ -351,9 +357,9 @@ const TestPerform = () => {
   };
 
   const formatResultValue = useCallback((val, decimalPlaces = 0) => {
-    if (!val || typeof val !== "string") return val || "";
-
-    let cvalue = val.trim();
+    if (val === null || val === undefined) return "";
+    let cvalue = String(val).trim();
+    if (cvalue === "") return "";
 
     // 1. Dash formatting: If contains "-" and not "--" or "---", replace "-" with "---"
     if (!cvalue.includes("---") && !cvalue.includes("--")) {
@@ -362,15 +368,25 @@ const TestPerform = () => {
       }
     }
 
-    // 2. Numeric formatting: If single-digit number and != "0", prepend "0" (e.g., "5" -> "05")
-    if (!isNaN(cvalue) && cvalue.length === 1 && cvalue !== "0") {
-      cvalue = "0" + cvalue;
+    if (cvalue.includes("---")) {
+      return cvalue;
     }
 
-    // 3. Decimal places formatting if numeric
+    // 2. Numeric & decimal places formatting
     const num = parseFloat(cvalue);
-    if (!isNaN(num) && decimalPlaces > 0 && !cvalue.includes("---")) {
-      cvalue = num.toFixed(decimalPlaces);
+    if (!isNaN(num)) {
+      const dec = decimalPlaces !== null && decimalPlaces !== undefined && decimalPlaces !== ""
+        ? parseInt(decimalPlaces, 10)
+        : 0;
+
+      const validDec = !isNaN(dec) && dec >= 0 ? dec : 0;
+
+      cvalue = num.toFixed(validDec);
+
+      // 3. Single-digit leading zero formatting (e.g. "5" -> "05" when decimal=0)
+      if (validDec === 0 && cvalue.length === 1 && cvalue !== "0" && !cvalue.startsWith("0")) {
+        cvalue = "0" + cvalue;
+      }
     }
 
     return cvalue;
@@ -410,49 +426,85 @@ const TestPerform = () => {
     [shortKeys, formatResultValue, evaluateResultStatus]
   );
 
-  const handleResultBlur = (paramId) => {
-    const param = testParameters.find((p) => p.id === paramId);
-    if (param) {
-      if (!param.result || param.result.trim() === "") {
-        handleResultChange(paramId, "print", false);
-      } else {
+  const processAndFormatParam = useCallback(
+    (paramId) => {
+      setTestParameters((prev) => {
+        const param = prev.find((p) => p.id === paramId);
+        if (!param) return prev;
+
+        if (!param.result || param.result.trim() === "") {
+          return prev.map((p) => (p.id === paramId ? { ...p, print: false } : p));
+        }
+
         const processed = applyShortKeyAndFormat(param.result, param.decimal ?? 0, paramId);
-        setTestParameters((prev) =>
-          prev.map((p) => (p.id === paramId ? { ...p, ...processed } : p))
-        );
-      }
-    }
+
+        const updatedList = prev.map((p) => (p.id === paramId ? { ...p, ...processed } : p));
+
+        const testGroups = {};
+        updatedList.forEach((p) => {
+          const tid = p._testId || "default";
+          if (!testGroups[tid]) testGroups[tid] = [];
+          testGroups[tid].push(p);
+        });
+
+        const finalCalculatedList = [];
+        Object.values(testGroups).forEach((groupParams) => {
+          const calculatedGroup = evaluateTestParameters(groupParams);
+          calculatedGroup.forEach((cp) => {
+            if (cp.isCalculated && cp.result !== null && cp.result !== undefined && String(cp.result).trim() !== "") {
+              const formattedVal = formatResultValue(String(cp.result).trim(), cp.decimal ?? 0);
+              cp.result = formattedVal;
+              cp.paramStatus = evaluateResultStatus(formattedVal, cp.id);
+            }
+          });
+          finalCalculatedList.push(...calculatedGroup);
+        });
+
+        return finalCalculatedList;
+      });
+    },
+    [applyShortKeyAndFormat, evaluateResultStatus]
+  );
+
+  const handleResultBlur = (paramId) => {
+    processAndFormatParam(paramId);
   };
 
   const handleResultKeyDown = (e, paramId) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      const param = displayParams.find((p) => p.id === paramId);
-      if (param) {
-        const processed = applyShortKeyAndFormat(param.result, param.decimal ?? 0, paramId);
+      processAndFormatParam(paramId);
 
-        setTestParameters((prev) =>
-          prev.map((p) => (p.id === paramId ? { ...p, ...processed } : p))
-        );
-      }
       const currentIdx = displayParams.findIndex((p) => p.id === paramId);
       if (currentIdx < displayParams.length - 1) {
         const nextId = displayParams[currentIdx + 1].id;
-        resultInputRefs.current[nextId]?.focus();
+        const nextEl = resultInputRefs.current[nextId];
+        if (nextEl) {
+          nextEl.focus();
+          setTimeout(() => nextEl.select?.(), 10);
+        }
       }
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       const currentIdx = displayParams.findIndex((p) => p.id === paramId);
       if (currentIdx < displayParams.length - 1) {
         const nextId = displayParams[currentIdx + 1].id;
-        resultInputRefs.current[nextId]?.focus();
+        const nextEl = resultInputRefs.current[nextId];
+        if (nextEl) {
+          nextEl.focus();
+          setTimeout(() => nextEl.select?.(), 10);
+        }
       }
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       const currentIdx = displayParams.findIndex((p) => p.id === paramId);
       if (currentIdx > 0) {
         const prevId = displayParams[currentIdx - 1].id;
-        resultInputRefs.current[prevId]?.focus();
+        const prevEl = resultInputRefs.current[prevId];
+        if (prevEl) {
+          prevEl.focus();
+          setTimeout(() => prevEl.select?.(), 10);
+        }
       }
     }
   };
@@ -496,6 +548,130 @@ const TestPerform = () => {
       setMessage({ type: "error", text: "Failed to save results." });
     } finally {
       setSavingResults(false);
+    }
+  };
+
+  const handleFetchAnalyzerData = async () => {
+    const searchReffNo = analyzerReffno.trim() || selectedCase?.analyzerReffno?.trim() || selectedCase?.caseNo?.trim();
+    if (!searchReffNo) {
+      setMessage({
+        type: "error",
+        text: "Please enter or select an Analyzer Reff No first.",
+      });
+      return;
+    }
+
+    setFetchingAnalyzer(true);
+    try {
+      const res = await labAnalyzerDataService.getByReffNo(searchReffNo);
+      const rawData = res.data || [];
+
+      if (!rawData || rawData.length === 0) {
+        setMessage({
+          type: "error",
+          text: `No raw machine measurements found in database for Reff No: ${searchReffNo}`,
+        });
+        return;
+      }
+
+      const cleanStr = (s) => (s || "").toString().toLowerCase().replace(/[^a-z0-9]/g, "");
+
+      let matchedCount = 0;
+
+      setTestParameters((prevParams) => {
+        const updatedList = prevParams.map((p) => {
+          const targetCodes = [
+            p.analyzerCode,
+            p.pCode,
+            p.parameterName,
+          ].filter((val) => val && String(val).trim() !== "");
+
+          const matchedData = rawData.find((item) => {
+            if (!item || item.result === null || item.result === undefined || String(item.result).trim() === "") {
+              return false;
+            }
+
+            const rawName = (item.paramName || "").trim().toLowerCase();
+            const rawClean = cleanStr(rawName);
+
+            return targetCodes.some((code) => {
+              const cLower = String(code).trim().toLowerCase();
+              const cClean = cleanStr(cLower);
+
+              // Match analyzerCode from lab_master_test_parameters directly (exact or normalized)
+              return rawName === cLower || (cClean.length > 0 && rawClean === cClean);
+            });
+          });
+
+          if (matchedData && matchedData.result !== null && matchedData.result !== undefined && String(matchedData.result).trim() !== "") {
+            matchedCount++;
+            const rawResult = String(matchedData.result).trim();
+            const formattedResult = formatResultValue(rawResult, p.decimal ?? 0);
+            const evalStatus = evaluateResultStatus(formattedResult, p.id);
+            return {
+              ...p,
+              result: formattedResult,
+              paramStatus: evalStatus,
+            };
+          }
+          return p;
+        });
+
+        const testGroups = {};
+        updatedList.forEach((p) => {
+          const tid = p._testId || "default";
+          if (!testGroups[tid]) testGroups[tid] = [];
+          testGroups[tid].push(p);
+        });
+
+        const finalCalculatedList = [];
+        Object.values(testGroups).forEach((groupParams) => {
+          const calculatedGroup = evaluateTestParameters(groupParams);
+          calculatedGroup.forEach((cp) => {
+            if (cp.isCalculated && cp.result !== null && cp.result !== undefined && String(cp.result).trim() !== "") {
+              const formattedVal = formatResultValue(String(cp.result).trim(), cp.decimal ?? 0);
+              cp.result = formattedVal;
+              cp.paramStatus = evaluateResultStatus(formattedVal, cp.id);
+            }
+          });
+          finalCalculatedList.push(...calculatedGroup);
+        });
+
+        return finalCalculatedList;
+      });
+
+      if (matchedCount > 0) {
+        setMessage({
+          type: "success",
+          text: `Successfully matched & filled ${matchedCount} parameter result(s) for Reff No: ${searchReffNo}`,
+        });
+      } else {
+        const receivedParams = Array.from(new Set(rawData.map((r) => r.paramName).filter(Boolean))).join(", ");
+        setMessage({
+          type: "error",
+          text: `Analyzer data received for Reff No ${searchReffNo} (Machine Params: ${receivedParams}), but could not match with current test parameter codes. Please check analyzerCode in Master Test Parameters.`,
+        });
+      }
+
+      // Auto-focus and select text of the first row's result input box
+      setTimeout(() => {
+        const firstParamId = displayParams[0]?.id || testParameters[0]?.id;
+        if (firstParamId) {
+          const firstEl = resultInputRefs.current[firstParamId];
+          if (firstEl) {
+            firstEl.focus();
+            firstEl.select?.();
+          }
+        }
+      }, 100);
+    } catch (err) {
+      console.error(err);
+      setMessage({
+        type: "error",
+        text: err.response?.data?.message || "Failed to fetch analyzer data.",
+      });
+    } finally {
+      setFetchingAnalyzer(false);
     }
   };
 
@@ -781,10 +957,15 @@ const TestPerform = () => {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-7 text-xs"
-                  onClick={() => {}}
+                  className="h-7 text-xs bg-sky-50 text-sky-800 border-sky-300 hover:bg-sky-100 font-semibold"
+                  onClick={handleFetchAnalyzerData}
+                  disabled={fetchingAnalyzer}
                 >
-                  <Download className="h-3 w-3 mr-1" />
+                  {fetchingAnalyzer ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <Download className="h-3 w-3 mr-1" />
+                  )}
                   Fetch Analyzer
                 </Button>
                 <Button
@@ -831,13 +1012,20 @@ const TestPerform = () => {
                   <CardContent className="px-3 py-2">
                     <div className="grid grid-cols-4 gap-2">
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">
+                        <Label className="text-[10px] text-muted-foreground font-semibold">
                           Analyzer Reff No
                         </Label>
                         <Input
                           value={analyzerReffno}
                           onChange={(e) => setAnalyzerReffno(e.target.value)}
-                          className="h-7 text-xs"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleFetchAnalyzerData();
+                            }
+                          }}
+                          placeholder="e.g. LAB-26-1"
+                          className="h-7 text-xs font-mono"
                         />
                       </div>
                       <div className="space-y-1">
@@ -954,6 +1142,7 @@ const TestPerform = () => {
                                     <Input
                                       ref={(el) => { resultInputRefs.current[param.id] = el; }}
                                       value={param.result || ""}
+                                      onFocus={(e) => e.target.select()}
                                       onChange={(e) =>
                                         handleResultChange(
                                           param.id,
@@ -962,7 +1151,7 @@ const TestPerform = () => {
                                         )
                                       }
                                       onKeyDown={(e) => handleResultKeyDown(e, param.id)}
-                                      onBlur={() => handleResultBlur(param.id)}
+                                      // onBlur={() => handleResultBlur(param.id)}
                                       className={`h-7 text-xs w-full transition-colors ${
                                         param.paramStatus === "C"
                                           ? "bg-red-500 text-white font-bold placeholder:text-red-100"
