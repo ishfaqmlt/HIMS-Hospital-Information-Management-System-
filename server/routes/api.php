@@ -30,6 +30,7 @@ use App\Http\Controllers\BedMasterController;
 use App\Http\Controllers\LabHeaderController;
 use App\Http\Controllers\LabOutputSettingController;
 use App\Http\Controllers\HospitalOutputSettingController;
+use App\Http\Controllers\PatientVitalController;
 use App\Http\Controllers\LabSubHeaderController;
 use App\Http\Controllers\LabRequiredSampleController;
 use App\Http\Controllers\LabMasterTestController;
@@ -70,7 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/users', [UserController::class, 'store']);
         Route::post('/users/{user}/role', [UserController::class, 'assignRole']);
         Route::post('/roles', [RoleController::class, 'store']);
-        Route::post('/hospital-profile', [HospitalProfileController::class, 'store']);
+        Route::post('/hospital-profile', [HospitalProfileController::class, 'update']);
     });
 
     Route::middleware('permission:edit_administration')->group(function () {
@@ -155,6 +156,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Clinical Modules
     Route::get('/opd-visits/queue', [OpdVisitController::class, 'getOpdQueue']);
     Route::apiResource('opd-visits', OpdVisitController::class);
+    Route::apiResource('patient-vitals', PatientVitalController::class);
     Route::apiResource('ipd-admissions', IpdAdmissionController::class);
     Route::apiResource('emergency-cases', EmergencyCaseController::class);
 

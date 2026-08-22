@@ -4,13 +4,18 @@ import React from "react";
 import { getImageUrl } from "@/lib/utils";
 
 export default function LabFooter({ settings }) {
+  const [imageError, setImageError] = React.useState(false);
   const showLegalDisclaimer = settings?.showLegalDisclaimer ?? true;
   const legalDisclaimerText = settings?.legalDisclaimerText || "NOT VALID FOR ANY COURT OF LAW";
   const showDoctorSignatures = settings?.showDoctorSignatures ?? true;
   const footerImage = settings?.footerImage;
   const showFooterImage = settings?.showFooterImage ?? true;
 
-  const isFooterImageDisplayed = !!(footerImage && showFooterImage);
+  React.useEffect(() => {
+    setImageError(false);
+  }, [footerImage]);
+
+  const isFooterImageDisplayed = !!(footerImage && showFooterImage && !imageError);
   const hasAnyFooterContent = isFooterImageDisplayed || showDoctorSignatures || showLegalDisclaimer;
 
   return (
@@ -27,9 +32,7 @@ export default function LabFooter({ settings }) {
                 src={getImageUrl(footerImage)}
                 alt="Footer"
                 className="w-full min-w-full h-auto object-fill block"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
+                onError={() => setImageError(true)}
               />
             </div>
           ) : (

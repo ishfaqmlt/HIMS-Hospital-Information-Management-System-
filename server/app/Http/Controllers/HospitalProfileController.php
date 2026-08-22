@@ -11,6 +11,9 @@ class HospitalProfileController extends Controller
     public function index()
     {
         $profile = HospitalProfile::first();
+        if ($profile && $profile->logo) {
+            $profile->logo_url = asset('storage/' . $profile->logo);
+        }
         return response()->json($profile);
     }
 
@@ -18,7 +21,7 @@ class HospitalProfileController extends Controller
     {
         $validated = $request->validate([
             'hospital_name' => 'required|string|max:255',
-            'logo' => 'nullable|image:mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'logo' => $request->hasFile('logo') ? 'image|mimes:jpeg,png,jpg,gif,webp|max:2048' : 'nullable',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:50',
             'website' => 'nullable|url|max:255',
@@ -37,9 +40,14 @@ class HospitalProfileController extends Controller
 
         if ($request->hasFile('logo')) {
             $validated['logo'] = $request->file('logo')->store('hospital', 'public');
+        } else {
+            unset($validated['logo']);
         }
 
         $profile = HospitalProfile::create($validated);
+        if ($profile->logo) {
+            $profile->logo_url = asset('storage/' . $profile->logo);
+        }
 
         return response()->json($profile, 201);
     }
@@ -54,7 +62,7 @@ class HospitalProfileController extends Controller
 
         $validated = $request->validate([
             'hospital_name' => 'sometimes|required|string|max:255',
-            'logo' => 'nullable|image:mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'logo' => $request->hasFile('logo') ? 'image|mimes:jpeg,png,jpg,gif,webp|max:2048' : 'nullable',
             'email' => 'nullable|email|max:255',
             'phone' => 'nullable|string|max:50',
             'website' => 'nullable|url|max:255',
@@ -76,10 +84,15 @@ class HospitalProfileController extends Controller
                 Storage::disk('public')->delete($profile->logo);
             }
             $validated['logo'] = $request->file('logo')->store('hospital', 'public');
+        } else {
+            unset($validated['logo']);
         }
 
         $profile->fill($validated);
         $profile->save();
+        if ($profile->logo) {
+            $profile->logo_url = asset('storage/' . $profile->logo);
+        }
 
         return response()->json($profile);
     }

@@ -28,16 +28,22 @@ import patientService from "@/services/patient.service";
 import doctorService from "@/services/doctor.service";
 import departmentService from "@/services/department.service";
 import AddPatientDialog from "@/components/patients/AddPatientDialog";
-import { Loader2, Plus, Search, CalendarDays, Eye, UserPlus } from "lucide-react";
+import { Loader2, Plus, Search, CalendarDays, Eye, UserPlus, Badge } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
+import { useOPDContext } from "./layout";
+
 export default function OPDPage() {
-  const [loading, setLoading] = useState(false);
+  const { setActivePatient } = useOPDContext() || {};
+  const todayStr = new Date().toISOString().split("T")[0];
+  const [fromDate, setFromDate] = useState(todayStr);
+  const [toDate, setToDate] = useState(todayStr);
+  const [nameFilter, setNameFilter] = useState("");
+  const [loading, setLoading] = useState(true);
   const [visits, setVisits] = useState([]);
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [message, setMessage] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -55,7 +61,7 @@ export default function OPDPage() {
     handleSubmit,
     reset,
     setValue,
-    watch,
+    usewatch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(opdVisitSchema),
@@ -95,15 +101,13 @@ export default function OPDPage() {
 
   async function loadTodaysVisits() {
     try {
-      setLoading(true);
-      setSearchTerm("");
-      const res = await opdVisitService.getQueue();
+      const res = await opdVisitService.getQueue({ date: todayStr });
       setVisits(res.data);
       if (res.data.length === 0) {
         setMessage({ type: "error", text: "No OPD token queue found for today" });
       }
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to load OPD queue" });
+      setMessage({ type: "error", text: "Failed to load OPD queue", error });
     } finally {
       setLoading(false);
     }
@@ -121,29 +125,20 @@ export default function OPDPage() {
     return () => clearTimeout(t);
   }, [message]);
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!searchTerm.trim()) {
-      setMessage({ type: "error", text: "Please enter a search term" });
-      return;
-    }
+  const handleDateSearch = async (e) => {
+    if (e) e.preventDefault();
     try {
       setLoading(true);
-      const res = await opdVisitService.getQueue({ search: searchTerm });
+      const res = await opdVisitService.getQueue({ fromDate, toDate });
       setVisits(res.data);
       if (res.data.length === 0) {
-        setMessage({ type: "error", text: "No visits found" });
+        setMessage({ type: "error", text: `No OPD visits found between ${fromDate} and ${toDate}` });
       }
     } catch (error) {
-      setMessage({ type: "error", text: "Search failed" });
+      setMessage({ type: "error", text: "Failed to load OPD queue", error });
     } finally {
       setLoading(false);
     }
-  };
-
-  const resetVisits = () => {
-    setSearchTerm("");
-    setVisits([]);
   };
 
   const openCreate = () => {
@@ -194,6 +189,9 @@ export default function OPDPage() {
 
   const openView = (visit) => {
     setViewingVisit(visit);
+    if (setActivePatient) {
+      setActivePatient(visit);
+    }
     setIsViewDialogOpen(true);
   };
 
@@ -207,7 +205,7 @@ export default function OPDPage() {
       setMobileResults(res.data);
       setMobileSearched(true);
     } catch (error) {
-      setMessage({ type: "error", text: "Search failed" });
+      setMessage({ type: "error", text: "Search failed", error });
     }
   };
 
@@ -258,45 +256,92 @@ export default function OPDPage() {
       setMessage({ type: "success", text: "Visit deleted successfully" });
       setVisits((prev) => prev.filter((v) => v.Id !== id));
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to delete visit" });
+      setMessage({ type: "error", text: "Failed to delete visit", error });
+    }
+  };
+
+  const resetVisits = () => {
+    setFromDate(todayStr);
+    setToDate(todayStr);
+    setNameFilter("");
+    loadTodaysVisits();
+  };
+
+  const handleSelectPatient = (visit) => {
+    if (setActivePatient) {
+      setActivePatient(visit);
+      setMessage({ type: "success", text: `Selected Token #${String(visit.tokenNo || 1).padStart(2, "0")} - ${visit.patient_name || visit.patient?.pName}` });
     }
   };
 
   const columns = getColumns({
-    onEdit: openEdit,
-    onDelete: handleDelete,
-    onView: openView,
+    onSelect: handleSelectPatient,
+  });
+
+  const filteredVisits = visits.filter((item) => {
+    if (!nameFilter.trim()) return true;
+    const term = nameFilter.toLowerCase();
+    const name = (item.patient_name || item.patient?.pName || "").toLowerCase();
+    const mrn = (item.patient_mrn || item.patient?.mrn || "").toLowerCase();
+    return name.includes(term) || mrn.includes(term);
   });
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">OPD Visits</h1>
-          <p className="text-muted-foreground mt-1">Manage outpatient department visits</p>
-        </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4 mr-2" />New Visit
-        </Button>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">OPD Queue & Consultation</h1>
+        <p className="text-muted-foreground mt-1">View billed outpatient tokens and select patients for consultation</p>
       </div>
 
-      <div className="flex gap-2">
-        <form onSubmit={handleSearch} className="flex gap-2 flex-1">
-          <Input
-            placeholder="Search by Visit No, Patient Name, or Mobile"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Button type="submit" disabled={loading}>
-            <Search className="h-4 w-4 mr-2" />Search
+      <div className="flex flex-wrap items-end gap-3 p-4 bg-white border rounded-xl shadow-xs">
+        <form onSubmit={handleDateSearch} className="flex flex-wrap items-end gap-3 flex-1">
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold">From Date</Label>
+            <Input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="h-9 text-xs w-36"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold">To Date</Label>
+            <Input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="h-9 text-xs w-36"
+            />
+          </div>
+          <Button type="submit" size="sm" className="h-9 bg-teal-600 hover:bg-teal-700 text-white" disabled={loading}>
+            <Search className="h-4 w-4 mr-1.5" />Search Range
           </Button>
         </form>
-        <Button variant="outline" onClick={loadTodaysVisits} disabled={loading}>
-          <CalendarDays className="h-4 w-4 mr-2" />Today's Visits
-        </Button>
-        <Button variant="ghost" onClick={resetVisits} disabled={loading}>
-          Reset
-        </Button>
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-9 text-xs" onClick={loadTodaysVisits} disabled={loading}>
+            <CalendarDays className="h-4 w-4 mr-1.5 text-teal-600" />Today's Queue
+          </Button>
+          <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={resetVisits} disabled={loading}>
+            Reset
+          </Button>
+        </div>
+      </div>
+
+      {/* Patient Name Filter Input & Counter */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Filter by Patient Name..."
+            value={nameFilter}
+            onChange={(e) => setNameFilter(e.target.value)}
+            className="pl-9 text-xs h-9"
+          />
+        </div>
+        <span className="text-xs text-muted-foreground font-medium">
+          Total Queue: <strong className="text-slate-800">{filteredVisits.length}</strong>
+        </span>
       </div>
 
       {message && (
@@ -306,11 +351,11 @@ export default function OPDPage() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex items-center justify-center min-h-100">
+          <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
         </div>
       ) : (
-        <DataTable columns={columns} data={visits} filterColumn="VisitNo" />
+        <DataTable columns={columns} data={filteredVisits} />
       )}
 
       {isDialogOpen && (
@@ -394,7 +439,7 @@ export default function OPDPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Doctor *</Label>
-                      <Select value={watch("DoctorId")} onValueChange={(val) => setValue("DoctorId", val)}>
+                      <Select value={usewatch("DoctorId")} onValueChange={(val) => setValue("DoctorId", val)}>
                         <SelectTrigger><SelectValue placeholder="Select doctor" /></SelectTrigger>
                         <SelectContent>
                           {doctors.map((d) => (
@@ -407,7 +452,7 @@ export default function OPDPage() {
 
                     <div className="space-y-2">
                       <Label>Department</Label>
-                      <Select value={watch("DepartmentId")} onValueChange={(val) => setValue("DepartmentId", val)}>
+                      <Select value={usewatch("DepartmentId")} onValueChange={(val) => setValue("DepartmentId", val)}>
                         <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
                         <SelectContent>
                           {departments.map((d) => (
@@ -434,7 +479,7 @@ export default function OPDPage() {
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>Visit Type *</Label>
-                      <Select value={watch("VisitType")} onValueChange={(val) => setValue("VisitType", val)}>
+                      <Select value={usewatch("VisitType")} onValueChange={(val) => setValue("VisitType", val)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="OPD">OPD</SelectItem>
@@ -452,7 +497,7 @@ export default function OPDPage() {
 
                     <div className="space-y-2">
                       <Label>Status *</Label>
-                      <Select value={watch("Status")} onValueChange={(val) => setValue("Status", val)}>
+                      <Select value={usewatch("Status")} onValueChange={(val) => setValue("Status", val)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Waiting">Waiting</SelectItem>

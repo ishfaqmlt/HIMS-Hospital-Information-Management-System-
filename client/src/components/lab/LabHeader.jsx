@@ -33,9 +33,14 @@ const formatSexAndAge = (patient, caseData) => {
 };
 
 export default function LabHeader({ caseData, settings, hospitalProfile }) {
+  const [imageError, setImageError] = React.useState(false);
   const showHeader = settings?.showHeader ?? true;
   const showQrCode = settings?.showQrCode ?? true;
   const headerImage = settings?.headerImage;
+
+  React.useEffect(() => {
+    setImageError(false);
+  }, [headerImage]);
 
   const patient = caseData?.patient || {};
   const doctor = caseData?.doctor || {};
@@ -47,14 +52,12 @@ export default function LabHeader({ caseData, settings, hospitalProfile }) {
         <div className="flex items-center justify-between border-b pb-2 border-red-700 mb-2">
           {/* Left Side (50% Width) - Header Image OR Default Logo & Info */}
           <div className="w-1/2 flex items-center gap-3">
-            {headerImage ? (
+            {headerImage && !imageError ? (
               <img
                 src={getImageUrl(headerImage)}
                 alt="Header"
                 className="w-full h-auto object-contain max-h-28"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
+                onError={() => setImageError(true)}
               />
             ) : (
               <div className="flex items-center gap-3">

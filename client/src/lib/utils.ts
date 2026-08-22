@@ -74,6 +74,10 @@ export function getImageUrl(path: string | null | undefined): string {
   }
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
   const baseUrl = apiUrl.replace(/\/api\/?$/, "");
+  if (path.startsWith("/storage/") || path.startsWith("storage/")) {
+    const cleanPath = path.startsWith("/") ? path : `/${path}`;
+    return `${baseUrl}${cleanPath}`;
+  }
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  return `${baseUrl}${cleanPath}`;
+  return `${baseUrl}/storage${cleanPath}`;
 }

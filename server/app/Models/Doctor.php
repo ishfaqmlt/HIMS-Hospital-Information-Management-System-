@@ -22,6 +22,8 @@ class Doctor extends Model
         'Phone',
         'Cnic',
         'RegistrationNo',
+        'Qualification',
+        'Specialization',
         'Address',
         'JoiningDate',
         'EmployeementStatus',

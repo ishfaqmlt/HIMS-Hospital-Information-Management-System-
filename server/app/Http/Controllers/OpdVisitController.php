@@ -86,7 +86,9 @@ class OpdVisitController extends Controller
             )
             ->where('billings.tokenNo', '>', 0);
 
-        if ($request->has('date') && $request->date) {
+        if ($request->has('fromDate') && $request->fromDate && $request->has('toDate') && $request->toDate) {
+            $query->whereBetween(DB::raw('DATE(billings.InvoiceDate)'), [$request->fromDate, $request->toDate]);
+        } elseif ($request->has('date') && $request->date) {
             $query->whereDate('billings.InvoiceDate', $request->date);
         } else {
             $query->whereDate('billings.InvoiceDate', Carbon::today());

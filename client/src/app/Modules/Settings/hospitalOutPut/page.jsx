@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import hospitalOutputSettingService from "@/services/hospitalOutputSetting.service";
+import hospitalProfileService from "@/services/hospitalProfile.service";
 import HospitalHeader from "@/components/hospital/HospitalHeader";
 import HospitalFooter from "@/components/hospital/HospitalFooter";
 import { getImageUrl } from "@/lib/utils";
@@ -47,6 +48,7 @@ export default function HospitalOutputSettingPage() {
   const [uploadingHeader, setUploadingHeader] = useState(false);
   const [uploadingFooter, setUploadingFooter] = useState(false);
   const [message, setMessage] = useState(null);
+  const [hospitalProfile, setHospitalProfile] = useState(null);
 
   const [formData, setFormData] = useState({
     headerFooterByDefault: true,
@@ -87,23 +89,31 @@ export default function HospitalOutputSettingPage() {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const res = await hospitalOutputSettingService.get();
-      if (res.data) {
+      const [settingsRes, profileRes] = await Promise.all([
+        hospitalOutputSettingService.get().catch(() => ({ data: null })),
+        hospitalProfileService.get().catch(() => ({ data: null })),
+      ]);
+
+      if (profileRes?.data) {
+        setHospitalProfile(profileRes.data);
+      }
+
+      if (settingsRes?.data) {
         setFormData({
-          headerFooterByDefault: res.data.headerFooterByDefault ?? true,
-          showHeader: res.data.showHeader ?? true,
-          headerImage: res.data.headerImage || "",
-          showQrCode: res.data.showQrCode ?? true,
-          headerHeightMargin: res.data.headerHeightMargin || 0,
-          showFooter: res.data.showFooter ?? true,
-          showFooterImage: res.data.showFooterImage ?? false,
-          footerImage: res.data.footerImage || "",
-          showLegalDisclaimer: res.data.showLegalDisclaimer ?? true,
-          legalDisclaimerText: res.data.legalDisclaimerText || "Thank you for choosing our services",
-          footerHeightMargin: res.data.footerHeightMargin || 0,
-          textFont: res.data.textFont || "Inter",
-          textSize: res.data.textSize || 12,
-          reportFormat: res.data.reportFormat || "A4",
+          headerFooterByDefault: settingsRes.data.headerFooterByDefault ?? true,
+          showHeader: settingsRes.data.showHeader ?? true,
+          headerImage: settingsRes.data.headerImage || "",
+          showQrCode: settingsRes.data.showQrCode ?? true,
+          headerHeightMargin: settingsRes.data.headerHeightMargin || 0,
+          showFooter: settingsRes.data.showFooter ?? true,
+          showFooterImage: settingsRes.data.showFooterImage ?? false,
+          footerImage: settingsRes.data.footerImage || "",
+          showLegalDisclaimer: settingsRes.data.showLegalDisclaimer ?? true,
+          legalDisclaimerText: settingsRes.data.legalDisclaimerText || "Thank you for choosing our services",
+          footerHeightMargin: settingsRes.data.footerHeightMargin || 0,
+          textFont: settingsRes.data.textFont || "Inter",
+          textSize: settingsRes.data.textSize || 12,
+          reportFormat: settingsRes.data.reportFormat || "A4",
         });
       }
     } catch (error) {
@@ -291,6 +301,22 @@ export default function HospitalOutputSettingPage() {
 
               <Separator />
 
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Header Area Space Height / Top Margin (px)</Label>
+                <Input
+                  type="number"
+                  value={formData.headerHeightMargin}
+                  onChange={(e) => handleChange("headerHeightMargin", e.target.value)}
+                  placeholder="80"
+                  className="h-9 text-xs"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Controls the height of empty header space reserved for pre-printed letterhead paper when header is OFF.
+                </p>
+              </div>
+
+              <Separator />
+
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-sm font-semibold">Show QR Code Verification</Label>
@@ -409,8 +435,8 @@ export default function HospitalOutputSettingPage() {
             <div>
               <HospitalHeader
                 settings={formData}
-                hospitalProfile={{
-                  name: "MUSA MEMORIAL HOSPITAL",
+                hospitalProfile={hospitalProfile || {
+                  hospital_name: "MUSA MEMORIAL HOSPITAL",
                   address: "Near Daewoo Terminal, Main City Road, Bhakkar",
                   phone: "0453-510319 / 0333-8908071",
                   email: "info@musahospital.com",

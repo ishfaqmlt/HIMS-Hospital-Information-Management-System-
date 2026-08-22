@@ -105,8 +105,7 @@ export default function DoctorsPage() {
     setEditingId(null);
     reset({
       user_id: "", Name: "", Gender: "", Dob: "", Email: "", Phone: "", Cnic: "",
-      RegistrationNo: "", Address: "", JoiningDate: "",
-      EmployeementStatus: "Active", Stamp: "",
+      RegistrationNo: "", Qualification: "", Specialization: "", Address: "", JoiningDate: "", EmployeementStatus: "Active", Stamp: "",
       Opd: false, Surgeon: false, Anesthetist: false,
     });
     setIsDialogOpen(true);
@@ -123,6 +122,8 @@ export default function DoctorsPage() {
       Phone: doctor.Phone || "",
       Cnic: doctor.Cnic || "",
       RegistrationNo: doctor.RegistrationNo || "",
+      Qualification: doctor.Qualification || "",
+      Specialization: doctor.Specialization || "",
       Address: doctor.Address || "",
       JoiningDate: doctor.JoiningDate ? doctor.JoiningDate.split("T")[0] : "",
       EmployeementStatus: doctor.EmployeementStatus || "Active",
@@ -284,8 +285,18 @@ export default function DoctorsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Registration No</Label>
-                <Input {...register("RegistrationNo")} placeholder="Registration number" />
+                <Label>Registration No (PMDC)</Label>
+                <Input {...register("RegistrationNo")} placeholder="Registration number (e.g. 45892-P)" />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Qualification / Degrees</Label>
+                <Input {...register("Qualification")} placeholder="e.g. MBBS, FCPS (Medicine)" />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Specialization / Designation</Label>
+                <Input {...register("Specialization")} placeholder="e.g. Consultant Physician & OPD Specialist" />
               </div>
 
               <div className="space-y-2">

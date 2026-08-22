@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('Phone', 20)->nullable();
             $table->string('Cnic', 20)->nullable();
             $table->string('RegistrationNo', 50)->nullable();
+            $table->string('Qualification', 255)->nullable();
+            $table->string('Specialization', 255)->nullable();
             $table->text('Address')->nullable();
             $table->date('JoiningDate')->nullable();
             $table->enum('EmployeementStatus', ['Active', 'Resigned', 'Terminated', 'Retired'])->default('Active');

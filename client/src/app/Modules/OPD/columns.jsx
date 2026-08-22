@@ -2,13 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 const statusColors = {
@@ -18,7 +12,7 @@ const statusColors = {
   Cancelled: "bg-red-100 text-red-800 border-red-300",
 };
 
-export const getColumns = ({ onEdit, onDelete, onView }) => [
+export const getColumns = ({ onSelect }) => [
   {
     accessorKey: "tokenNo",
     header: "Token",
@@ -83,35 +77,18 @@ export const getColumns = ({ onEdit, onDelete, onView }) => [
   },
   {
     id: "actions",
-    header: "Actions",
+    header: "Action",
     cell: ({ row }) => {
       const item = row.original;
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onView(item)}>
-              <Eye className="h-4 w-4 mr-2" /> View Details
-            </DropdownMenuItem>
-            {onEdit && (
-              <DropdownMenuItem onClick={() => onEdit(item)}>
-                <Edit className="h-4 w-4 mr-2" /> Edit
-              </DropdownMenuItem>
-            )}
-            {onDelete && (
-              <DropdownMenuItem
-                onClick={() => onDelete(item.id || item.billing_id)}
-                className="text-red-600"
-              >
-                <Trash2 className="h-4 w-4 mr-2" /> Delete
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+          size="sm"
+          className="bg-teal-600 hover:bg-teal-700 text-white text-xs h-7 px-3 flex items-center gap-1"
+          onClick={() => onSelect && onSelect(item)}
+        >
+          <CheckCircle className="h-3.5 w-3.5" />
+          Select
+        </Button>
       );
     },
   },

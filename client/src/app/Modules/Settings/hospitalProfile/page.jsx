@@ -73,10 +73,16 @@ export default function HospitalProfilePage() {
           footer_text: res.data.footer_text || "",
           terms_conditions: res.data.terms_conditions || "",
         });
-        if (res.data.logo) {
-          setLogoPreview(
-            `${process.env.NEXT_PUBLIC_API_URL?.replace("/api", "")}/storage/${res.data.logo}`
-          );
+        if (res.data.logo_url) {
+          setLogoPreview(res.data.logo_url);
+        } else if (res.data.logo) {
+          const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL
+            ? process.env.NEXT_PUBLIC_API_URL.replace("/api", "")
+            : "http://localhost:8000";
+          const logoPath = res.data.logo.startsWith("http")
+            ? res.data.logo
+            : `${apiBaseUrl}/storage/${res.data.logo.replace(/^storage\//, "")}`;
+          setLogoPreview(logoPath);
         }
       }
     } catch (error) {
@@ -103,25 +109,26 @@ export default function HospitalProfilePage() {
 
       const payload = new FormData();
       Object.entries(data).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
+        if (value !== null && value !== undefined && key !== "logo") {
           payload.append(key, value);
         }
       });
+
       if (logoFile) {
         payload.append("logo", logoFile);
-      } else {
-        payload.delete("logo");
       }
 
-      if (hasProfile) {
-        await hospitalProfileService.update(payload);
-      } else {
-        await hospitalProfileService.create(payload);
-        setHasProfile(true);
+      const res = await hospitalProfileService.update(payload);
+      setHasProfile(true);
+
+      if (res.data?.logo_url) {
+        setLogoPreview(res.data.logo_url);
       }
 
       setMessage({ type: "success", text: "Hospital profile saved successfully" });
+      fetchProfile();
     } catch (error) {
+      console.error("Save profile error:", error);
       setMessage({
         type: "error",
         text: error.response?.data?.message || "Failed to save profile",
@@ -167,12 +174,10 @@ export default function HospitalProfilePage() {
           <div className="flex items-center gap-6">
             <div className="h-24 w-24 rounded-lg border-2 border-dashed flex items-center justify-center bg-muted overflow-hidden">
               {logoPreview ? (
-                <Image
+                <img
                   src={logoPreview}
                   alt="Logo"
                   className="h-full w-full object-contain"
-                  width={96}
-                  height={96}
                 />
               ) : (
                 <Building2 className="h-10 w-10 text-muted-foreground" />

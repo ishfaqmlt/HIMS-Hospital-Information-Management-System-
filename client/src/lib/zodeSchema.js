@@ -26,6 +26,8 @@ export const doctorSchema = z.object({
   Phone: z.string().optional(),
   Cnic: z.string().optional(),
   RegistrationNo: z.string().optional(),
+  Qualification: z.string().optional(),
+  Specialization: z.string().optional(),
   Address: z.string().optional(),
   JoiningDate: z.string().optional(),
   EmployeementStatus: z.enum(["Active", "Resigned", "Terminated", "Retired"]).optional(),
@@ -33,6 +35,23 @@ export const doctorSchema = z.object({
   Opd: z.coerce.boolean(),
   Surgeon: z.coerce.boolean(),
   Anesthetist: z.coerce.boolean(),
+});
+
+export const patientVitalSchema = z.object({
+  patientId: z.string().min(1, "Patient is required"),
+  visitId: z.string().optional().nullable(),
+  systolic: z.coerce.number().optional().nullable(),
+  diastolic: z.coerce.number().optional().nullable(),
+  blood_pressure: z.string().optional().nullable(),
+  pulse_rate: z.coerce.number().optional().nullable(),
+  temperature: z.coerce.number().optional().nullable(),
+  respiratory_rate: z.coerce.number().optional().nullable(),
+  spo2: z.coerce.number().optional().nullable(),
+  weight: z.coerce.number().optional().nullable(),
+  height: z.coerce.number().optional().nullable(),
+  bmi: z.coerce.number().optional().nullable(),
+  bsr: z.coerce.number().optional().nullable(),
+  notes: z.string().optional().nullable(),
 });
 
 export const serviceSchema = z.object({
