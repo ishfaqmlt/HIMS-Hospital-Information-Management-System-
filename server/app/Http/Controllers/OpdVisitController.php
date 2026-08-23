@@ -55,9 +55,12 @@ class OpdVisitController extends Controller
         $user = Auth::user();
 
         // Find doctor linked by user_id or Email
-        $doctor = Doctor::where('user_id', $user->id)
-            ->orWhere('Email', $user->email)
-            ->first();
+        $doctor = null;
+        if ($user) {
+            $doctor = Doctor::where('user_id', $user->id)
+                ->orWhere('Email', $user->email)
+                ->first();
+        }
 
         $query = DB::table('billings')
             ->leftJoin('patient_visits', 'billings.visitId', '=', 'patient_visits.id')
@@ -76,9 +79,12 @@ class OpdVisitController extends Controller
                 'billings.DepartmentId',
                 'patients.id as patient_id',
                 'patients.pName as patient_name',
+                'patients.gName as patient_gname',
                 'patients.mrn as patient_mrn',
                 'patients.mobile as patient_mobile',
                 'patients.gender as patient_gender',
+                'patients.dob as patient_dob',
+                'patients.cnic as patient_cnic',
                 'patient_visits.id as visit_id',
                 'patient_visits.visitNo',
                 'departments.DepartmentName as department_name',
@@ -94,7 +100,7 @@ class OpdVisitController extends Controller
             $query->whereDate('billings.InvoiceDate', Carbon::today());
         }
 
-        if ($doctor && !$user->hasRole(['super_admin', 'admin'])) {
+        if ($user && $doctor && !$user->hasRole(['super_admin', 'admin'])) {
             $query->where('billings.DoctorId', $doctor->id);
         } elseif ($request->has('DoctorId') && $request->DoctorId) {
             $query->where('billings.DoctorId', $request->DoctorId);

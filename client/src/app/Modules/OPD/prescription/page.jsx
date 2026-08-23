@@ -33,12 +33,13 @@ import {
   Calendar,
   CheckCircle,
   Pill,
+  Trash2,
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import hospitalProfileService from "@/services/hospitalProfile.service";
 import hospitalOutputSettingService from "@/services/hospitalOutputSetting.service";
 import doctorService from "@/services/doctor.service";
-import { formatDate, getImageUrl } from "@/lib/utils";
+import { formatDate, getImageUrl, calculateAge } from "@/lib/utils";
 
 export default function OPDPrescriptionPage() {
   const { activePatient } = useOPDContext() || {};
@@ -80,8 +81,11 @@ export default function OPDPrescriptionPage() {
     },
   });
 
+  const [existingVitalId, setExistingVitalId] = useState(null);
+
   React.useEffect(() => {
     fetchHeaderData();
+    fetchPatientVitals();
   }, [activePatient, authUser]);
 
   React.useEffect(() => {
@@ -89,6 +93,83 @@ export default function OPDPrescriptionPage() {
     const t = setTimeout(() => setMessage(null), 4000);
     return () => clearTimeout(t);
   }, [message]);
+
+  const fetchPatientVitals = async () => {
+    const targetPatientId = activePatient?.patientId || activePatient?.patient_id || activePatient?.patient?.id || activePatient?.PatientId;
+    const targetVisitId = activePatient?.id || activePatient?.visitId || activePatient?.visit_id;
+
+    if (!targetPatientId && !targetVisitId) {
+      setVitals(null);
+      setExistingVitalId(null);
+      return;
+    }
+
+    try {
+      const params = {};
+      if (targetVisitId) params.visitId = targetVisitId;
+      else if (targetPatientId) params.patientId = targetPatientId;
+
+      const res = await patientVitalService.getAll(params);
+      const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      if (list.length > 0) {
+        const latest = list[0];
+        setExistingVitalId(latest.id);
+        setVitals({
+          bp: (latest.blood_pressure || (latest.systolic && latest.diastolic))
+            ? (latest.blood_pressure || `${latest.systolic}/${latest.diastolic}`) + " mmHg"
+            : (latest.systolic ? `${latest.systolic} mmHg` : null),
+          pulse: latest.pulse_rate ? `${latest.pulse_rate} bpm` : null,
+          temp: latest.temperature ? `${latest.temperature} °F` : null,
+          weight: latest.weight ? `${latest.weight} kg` : null,
+          spo2: latest.spo2 ? `${latest.spo2}%` : null,
+          bsr: latest.bsr ? `${latest.bsr} mg/dL` : null,
+        });
+
+        // Pre-fill form fields if record exists
+        resetVital({
+          patientId: targetPatientId || "patient-temp-id",
+          visitId: targetVisitId || null,
+          systolic: latest.systolic ? String(latest.systolic) : "",
+          diastolic: latest.diastolic ? String(latest.diastolic) : "",
+          pulse_rate: latest.pulse_rate ? String(latest.pulse_rate) : "",
+          temperature: latest.temperature ? String(latest.temperature) : "",
+          respiratory_rate: latest.respiratory_rate ? String(latest.respiratory_rate) : "",
+          spo2: latest.spo2 ? String(latest.spo2) : "",
+          weight: latest.weight ? String(latest.weight) : "",
+          height: latest.height ? String(latest.height) : "",
+          bsr: latest.bsr ? String(latest.bsr) : "",
+          notes: latest.notes || "",
+        });
+      } else {
+        setVitals(null);
+        setExistingVitalId(null);
+        resetVital({
+          patientId: targetPatientId || "patient-temp-id",
+          visitId: targetVisitId || null,
+          systolic: "",
+          diastolic: "",
+          pulse_rate: "",
+          temperature: "",
+          respiratory_rate: "",
+          spo2: "",
+          weight: "",
+          height: "",
+          bsr: "",
+          notes: "",
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch patient vitals:", err);
+      setVitals(null);
+      setExistingVitalId(null);
+    }
+  };
+
+  const handleOpenVitalsDialog = () => {
+    setDialogError(null);
+    fetchPatientVitals();
+    setIsVitalsOpen(true);
+  };
 
   const fetchHeaderData = async () => {
     try {
@@ -159,24 +240,64 @@ export default function OPDPrescriptionPage() {
         notes: data.notes || null,
       };
 
-      await patientVitalService.create(payload);
+      if (existingVitalId) {
+        await patientVitalService.update(existingVitalId, payload);
+      } else {
+        const createdRes = await patientVitalService.create(payload);
+        if (createdRes?.data?.id) {
+          setExistingVitalId(createdRes.data.id);
+        }
+      }
 
       // Update local report preview vitals
       setVitals({
-        bp: (data.systolic || data.diastolic) ? `${data.systolic || 120}/${data.diastolic || 80} mmHg` : "120/80 mmHg",
-        pulse: data.pulse_rate ? `${data.pulse_rate} bpm` : "76 bpm",
-        temp: data.temperature ? `${data.temperature} °F` : "98.6 °F",
-        weight: data.weight ? `${data.weight} kg` : "68 kg",
-        spo2: data.spo2 ? `${data.spo2}%` : "98%",
+        bp: (data.systolic || data.diastolic) ? `${data.systolic || ""}/${data.diastolic || ""} mmHg` : null,
+        pulse: data.pulse_rate ? `${data.pulse_rate} bpm` : null,
+        temp: data.temperature ? `${data.temperature} °F` : null,
+        weight: data.weight ? `${data.weight} kg` : null,
+        spo2: data.spo2 ? `${data.spo2}%` : null,
+        bsr: data.bsr ? `${data.bsr} mg/dL` : null,
       });
 
-      setMessage({ type: "success", text: "Patient Vitals recorded successfully!" });
+      setMessage({ type: "success", text: existingVitalId ? "Patient Vitals updated successfully!" : "Patient Vitals recorded successfully!" });
       setIsVitalsOpen(false);
       setDialogError(null);
       resetVital();
     } catch (err) {
       console.error("Failed to save patient vitals:", err);
       const errMsg = err.response?.data?.message || (err.response?.data?.errors ? Object.values(err.response.data.errors).flat().join(", ") : "Failed to save patient vitals record");
+      setDialogError(errMsg);
+    }
+  };
+
+  const onDeleteVitals = async () => {
+    if (!existingVitalId) return;
+    if (!confirm("Are you sure you want to delete this patient vitals record from the database?")) return;
+
+    setDialogError(null);
+    try {
+      await patientVitalService.delete(existingVitalId);
+      setVitals(null);
+      setExistingVitalId(null);
+      resetVital({
+        patientId: activePatient?.patientId || activePatient?.patient_id || activePatient?.patient?.id || "patient-temp-id",
+        visitId: activePatient?.id || activePatient?.visitId || null,
+        systolic: "",
+        diastolic: "",
+        pulse_rate: "",
+        temperature: "",
+        respiratory_rate: "",
+        spo2: "",
+        weight: "",
+        height: "",
+        bsr: "",
+        notes: "",
+      });
+      setMessage({ type: "success", text: "Patient Vitals record deleted successfully!" });
+      setIsVitalsOpen(false);
+    } catch (err) {
+      console.error("Failed to delete patient vitals record:", err);
+      const errMsg = err.response?.data?.message || "Failed to delete patient vitals record";
       setDialogError(errMsg);
     }
   };
@@ -213,13 +334,7 @@ export default function OPDPrescriptionPage() {
   const doctorStamp = currentDoctor?.Stamp || activePatient?.doctor?.Stamp || "";
 
   // Prescription Clinical Data State
-  const [vitals, setVitals] = useState({
-    bp: "120/80 mmHg",
-    pulse: "76 bpm",
-    temp: "98.6 °F",
-    weight: "68 kg",
-    spo2: "98%",
-  });
+  const [vitals, setVitals] = useState(null);
 
   const [complaints, setComplaints] = useState("Fever with mild chills, headache, and body aches for 2 days.");
   const [examination, setExamination] = useState("Chest clear, CVS S1 S2 normal, Abdomen soft, non-tender.");
@@ -233,15 +348,29 @@ export default function OPDPrescriptionPage() {
   const [advice, setAdvice] = useState("Low salt diet, drink plenty of boiled water, complete bed rest for 3 days.");
   const [followupDate, setFollowupDate] = useState("After 7 Days (29-08-2026)");
 
-  // Patient Info Fallbacks
-  const patientName = activePatient?.patient_name || activePatient?.patient?.pName || "Syed Fazal Hussain Shah";
-  const patientMrn = activePatient?.patient_mrn || activePatient?.patient?.mrn || "MRN-26-101";
-  const patientGender = activePatient?.patient_gender || activePatient?.patient?.gender || "Male";
-  const patientAge = activePatient?.patient?.age ? `${activePatient.patient.age} Y` : "32 Y";
-  const guardianName = activePatient?.patient?.gName || "S/O Hussain Shah";
-  const patientMobile = activePatient?.patient_mobile || activePatient?.patient?.mobile || "0300-1234567";
+  // Patient Info Fallbacks & Dynamic Age Calculation
+  const patientName = activePatient?.patient_name || activePatient?.patient?.pName || (activePatient ? "Patient Record" : "Syed Fazal Hussain Shah");
+  const patientMrn = activePatient?.patient_mrn || activePatient?.patient?.mrn || (activePatient ? "-" : "MRN-26-101");
+  const patientGender = activePatient?.patient_gender || activePatient?.patient?.gender || (activePatient ? "-" : "Male");
+  const patientMobile = activePatient?.patient_mobile || activePatient?.patient?.mobile || (activePatient ? "-" : "0300-1234567");
+
+  const patientDob = activePatient?.patient_dob || activePatient?.patient?.dob || activePatient?.dob;
+  const rawAge = activePatient?.patient?.age || activePatient?.age;
+  let patientAge = "-";
+  if (patientDob) {
+    patientAge = calculateAge(patientDob);
+  } else if (rawAge) {
+    patientAge = String(rawAge).includes("Y") || String(rawAge).includes("M") ? String(rawAge) : `${rawAge} Y`;
+  } else if (!activePatient) {
+    patientAge = "32 Y";
+  }
+
+  const rawGuardian = activePatient?.patient_gname || activePatient?.patient?.gName || activePatient?.patient?.guardianName || activePatient?.gName;
+  const guardianName = rawGuardian
+    ? (rawGuardian.toLowerCase().startsWith("s/o") || rawGuardian.toLowerCase().startsWith("w/o") || rawGuardian.toLowerCase().startsWith("d/o") ? rawGuardian : `S/O: ${rawGuardian}`)
+    : (activePatient ? "-" : "S/O Hussain Shah");
   const tokenNo = activePatient?.tokenNo || 1;
-  const visitNo = activePatient?.visitNo || activePatient?.InvoiceNo || "V-0726-10";
+  const visitNo = activePatient?.visitNo || activePatient?.InvoiceNo || (activePatient ? "-" : "V-0726-10");
   const visitDate = activePatient?.InvoiceDate ? formatDate(activePatient.InvoiceDate) : new Date().toLocaleDateString("en-GB");
 
   return (
@@ -268,7 +397,7 @@ export default function OPDPrescriptionPage() {
         {/* 7 Action Buttons before Print A4 Prescription */}
         <div className="flex flex-wrap items-center gap-1.5">
           <Button
-            onClick={() => setIsVitalsOpen(true)}
+            onClick={handleOpenVitalsDialog}
             size="sm"
             variant="outline"
             className="h-8 text-xs border-teal-300 text-teal-800 hover:bg-teal-50 font-medium"
@@ -412,37 +541,40 @@ export default function OPDPrescriptionPage() {
             )}
 
             {/* 2. Patient Demographics Bar */}
-            <div className="grid grid-cols-4 gap-3 bg-teal-50/70 border border-teal-200 rounded-lg p-3.5 mb-4 text-xs">
-              <div className="flex items-center gap-2.5 col-span-2">
-                <Badge variant="outline" className="bg-amber-100 text-amber-900 border-amber-300 font-bold px-2.5 py-1 text-xs">
-                  TOKEN #{String(tokenNo).padStart(2, "0")}
-                </Badge>
-                <div>
-                  <p className="font-bold text-slate-900 text-sm">{patientName}</p>
-                  <p className="text-slate-600 text-xs font-medium">{guardianName}</p>
-                </div>
+            <div className="grid grid-cols-12 gap-3 bg-teal-50/50 border border-teal-200/80 rounded-xl p-3.5 mb-4 text-xs items-center shadow-2xs">
+              <div className="col-span-4 border-r border-teal-200/60 pr-3 space-y-0.5">
+                <p className="font-bold text-slate-900 text-sm tracking-tight leading-tight">{patientName}</p>
+                <p className="text-slate-600 text-xs font-medium">{guardianName}</p>
               </div>
-              <div className="space-y-0.5">
-                <p className="text-slate-600">MRN: <strong className="text-slate-900 font-mono text-xs">{patientMrn}</strong></p>
-                <p className="text-slate-600">Age / Sex: <strong className="text-slate-900 text-xs">{patientAge} / {patientGender}</strong></p>
+
+              <div className="col-span-3 border-r border-teal-200/60 px-3 space-y-1">
+                <p className="text-slate-600 font-medium">MRN: <strong className="text-slate-900 font-mono text-xs font-bold">{patientMrn}</strong></p>
+                <p className="text-slate-600 font-medium">Mobile: <strong className="text-slate-900 font-mono text-xs font-bold">{patientMobile}</strong></p>
               </div>
-              <div className="text-right space-y-0.5">
-                <p className="text-slate-600">Visit No: <strong className="text-slate-900 font-mono text-xs">{visitNo}</strong></p>
-                <p className="text-slate-600">Date: <strong className="text-slate-900 text-xs">{visitDate}</strong></p>
+
+              <div className="col-span-3 border-r border-teal-200/60 px-3 space-y-1">
+                <p className="text-slate-600 font-medium">Age / Sex: <strong className="text-slate-900 text-xs font-bold">{patientAge} / {patientGender}</strong></p>
+                <p className="text-slate-600 font-medium">Visit No: <strong className="text-slate-900 font-mono text-xs font-bold">{visitNo}</strong></p>
+              </div>
+
+              <div className="col-span-2 text-right pl-3 space-y-1">
+                <p className="text-slate-600 font-medium">Date:</p>
+                <p className="text-slate-900 text-xs font-bold">{visitDate}</p>
               </div>
             </div>
 
             {/* 3. Vitals Bar */}
-            {vitals && (
+            {vitals && (vitals.bp || vitals.pulse || vitals.temp || vitals.weight || vitals.spo2 || vitals.bsr) && (
               <div className="flex flex-wrap items-center gap-5 bg-slate-50 border border-slate-200 rounded-md p-2.5 mb-4 text-xs font-medium">
                 <span className="font-bold text-slate-800 uppercase flex items-center gap-1">
                   <Activity className="h-4 w-4 text-teal-600" /> Vitals:
                 </span>
-                <span>BP: <strong className="text-slate-900 font-bold">{vitals.bp || "N/A"}</strong></span>
-                <span>Pulse: <strong className="text-slate-900 font-bold">{vitals.pulse || "N/A"}</strong></span>
-                <span>Temp: <strong className="text-slate-900 font-bold">{vitals.temp || "N/A"}</strong></span>
-                <span>Weight: <strong className="text-slate-900 font-bold">{vitals.weight || "N/A"}</strong></span>
-                <span>SpO2: <strong className="text-slate-900 font-bold">{vitals.spo2 || "N/A"}</strong></span>
+                {vitals.bp && <span>BP: <strong className="text-slate-900 font-bold">{vitals.bp}</strong></span>}
+                {vitals.pulse && <span>Pulse: <strong className="text-slate-900 font-bold">{vitals.pulse}</strong></span>}
+                {vitals.temp && <span>Temp: <strong className="text-slate-900 font-bold">{vitals.temp}</strong></span>}
+                {vitals.weight && <span>Weight: <strong className="text-slate-900 font-bold">{vitals.weight}</strong></span>}
+                {vitals.spo2 && <span>SpO2: <strong className="text-slate-900 font-bold">{vitals.spo2}</strong></span>}
+                {vitals.bsr && <span>BSR: <strong className="text-slate-900 font-bold">{vitals.bsr}</strong></span>}
               </div>
             )}
 
@@ -572,9 +704,14 @@ export default function OPDPrescriptionPage() {
       <Dialog open={isVitalsOpen} onOpenChange={(open) => { setIsVitalsOpen(open); if (!open) setDialogError(null); }}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-teal-800">
-              <Activity className="h-5 w-5 text-teal-600" />
-              Record Patient Vital Signs
+            <DialogTitle className="flex items-center justify-between gap-2 text-teal-800 pr-6">
+              <span className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-teal-600" />
+                {existingVitalId ? "Update Patient Vital Signs" : "Record Patient Vital Signs"}
+              </span>
+              <Badge variant="outline" className={existingVitalId ? "bg-amber-50 text-amber-900 border-amber-300 font-bold px-2 py-0.5 text-[11px]" : "bg-teal-50 text-teal-900 border-teal-300 font-bold px-2 py-0.5 text-[11px]"}>
+                {existingVitalId ? "UPDATE MODE" : "INSERT MODE"}
+              </Badge>
             </DialogTitle>
           </DialogHeader>
 
@@ -646,14 +783,31 @@ export default function OPDPrescriptionPage() {
               <Textarea placeholder="Optional vitals notes..." {...registerVital("notes")} className="text-xs min-h-[60px] mt-1" />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t">
-              <Button type="button" variant="outline" onClick={() => setIsVitalsOpen(false)} size="sm" className="h-8 text-xs">
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmittingVital} size="sm" className="h-8 text-xs bg-teal-600 hover:bg-teal-700 text-white">
-                <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                Save Vitals Record
-              </Button>
+            <div className="flex items-center justify-between pt-2 border-t">
+              {existingVitalId ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={onDeleteVitals}
+                  className="h-8 text-xs bg-red-600 hover:bg-red-700 text-white"
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  Remove Vitals
+                </Button>
+              ) : (
+                <div />
+              )}
+
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsVitalsOpen(false)} size="sm" className="h-8 text-xs">
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmittingVital} size="sm" className={existingVitalId ? "h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white" : "h-8 text-xs bg-teal-600 hover:bg-teal-700 text-white"}>
+                  <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                  {existingVitalId ? "Update Vitals Record" : "Save Vitals Record"}
+                </Button>
+              </div>
             </div>
           </form>
         </DialogContent>

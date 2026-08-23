@@ -2,17 +2,24 @@ import React, { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import PrintHeader from "./PrintHeader";
 import PrintFooter from "./PrintFooter";
-import Image from "next/image";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getImageUrl } from "@/lib/utils";
 
 function ThermalReceipt({ title, hospitalProfile, invoice, services, payment, showSignature }) {
   const date = formatDate(invoice.InvoiceDate);
+  const logoUrl = getImageUrl(hospitalProfile?.logo || hospitalProfile?.logo_url);
 
   return (
     <div style={{ fontFamily: "'Courier New', monospace", width: "280px", padding: "10px", fontSize: "12px" }}>
       <div style={{ textAlign: "center" }}>
-        {hospitalProfile?.logo && (
-          <Image src={hospitalProfile.logo} alt="Logo" style={{ maxHeight: "50px" }} />
+        {logoUrl && (
+          <img
+            src={logoUrl}
+            alt="Logo"
+            style={{ maxHeight: "50px", margin: "0 auto 4px auto", display: "block" }}
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
         )}
         <h3 style={{ fontSize: "14px" }}>{hospitalProfile?.hospitalName || "Musa Memorial Hospital"}</h3>
         <p style={{ fontSize: "10px" }}>{hospitalProfile?.address || "Near Daewoo Terminal Bhakkar"}</p>

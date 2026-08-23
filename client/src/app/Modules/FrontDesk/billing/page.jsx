@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSelector, useDispatch } from "react-redux";
@@ -212,6 +212,9 @@ export default function BillingPage() {
       console.error("Failed to fetch token no:", error);
     }
   };
+
+  const fetchTokenNoRef = useRef(fetchTokenNo);
+  fetchTokenNoRef.current = fetchTokenNo;
 
   const updateTotals = (serviceList, discPctOverride) => {
     const discPct = discPctOverride !== undefined ? discPctOverride : getValues("discountPercent");
@@ -858,25 +861,28 @@ export default function BillingPage() {
     }
   };
 
+  const onSubmitRef = useRef(onSubmit);
+  onSubmitRef.current = onSubmit;
+
   // Keyboard Shortcuts Listener (Ctrl + S for Save/Update Invoice)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
-        handleSubmit(onSubmit)();
+        handleSubmit((data) => onSubmitRef.current(data))();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleSubmit, onSubmit]);
+  }, [handleSubmit]);
 
   useEffect(() => {
     if (doctors.length === 0) dispatch(fetchBillingDoctors());
     if (departments.length === 0) dispatch(fetchBillingDepartments());
     if (services.length === 0) dispatch(fetchBillingServices());
     if (serviceCharges.length === 0) dispatch(fetchBillingServiceCharges());
-  }, [dispatch]);
+  }, [dispatch, doctors.length, departments.length, services.length, serviceCharges.length]);
 
   useEffect(() => {
     const mrn = searchParams.get("mrn");
@@ -908,7 +914,7 @@ export default function BillingPage() {
   }, [searchParams]);
 
   useEffect(() => {
-    fetchTokenNo(watchedServices);
+    fetchTokenNoRef.current(watchedServices);
   }, [watchedServices, watchedConsultant, selectedPatient, services]);
 
   return (
