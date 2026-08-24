@@ -138,6 +138,17 @@ export default function AppointmentsPage() {
         return;
       }
 
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const isSameDayBooking = String(schedule.BookingType || "same day").toLowerCase() === "same day";
+
+      if (isSameDayBooking && selectedDate !== todayStr) {
+        setMessage({ type: "error", text: "You can't book advance appointment for this consultant" });
+        setSlots([]);
+        setLoading(false);
+        return;
+      }
+
       setCurrentSchedule(schedule);
 
       const aptsRes = await patientAppointmentService.getAll({

@@ -81,6 +81,22 @@ class PatientAppointmentController extends Controller
             'isSynced' => 'boolean',
         ]);
 
+        $apptDate = Carbon::parse($validated['Appointmentat'])->toDateString();
+        $today = Carbon::today()->toDateString();
+
+        if ($apptDate !== $today) {
+            $dayOfWeek = Carbon::parse($validated['Appointmentat'])->format('l');
+            $schedule = AppointmentMaster::where('DoctorId', $validated['DoctorId'])
+                ->where('DayOfWeek', $dayOfWeek)
+                ->first();
+
+            if ($schedule && strtolower($schedule->BookingType) === 'same day') {
+                return response()->json([
+                    'message' => "You can't book advance appointment for this consultant"
+                ], 422);
+            }
+        }
+
         $validated['CreatedBy'] = Auth::id();
 
         $item = PatientAppointment::create($validated);

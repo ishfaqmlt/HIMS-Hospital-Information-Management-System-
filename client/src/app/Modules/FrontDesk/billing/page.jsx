@@ -43,7 +43,7 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { Loader2, Plus, Save, Printer, X, Trash2, UserPlus, Search, Check, ChevronsUpDown, Wallet } from "lucide-react";
+import { Loader2, Plus, Save, Printer, X, Trash2, UserPlus, Search, Check, ChevronsUpDown, Wallet, Badge } from "lucide-react";
 import ShiftSummaryDialog from "@/components/billing/ShiftSummaryDialog";
 import { DataTable } from "@/components/data-table/data-table";
 import { getColumns } from "./invoiceColumns";
@@ -53,6 +53,7 @@ import patientVisitService from "@/services/patientVisitService";
 import billingService from "@/services/billing.service";
 import billingDetailService from "@/services/billingDetailService";
 import patientPaymentService from "@/services/patientPaymentService";
+import axios from "@/lib/axios";
 import patientAppointmentService from "@/services/patientAppointmentService";
 import { printInvoiceSlip } from "@/app/Modules/Reports/Reception/invoice/page";
 import AddPatientDialog from "@/components/patients/AddPatientDialog";
@@ -185,29 +186,12 @@ export default function BillingPage() {
       return;
     }
     try {
-      const today = new Date().toISOString().split("T")[0];
-      const existingAppt = await patientAppointmentService.getAll({
-        DoctorId: consultant,
-        mrn: selectedPatient.mrn,
-        date: today,
-        status: "Pending",
+      const res = await axios.get("/billings/next-token", {
+        params: { DoctorId: consultant, mrn: selectedPatient.mrn },
       });
-      if (existingAppt.data && existingAppt.data.length > 0) {
-        setValue("tokenNo", String(existingAppt.data[0].TokenNo));
-        return;
+      if (res.data?.tokenNo) {
+        setValue("tokenNo", String(res.data.tokenNo));
       }
-      const allAppts = await patientAppointmentService.getAll({
-        DoctorId: consultant,
-        date: today,
-      });
-      const bookedTokens = (allAppts.data || [])
-        .filter((a) => a.Status === "Pending" || a.Status === "Booked")
-        .map((a) => Number(a.TokenNo));
-      let nextToken = 1;
-      for (let i = 1; i <= 200; i++) {
-        if (!bookedTokens.includes(i)) { nextToken = i; break; }
-      }
-      setValue("tokenNo", String(nextToken));
     } catch (error) {
       console.error("Failed to fetch token no:", error);
     }
@@ -920,7 +904,7 @@ export default function BillingPage() {
   return (
     <div className="space-y-4">
       {/* Top Header Banner */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 p-4 rounded-xl text-white shadow-md">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 bg-linear-to-r from-slate-900 via-slate-800 to-teal-950 p-4 rounded-xl text-white shadow-md">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
             Front Desk Billing & Invoicing
@@ -980,7 +964,7 @@ export default function BillingPage() {
       <div className="grid grid-cols-12 gap-3 items-start">
         {/* Left Column - Select Service */}
         <Card className="col-span-12 lg:col-span-3 shadow-xs border border-slate-200">
-          <CardHeader className="py-2.5 bg-gradient-to-r from-teal-800 to-slate-800 text-white rounded-t-lg">
+          <CardHeader className="py-2.5 bg-linear-to-r from-teal-800 to-slate-800 text-white rounded-t-lg">
             <CardTitle className="text-xs font-bold tracking-wide flex items-center gap-2">
               <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-teal-400/20 text-teal-200 text-[10px] font-bold border border-teal-400/30">1</span>
               SELECT SERVICE
@@ -1080,8 +1064,9 @@ export default function BillingPage() {
                   name="selectedService"
                   control={control}
                   render={({ field }) => {
+                    const selectedDept = watch("selectedDepartment");
                     const filteredServices = services
-                      .filter((s) => !watch("selectedDepartment") || s.DepartmentId === watch("selectedDepartment"));
+                      .filter((s) => !selectedDept || s.DepartmentId === selectedDept);
                     const selectedSvc = filteredServices.find((s) => s.id === field.value);
                     return (
                       <Popover open={servicePopoverOpen} onOpenChange={setServicePopoverOpen} className="flex-1 min-w-0">
@@ -1131,7 +1116,7 @@ export default function BillingPage() {
 
         {/* Center Column - Selected Services Table */}
         <Card className="col-span-12 lg:col-span-6 shadow-xs border border-slate-200">
-          <CardHeader className="py-2.5 bg-gradient-to-r from-slate-800 to-slate-900 text-white rounded-t-lg">
+          <CardHeader className="py-2.5 bg-linear-to-r from-slate-800 to-slate-900 text-white rounded-t-lg">
             <CardTitle className="text-xs font-bold tracking-wide flex items-center gap-2">
               <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-bold border border-slate-600">2</span>
               SELECTED SERVICES
@@ -1142,7 +1127,7 @@ export default function BillingPage() {
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-0 overflow-x-auto min-h-[260px]">
+          <CardContent className="p-0 overflow-x-auto min-h-65">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-100/80 hover:bg-slate-100/80">
@@ -1217,7 +1202,7 @@ export default function BillingPage() {
 
         {/* Right Column - Bill Details */}
         <Card className="col-span-12 lg:col-span-3 shadow-xs border border-slate-200">
-          <CardHeader className="py-2.5 bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 text-white rounded-t-lg">
+          <CardHeader className="py-2.5 bg-linear-to-r from-emerald-800 via-teal-800 to-slate-900 text-white rounded-t-lg">
             <CardTitle className="text-xs font-bold tracking-wide flex items-center gap-2">
               <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-400/20 text-emerald-200 text-[10px] font-bold border border-emerald-400/30">3</span>
               BILL DETAILS
@@ -1382,7 +1367,7 @@ export default function BillingPage() {
             <p className="text-sm text-muted-foreground">
               {mobileSearchResults.length} patients found with this mobile number. Select one:
             </p>
-            <div className="border rounded-lg divide-y max-h-[300px] overflow-y-auto">
+            <div className="border rounded-lg divide-y max-h-75 overflow-y-auto">
               {mobileSearchResults.map((patient) => (
                 <div
                   key={patient.id}
@@ -1422,7 +1407,7 @@ export default function BillingPage() {
             <p className="text-sm text-muted-foreground">
               {cnicSearchResults.length} patients found with this CNIC. Select one:
             </p>
-            <div className="border rounded-lg divide-y max-h-[300px] overflow-y-auto">
+            <div className="border rounded-lg divide-y max-h-75 overflow-y-auto">
               {cnicSearchResults.map((patient) => (
                 <div
                   key={patient.id}
@@ -1463,7 +1448,7 @@ export default function BillingPage() {
       {/* Invoice List Section */}
       <div className="mt-6 space-y-4">
         <Card className="shadow-xs border border-slate-200">
-          <CardHeader className="py-2.5 bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 text-white rounded-t-lg">
+          <CardHeader className="py-2.5 bg-linear-to-r from-slate-900 via-slate-800 to-teal-950 text-white rounded-t-lg">
             <CardTitle className="text-xs font-bold tracking-wide">INVOICE HISTORY & SEARCH</CardTitle>
           </CardHeader>
           <CardContent className="p-4 space-y-4">

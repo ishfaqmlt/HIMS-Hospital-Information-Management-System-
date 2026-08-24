@@ -98,6 +98,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Billings & Financial Payments
     Route::middleware('permission:view_billing')->group(function () {
         Route::get('/billings', [BillingController::class, 'index']);
+        Route::get('/billings/next-token', [BillingController::class, 'getNextTokenNo']);
         Route::get('/billings/{billing}', [BillingController::class, 'show']);
         Route::get('/billing-details', [BillingDetailController::class, 'index']);
         Route::get('/billing-details/{billingDetail}', [BillingDetailController::class, 'show']);

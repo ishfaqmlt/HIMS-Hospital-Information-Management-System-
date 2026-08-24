@@ -169,6 +169,75 @@ class BillingController extends Controller
         return response()->json($billings);
     }
 
+    public static function generateNextTokenNo(?string $doctorId, ?string $mrn = null): ?int
+    {
+        if (empty($doctorId)) {
+            return null;
+        }
+
+        $today = now()->toDateString();
+
+        // 1. Check if patient already has a pending/booked appointment token for today with this doctor
+        if ($mrn) {
+            $existingApptToken = DB::table('patient_appointments')
+                ->where('DoctorId', $doctorId)
+                ->where('mrn', $mrn)
+                ->whereDate('Appointmentat', $today)
+                ->whereIn('Status', ['Pending', 'Booked'])
+                ->value('TokenNo');
+
+            if ($existingApptToken) {
+                return intval($existingApptToken);
+            }
+        }
+
+        // 2. Lock & calculate next unused token number for this doctor today
+        return DB::transaction(function () use ($doctorId, $today) {
+            $bookedApptTokens = DB::table('patient_appointments')
+                ->where('DoctorId', $doctorId)
+                ->whereDate('Appointmentat', $today)
+                ->whereIn('Status', ['Pending', 'Booked'])
+                ->pluck('TokenNo')
+                ->map(fn($t) => intval($t))
+                ->toArray();
+
+            $usedBillingTokens = DB::table('billings')
+                ->where('DoctorId', $doctorId)
+                ->whereDate('InvoiceDate', $today)
+                ->whereNotNull('tokenNo')
+                ->where('tokenNo', '>', 0)
+                ->pluck('tokenNo')
+                ->map(fn($t) => intval($t))
+                ->toArray();
+
+            $usedTokens = array_unique(array_merge($bookedApptTokens, $usedBillingTokens));
+
+            $nextToken = 1;
+            for ($i = 1; $i <= 500; $i++) {
+                if (!in_array($i, $usedTokens)) {
+                    $nextToken = $i;
+                    break;
+                }
+            }
+
+            return $nextToken;
+        });
+    }
+
+    public function getNextTokenNo(Request $request)
+    {
+        $doctorId = $request->query('DoctorId') ?: $request->query('doctorId');
+        $mrn = $request->query('mrn');
+
+        if (!$doctorId) {
+            return response()->json(['tokenNo' => null]);
+        }
+
+        $token = self::generateNextTokenNo($doctorId, $mrn);
+
+        return response()->json(['tokenNo' => $token]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -187,6 +256,56 @@ class BillingController extends Controller
         ]);
 
         return DB::transaction(function () use ($validated) {
+            if (!empty($validated['DoctorId'])) {
+                $mrn = DB::table('patient_visits')
+                    ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.id')
+                    ->where('patient_visits.id', $validated['visitId'])
+                    ->value('patients.mrn');
+
+                $today = now()->toDateString();
+                $existingAppt = null;
+                if ($mrn) {
+                    $existingAppt = DB::table('patient_appointments')
+                        ->where('DoctorId', $validated['DoctorId'])
+                        ->where('mrn', $mrn)
+                        ->whereDate('Appointmentat', $today)
+                        ->whereIn('Status', ['Pending', 'Booked'])
+                        ->first();
+                }
+
+                if ($existingAppt) {
+                    $validated['tokenNo'] = intval($existingAppt->TokenNo);
+
+                    if ($existingAppt->Status === 'Pending') {
+                        DB::table('patient_appointments')
+                            ->where('Id', $existingAppt->Id)
+                            ->update([
+                                'Status' => 'Booked',
+                                'updated_at' => now(),
+                            ]);
+                    }
+                } else {
+                    if (empty($validated['tokenNo']) || $validated['tokenNo'] <= 0) {
+                        $validated['tokenNo'] = self::generateNextTokenNo($validated['DoctorId'], $mrn);
+                    }
+
+                    if ($mrn && !empty($validated['tokenNo'])) {
+                        DB::table('patient_appointments')->insert([
+                            'Id' => (string) Str::uuid(),
+                            'DoctorId' => $validated['DoctorId'],
+                            'mrn' => $mrn,
+                            'Appointmentat' => now(),
+                            'TokenNo' => $validated['tokenNo'],
+                            'Status' => 'Booked',
+                            'Remarks' => 'Auto-created from Billing',
+                            'CreatedBy' => Auth::id() ?: 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
+            }
+
             $validated['createdBy'] = Auth::id();
             $validated['Id'] = (string) Str::uuid();
             $validated['InvoiceNo'] = Billing::generateInvoiceNo();
@@ -226,6 +345,56 @@ class BillingController extends Controller
         ]);
 
         return DB::transaction(function () use ($validated, $billing) {
+            if (!empty($validated['DoctorId'])) {
+                $mrn = DB::table('patient_visits')
+                    ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.id')
+                    ->where('patient_visits.id', $validated['visitId'])
+                    ->value('patients.mrn');
+
+                $today = now()->toDateString();
+                $existingAppt = null;
+                if ($mrn) {
+                    $existingAppt = DB::table('patient_appointments')
+                        ->where('DoctorId', $validated['DoctorId'])
+                        ->where('mrn', $mrn)
+                        ->whereDate('Appointmentat', $today)
+                        ->whereIn('Status', ['Pending', 'Booked'])
+                        ->first();
+                }
+
+                if ($existingAppt) {
+                    $validated['tokenNo'] = intval($existingAppt->TokenNo);
+
+                    if ($existingAppt->Status === 'Pending') {
+                        DB::table('patient_appointments')
+                            ->where('Id', $existingAppt->Id)
+                            ->update([
+                                'Status' => 'Booked',
+                                'updated_at' => now(),
+                            ]);
+                    }
+                } else {
+                    if (empty($validated['tokenNo']) || $validated['tokenNo'] <= 0) {
+                        $validated['tokenNo'] = self::generateNextTokenNo($validated['DoctorId'], $mrn);
+                    }
+
+                    if ($mrn && !empty($validated['tokenNo'])) {
+                        DB::table('patient_appointments')->insert([
+                            'Id' => (string) Str::uuid(),
+                            'DoctorId' => $validated['DoctorId'],
+                            'mrn' => $mrn,
+                            'Appointmentat' => now(),
+                            'TokenNo' => $validated['tokenNo'],
+                            'Status' => 'Booked',
+                            'Remarks' => 'Auto-created from Billing',
+                            'CreatedBy' => Auth::id() ?: 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
+            }
+
             $oldTotal = DB::table('billings')->where('id', $billing->id)->lockForUpdate()->value('TotalAmount');
             $newTotal = $validated['TotalAmount'];
             $validated['InvoiceDate'] = date('Y-m-d H:i:s', strtotime($validated['InvoiceDate']));

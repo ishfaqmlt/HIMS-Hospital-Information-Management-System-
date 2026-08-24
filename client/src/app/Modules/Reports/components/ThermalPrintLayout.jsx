@@ -11,16 +11,6 @@ function ThermalReceipt({ title, hospitalProfile, invoice, services, payment, sh
   return (
     <div style={{ fontFamily: "'Courier New', monospace", width: "280px", padding: "10px", fontSize: "12px" }}>
       <div style={{ textAlign: "center" }}>
-        {logoUrl && (
-          <img
-            src={logoUrl}
-            alt="Logo"
-            style={{ maxHeight: "50px", margin: "0 auto 4px auto", display: "block" }}
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
-          />
-        )}
         <h3 style={{ fontSize: "14px" }}>{hospitalProfile?.hospitalName || "Musa Memorial Hospital"}</h3>
         <p style={{ fontSize: "10px" }}>{hospitalProfile?.address || "Near Daewoo Terminal Bhakkar"}</p>
         <p style={{ fontSize: "10px" }}>{hospitalProfile?.phone || "0453-510319"}</p>
