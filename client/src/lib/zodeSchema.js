@@ -102,7 +102,6 @@ export const patientSchema = z.object({
   cnic: z.string().optional(),
   mobile: z.string().optional(),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
-  allergy: z.string().optional(),
   isActive: z.coerce.boolean(),
 });
 
@@ -456,4 +455,36 @@ export const analyzerSchema = z.object({
   dataBits: z.coerce.number().optional().nullable(),
   stopBits: z.coerce.number().optional().nullable(),
   isActive: z.coerce.boolean(),
+});
+
+export const masterSymptomSchema = z.object({
+  code: z.string().min(1, "Symptom code is required").max(50),
+  name: z.string().min(1, "Symptom name is required").max(191),
+  is_active: z.coerce.boolean().default(true),
+});
+
+export const masterAllergySchema = z.object({
+  code: z.string().min(1, "Allergy code is required").max(50),
+  name: z.string().min(1, "Allergy name is required").max(191),
+  is_active: z.coerce.boolean().default(true),
+});
+
+export const masterPhysicalExamSchema = z.object({
+  name: z.string().min(1, "Physical exam name is required").max(191),
+  is_active: z.coerce.boolean().default(true),
+});
+
+export const masterDiagnosisSchema = z.object({
+  name: z.string().min(1, "Diagnosis name is required").max(191),
+  is_active: z.coerce.boolean().default(true),
+});
+
+export const opdPrescriptionSchema = z.object({
+  visitId: z.string().min(1, "Patient visit is required"),
+  patientId: z.string().min(1, "Patient is required"),
+  doctorId: z.coerce.number().min(1, "Doctor is required"),
+  presc_date: z.string().optional(),
+  advice: z.string().optional().nullable(),
+  followUpDate: z.string().optional().nullable(),
+  status: z.enum(["pending", "In Process", "completed"]).default("pending"),
 });

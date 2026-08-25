@@ -7,6 +7,14 @@ import { useSelector } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Stethoscope,
   Activity,
   FileText,
@@ -18,6 +26,9 @@ import {
   Calendar,
   LayoutDashboard,
   User,
+  Settings,
+  ChevronDown,
+  AlertTriangle,
 } from "lucide-react";
 
 export const OPDContext = createContext({
@@ -107,6 +118,62 @@ export default function OPDLayout({ children }) {
                 </Link>
               );
             })}
+
+            {/* Master Settings Dropdown Button */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={pathname.startsWith("/Modules/OPD/MasterSettings") || pathname.startsWith("/Modules/OPD/Settings") ? "secondary" : "ghost"}
+                  className={`w-full justify-between text-xs font-medium h-9 px-3 transition-colors ${
+                    pathname.startsWith("/Modules/OPD/MasterSettings") || pathname.startsWith("/Modules/OPD/Settings")
+                      ? "bg-teal-50 text-teal-700 hover:bg-teal-100 font-semibold border border-teal-200"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <Settings className={`h-4 w-4 mr-2.5 shrink-0 ${pathname.startsWith("/Modules/OPD/MasterSettings") || pathname.startsWith("/Modules/OPD/Settings") ? "text-teal-700" : "text-muted-foreground"}`} />
+                    <span>Master Settings</span>
+                  </div>
+                  <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-52 shadow-md">
+                <DropdownMenuLabel className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  OPD Master Settings
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <Link href="/Modules/OPD/MasterSettings/Symptoms">
+                  <DropdownMenuItem className="text-xs cursor-pointer py-2">
+                    <Activity className="h-3.5 w-3.5 mr-2.5 text-teal-600" />
+                    <span>Symptoms</span>
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/Modules/OPD/MasterSettings/Allergies">
+                  <DropdownMenuItem className="text-xs cursor-pointer py-2">
+                    <AlertTriangle className="h-3.5 w-3.5 mr-2.5 text-amber-600" />
+                    <span>Allergies</span>
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/Modules/OPD/MasterSettings/PhysicalExam">
+                  <DropdownMenuItem className="text-xs cursor-pointer py-2">
+                    <Stethoscope className="h-3.5 w-3.5 mr-2.5 text-blue-600" />
+                    <span>Physical Exam</span>
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/Modules/OPD/MasterSettings/Diagnosis">
+                  <DropdownMenuItem className="text-xs cursor-pointer py-2">
+                    <Brain className="h-3.5 w-3.5 mr-2.5 text-purple-600" />
+                    <span>Diagnosis</span>
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/Modules/OPD/MasterSettings/Medication">
+                  <DropdownMenuItem className="text-xs cursor-pointer py-2">
+                    <Pill className="h-3.5 w-3.5 mr-2.5 text-emerald-600" />
+                    <span>Medication</span>
+                  </DropdownMenuItem>
+                </Link>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </nav>
         </aside>
 

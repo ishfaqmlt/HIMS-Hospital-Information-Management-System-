@@ -23,7 +23,6 @@ class Patient extends Model
         'gender',
         'dob',
         'address',
-        'allergy',
         'isActive',
         'isSynced',
     ];

@@ -19,7 +19,6 @@ return new class extends Migration
             $table->enum('gender', ['Male', 'Female', 'Other'])->nullable();
             $table->date('dob')->nullable();
             $table->text('address')->nullable();
-            $table->text('allergy')->nullable();
             $table->boolean('isActive')->default(true);
             $table->boolean('isSynced')->default(false);
             $table->timestamps();

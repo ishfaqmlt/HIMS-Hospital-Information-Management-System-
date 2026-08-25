@@ -50,7 +50,6 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, e
       cnic: "",
       mobile: "",
       email: "",
-      allergy: "",
       isActive: true,
     },
   });
@@ -85,7 +84,6 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, e
         cnic: editingPatient.cnic || "",
         mobile: editingPatient.mobile || "",
         email: editingPatient.email || "",
-        allergy: editingPatient.allergy || "",
         isActive: editingPatient.isActive ?? true,
       });
     } else {
@@ -101,7 +99,6 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, e
         cnic: prefillCnic,
         mobile: prefillMobile,
         email: "",
-        allergy: "",
         isActive: true,
       });
     }
@@ -239,12 +236,6 @@ export default function AddPatientDialog({ open, onOpenChange, onPatientAdded, e
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" {...register("email")} placeholder="Email" />
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="allergy">Allergy</Label>
-              <Input id="allergy" {...register("allergy")} placeholder="Allergies" />
-              {errors.allergy && <p className="text-sm text-destructive">{errors.allergy.message}</p>}
             </div>
           </div>
 

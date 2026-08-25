@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { DataTable } from "@/components/data-table/data-table";
 import { getColumns } from "./columns";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ import { formatDate } from "@/lib/utils";
 import { useOPDContext } from "./layout";
 
 export default function OPDPage() {
+  const router = useRouter();
   const { setActivePatient } = useOPDContext() || {};
   const todayStr = new Date().toISOString().split("T")[0];
   const [fromDate, setFromDate] = useState(todayStr);
@@ -274,8 +276,28 @@ export default function OPDPage() {
     }
   };
 
+  const handlePrescribePatient = async (visit) => {
+    try {
+      if (setActivePatient) {
+        setActivePatient(visit);
+      }
+
+      // Update visit status to 'In Progress' if currently 'Waiting'
+      if (visit.Status === "Waiting" && (visit.Id || visit.id)) {
+        const visitId = visit.Id || visit.id;
+        await opdVisitService.update(visitId, { Status: "In Progress" });
+      }
+
+      router.push("/Modules/OPD/prescription");
+    } catch (error) {
+      console.error("Failed to update visit status:", error);
+      router.push("/Modules/OPD/prescription");
+    }
+  };
+
   const columns = getColumns({
     onSelect: handleSelectPatient,
+    onPrescribe: handlePrescribePatient,
   });
 
   const filteredVisits = visits.filter((item) => {

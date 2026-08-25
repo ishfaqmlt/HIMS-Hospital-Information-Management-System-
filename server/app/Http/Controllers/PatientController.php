@@ -66,7 +66,6 @@ class PatientController extends Controller
             'gender' => 'nullable|in:Male,Female,Other',
             'dob' => 'nullable|date',
             'address' => 'nullable|string',
-            'allergy' => 'nullable|string',
             'isActive' => 'boolean',
         ]);
 
@@ -91,7 +90,6 @@ class PatientController extends Controller
             'gender' => 'nullable|in:Male,Female,Other',
             'dob' => 'nullable|date',
             'address' => 'nullable|string',
-            'allergy' => 'nullable|string',
             'isActive' => 'boolean',
         ]);
 

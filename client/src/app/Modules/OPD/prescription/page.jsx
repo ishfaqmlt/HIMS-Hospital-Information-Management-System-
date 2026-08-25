@@ -477,224 +477,234 @@ export default function OPDPrescriptionPage() {
         </div>
       </div>
 
-      {/* A4 Size Paper Print Container */}
-      <div className="flex justify-center bg-slate-100/80 p-6 rounded-xl overflow-x-auto">
-        <div
-          ref={contentRef}
-          className="w-[210mm] min-h-[297mm] bg-white border border-slate-300 shadow-md p-8 flex flex-col justify-between text-slate-800 text-xs print:w-[210mm] print:h-[297mm] print:shadow-none print:p-6 print:m-0"
-          style={{ width: "210mm", minHeight: "297mm", fontFamily: outputSettings?.textFont || "Inter, Arial, sans-serif" }}
-        >
-          {/* 1. Hospital Output Settings & Doctor Header */}
-          <div>
-            {!showHeader ? (
-              <div
-                className="w-full shrink-0 border-b border-dashed border-slate-200 flex items-center justify-center text-[11px] text-slate-400 font-mono mb-4 print:border-none"
-                style={{ height: `${headerHeightMargin}px` }}
-              >
-                <span className="print:hidden">[ Blank Header Space: {headerHeightMargin}px ]</span>
-              </div>
-            ) : (
-              <div className="flex items-start justify-between border-b-2 border-teal-600 pb-5 mb-5 min-h-[95px]">
-                {/* Left: Hospital Info + Logo / Banner Image */}
-                <div className="flex items-center gap-4 max-w-[65%]">
-                  {outputSettings?.headerImage ? (
-                    <Image
-                      src={getImageUrl(outputSettings.headerImage)}
-                      alt="Header Banner"
-                      width={400}
-                      height={80}
-                      className="h-20 w-auto object-contain shrink-0"
-                      unoptimized
-                    />
-                  ) : logoSrc ? (
-                    <Image
-                      src={getImageUrl(logoSrc)}
-                      alt="Hospital Logo"
-                      width={80}
-                      height={80}
-                      className="h-20 w-20 object-contain rounded-xl border-2 border-teal-100 bg-white p-1.5 shrink-0 shadow-xs"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="p-3.5 rounded-xl bg-teal-600 text-white font-bold text-xl shrink-0">HIMS</div>
-                  )}
+      {/* Side-by-Side 2-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Left Side: Empty container for future content */}
+        <div className="bg-slate-50/70 border border-slate-200 border-dashed rounded-xl p-6 min-h-[600px] flex flex-col items-center justify-center text-center text-slate-400">
+          <FileText className="h-10 w-10 text-slate-300 mb-2 stroke-[1.5]" />
+          <p className="text-sm font-semibold text-slate-500">Prescription Editor / Extra Content Container</p>
+          <p className="text-xs text-slate-400 max-w-xs mt-1">This section is ready for future custom components or form inputs.</p>
+        </div>
 
-                  <div className="space-y-1">
-                    <h2 className="text-xl font-extrabold uppercase tracking-wide text-teal-800 leading-tight">
-                      {hospitalName}
-                    </h2>
-                    <p className="text-xs text-slate-700 font-semibold">{hospitalAddress}</p>
-                    <p className="text-xs text-slate-600 font-medium">
-                      Ph: {hospitalPhone} {hospitalEmail ? `| Email: ${hospitalEmail}` : ""}
-                    </p>
+        {/* Right Side: Current A4 Prescription Report Preview */}
+        <div className="flex justify-center bg-slate-100/80 p-4 sm:p-6 rounded-xl overflow-x-auto">
+          <div
+            ref={contentRef}
+            className="w-[210mm] min-h-[297mm] bg-white border border-slate-300 shadow-md p-8 flex flex-col justify-between text-slate-800 text-xs print:w-[210mm] print:h-[297mm] print:shadow-none print:p-6 print:m-0 shrink-0"
+            style={{ width: "210mm", minHeight: "297mm", fontFamily: outputSettings?.textFont || "Inter, Arial, sans-serif" }}
+          >
+            {/* 1. Hospital Output Settings & Doctor Header */}
+            <div>
+              {!showHeader ? (
+                <div
+                  className="w-full shrink-0 border-b border-dashed border-slate-200 flex items-center justify-center text-[11px] text-slate-400 font-mono mb-4 print:border-none"
+                  style={{ height: `${headerHeightMargin}px` }}
+                >
+                  <span className="print:hidden">[ Blank Header Space: {headerHeightMargin}px ]</span>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between border-b-2 border-teal-600 pb-5 mb-5 min-h-[95px]">
+                  {/* Left: Hospital Info + Logo / Banner Image */}
+                  <div className="flex items-center gap-4 max-w-[65%]">
+                    {outputSettings?.headerImage ? (
+                      <Image
+                        src={getImageUrl(outputSettings.headerImage)}
+                        alt="Header Banner"
+                        width={400}
+                        height={80}
+                        className="h-20 w-auto object-contain shrink-0"
+                        unoptimized
+                      />
+                    ) : logoSrc ? (
+                      <Image
+                        src={getImageUrl(logoSrc)}
+                        alt="Hospital Logo"
+                        width={80}
+                        height={80}
+                        className="h-20 w-20 object-contain rounded-xl border-2 border-teal-100 bg-white p-1.5 shrink-0 shadow-xs"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="p-3.5 rounded-xl bg-teal-600 text-white font-bold text-xl shrink-0">HIMS</div>
+                    )}
+
+                    <div className="space-y-1">
+                      <h2 className="text-xl font-extrabold uppercase tracking-wide text-teal-800 leading-tight">
+                        {hospitalName}
+                      </h2>
+                      <p className="text-xs text-slate-700 font-semibold">{hospitalAddress}</p>
+                      <p className="text-xs text-slate-600 font-medium">
+                        Ph: {hospitalPhone} {hospitalEmail ? `| Email: ${hospitalEmail}` : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: Logged-in Doctor Info */}
+                  <div className="text-right space-y-1">
+                    <h3 className="text-lg font-bold text-slate-900 leading-none">{doctorName}</h3>
+                    <p className="text-xs font-bold text-teal-700">{doctorQualification}</p>
+                    <p className="text-xs font-medium text-slate-700">{doctorDept}</p>
+                    <p className="text-xs text-slate-500 font-mono font-medium">{doctorPmdc}</p>
                   </div>
                 </div>
+              )}
 
-                {/* Right: Logged-in Doctor Info */}
-                <div className="text-right space-y-1">
-                  <h3 className="text-lg font-bold text-slate-900 leading-none">{doctorName}</h3>
-                  <p className="text-xs font-bold text-teal-700">{doctorQualification}</p>
-                  <p className="text-xs font-medium text-slate-700">{doctorDept}</p>
-                  <p className="text-xs text-slate-500 font-mono font-medium">{doctorPmdc}</p>
+              {/* 2. Patient Demographics Bar */}
+              <div className="grid grid-cols-12 gap-3 bg-teal-50/50 border border-teal-200/80 rounded-xl p-3.5 mb-4 text-xs items-center shadow-2xs">
+                <div className="col-span-4 border-r border-teal-200/60 pr-3 space-y-0.5">
+                  <p className="font-bold text-slate-900 text-sm tracking-tight leading-tight">{patientName}</p>
+                  <p className="text-slate-600 text-xs font-medium">{guardianName}</p>
+                </div>
+
+                <div className="col-span-3 border-r border-teal-200/60 px-3 space-y-1">
+                  <p className="text-slate-600 font-medium">MRN: <strong className="text-slate-900 font-mono text-xs font-bold">{patientMrn}</strong></p>
+                  <p className="text-slate-600 font-medium">Mobile: <strong className="text-slate-900 font-mono text-xs font-bold">{patientMobile}</strong></p>
+                </div>
+
+                <div className="col-span-3 border-r border-teal-200/60 px-3 space-y-1">
+                  <p className="text-slate-600 font-medium">Age / Sex: <strong className="text-slate-900 text-xs font-bold">{patientAge} / {patientGender}</strong></p>
+                  <p className="text-slate-600 font-medium">Visit No: <strong className="text-slate-900 font-mono text-xs font-bold">{visitNo}</strong></p>
+                </div>
+
+                <div className="col-span-2 text-right pl-3 space-y-1">
+                  <p className="text-slate-600 font-medium">Date:</p>
+                  <p className="text-slate-900 text-xs font-bold">{visitDate}</p>
                 </div>
               </div>
-            )}
 
-            {/* 2. Patient Demographics Bar */}
-            <div className="grid grid-cols-12 gap-3 bg-teal-50/50 border border-teal-200/80 rounded-xl p-3.5 mb-4 text-xs items-center shadow-2xs">
-              <div className="col-span-4 border-r border-teal-200/60 pr-3 space-y-0.5">
-                <p className="font-bold text-slate-900 text-sm tracking-tight leading-tight">{patientName}</p>
-                <p className="text-slate-600 text-xs font-medium">{guardianName}</p>
-              </div>
-
-              <div className="col-span-3 border-r border-teal-200/60 px-3 space-y-1">
-                <p className="text-slate-600 font-medium">MRN: <strong className="text-slate-900 font-mono text-xs font-bold">{patientMrn}</strong></p>
-                <p className="text-slate-600 font-medium">Mobile: <strong className="text-slate-900 font-mono text-xs font-bold">{patientMobile}</strong></p>
-              </div>
-
-              <div className="col-span-3 border-r border-teal-200/60 px-3 space-y-1">
-                <p className="text-slate-600 font-medium">Age / Sex: <strong className="text-slate-900 text-xs font-bold">{patientAge} / {patientGender}</strong></p>
-                <p className="text-slate-600 font-medium">Visit No: <strong className="text-slate-900 font-mono text-xs font-bold">{visitNo}</strong></p>
-              </div>
-
-              <div className="col-span-2 text-right pl-3 space-y-1">
-                <p className="text-slate-600 font-medium">Date:</p>
-                <p className="text-slate-900 text-xs font-bold">{visitDate}</p>
-              </div>
-            </div>
-
-            {/* 3. Vitals Bar */}
-            {vitals && (vitals.bp || vitals.pulse || vitals.temp || vitals.weight || vitals.spo2 || vitals.bsr) && (
-              <div className="flex flex-wrap items-center gap-5 bg-slate-50 border border-slate-200 rounded-md p-2.5 mb-4 text-xs font-medium">
-                <span className="font-bold text-slate-800 uppercase flex items-center gap-1">
-                  <Activity className="h-4 w-4 text-teal-600" /> Vitals:
-                </span>
-                {vitals.bp && <span>BP: <strong className="text-slate-900 font-bold">{vitals.bp}</strong></span>}
-                {vitals.pulse && <span>Pulse: <strong className="text-slate-900 font-bold">{vitals.pulse}</strong></span>}
-                {vitals.temp && <span>Temp: <strong className="text-slate-900 font-bold">{vitals.temp}</strong></span>}
-                {vitals.weight && <span>Weight: <strong className="text-slate-900 font-bold">{vitals.weight}</strong></span>}
-                {vitals.spo2 && <span>SpO2: <strong className="text-slate-900 font-bold">{vitals.spo2}</strong></span>}
-                {vitals.bsr && <span>BSR: <strong className="text-slate-900 font-bold">{vitals.bsr}</strong></span>}
-              </div>
-            )}
-
-            {/* 4. Clinical Notes Grid (Complaints, Examination, Diagnosis, Investigations) */}
-            <div className="space-y-3.5 mb-5">
-              {complaints && (
-                <div>
-                  <span className="font-bold text-slate-800 uppercase text-xs tracking-wider block mb-1">
-                    Chief Complaints & History:
+              {/* 3. Vitals Bar */}
+              {vitals && (vitals.bp || vitals.pulse || vitals.temp || vitals.weight || vitals.spo2 || vitals.bsr) && (
+                <div className="flex flex-wrap items-center gap-5 bg-slate-50 border border-slate-200 rounded-md p-2.5 mb-4 text-xs font-medium">
+                  <span className="font-bold text-slate-800 uppercase flex items-center gap-1">
+                    <Activity className="h-4 w-4 text-teal-600" /> Vitals:
                   </span>
-                  <p className="text-xs text-slate-800 font-medium bg-white p-2 border-l-3 border-teal-500 pl-2.5 leading-relaxed">
-                    {complaints}
-                  </p>
+                  {vitals.bp && <span>BP: <strong className="text-slate-900 font-bold">{vitals.bp}</strong></span>}
+                  {vitals.pulse && <span>Pulse: <strong className="text-slate-900 font-bold">{vitals.pulse}</strong></span>}
+                  {vitals.temp && <span>Temp: <strong className="text-slate-900 font-bold">{vitals.temp}</strong></span>}
+                  {vitals.weight && <span>Weight: <strong className="text-slate-900 font-bold">{vitals.weight}</strong></span>}
+                  {vitals.spo2 && <span>SpO2: <strong className="text-slate-900 font-bold">{vitals.spo2}</strong></span>}
+                  {vitals.bsr && <span>BSR: <strong className="text-slate-900 font-bold">{vitals.bsr}</strong></span>}
                 </div>
               )}
 
-              {examination && (
-                <div>
-                  <span className="font-bold text-slate-800 uppercase text-xs tracking-wider block mb-1">
-                    Physical Examination:
-                  </span>
-                  <p className="text-xs text-slate-800 font-medium bg-white p-2 border-l-3 border-blue-500 pl-2.5 leading-relaxed">
-                    {examination}
-                  </p>
-                </div>
-              )}
+              {/* 4. Clinical Notes Grid (Complaints, Examination, Diagnosis, Investigations) */}
+              <div className="space-y-3.5 mb-5">
+                {complaints && (
+                  <div>
+                    <span className="font-bold text-slate-800 uppercase text-xs tracking-wider block mb-1">
+                      Chief Complaints & History:
+                    </span>
+                    <p className="text-xs text-slate-800 font-medium bg-white p-2 border-l-3 border-teal-500 pl-2.5 leading-relaxed">
+                      {complaints}
+                    </p>
+                  </div>
+                )}
 
-              {diagnosis && (
-                <div>
-                  <span className="font-bold text-teal-800 uppercase text-xs tracking-wider block mb-1">
-                    Diagnosis:
-                  </span>
-                  <p className="text-xs font-bold text-teal-950 bg-teal-50/70 p-2 border-l-3 border-teal-700 pl-2.5 leading-relaxed">
-                    {diagnosis}
-                  </p>
-                </div>
-              )}
+                {examination && (
+                  <div>
+                    <span className="font-bold text-slate-800 uppercase text-xs tracking-wider block mb-1">
+                      Physical Examination:
+                    </span>
+                    <p className="text-xs text-slate-800 font-medium bg-white p-2 border-l-3 border-blue-500 pl-2.5 leading-relaxed">
+                      {examination}
+                    </p>
+                  </div>
+                )}
 
-              {investigations && (
-                <div>
-                  <span className="font-bold text-slate-800 uppercase text-xs tracking-wider block mb-1">
-                    Investigations Ordered:
-                  </span>
-                  <p className="text-xs font-bold text-slate-900 bg-amber-50/70 p-2 border-l-3 border-amber-500 pl-2.5 font-mono leading-relaxed">
-                    {investigations}
-                  </p>
-                </div>
-              )}
-            </div>
+                {diagnosis && (
+                  <div>
+                    <span className="font-bold text-teal-800 uppercase text-xs tracking-wider block mb-1">
+                      Diagnosis:
+                    </span>
+                    <p className="text-xs font-bold text-teal-950 bg-teal-50/70 p-2 border-l-3 border-teal-700 pl-2.5 leading-relaxed">
+                      {diagnosis}
+                    </p>
+                  </div>
+                )}
 
-            {/* 5. Rx / Prescribed Medications Table */}
-            <div className="space-y-2.5 mb-5">
-              <div className="flex items-center gap-1 text-teal-800 border-b-2 border-teal-300 pb-1">
-                <span className="text-lg font-serif font-bold italic">Rx</span>
-                <span className="text-xs font-bold uppercase tracking-wider ml-1">Prescribed Medications</span>
+                {investigations && (
+                  <div>
+                    <span className="font-bold text-slate-800 uppercase text-xs tracking-wider block mb-1">
+                      Investigations Ordered:
+                    </span>
+                    <p className="text-xs font-bold text-slate-900 bg-amber-50/70 p-2 border-l-3 border-amber-500 pl-2.5 font-mono leading-relaxed">
+                      {investigations}
+                    </p>
+                  </div>
+                )}
               </div>
 
-              <table className="w-full border-collapse border border-slate-200 text-xs">
-                <thead>
-                  <tr className="bg-slate-100 text-slate-800 font-bold border-b border-slate-200">
-                    <th className="p-2 text-center border-r border-slate-200 w-9">#</th>
-                    <th className="p-2 text-left border-r border-slate-200">Medicine Name</th>
-                    <th className="p-2 text-center border-r border-slate-200 w-36">Dosage</th>
-                    <th className="p-2 text-center border-r border-slate-200 w-28">Duration</th>
-                    <th className="p-2 text-left">Instructions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {medicines.length > 0 ? (
-                    medicines.map((med, idx) => (
-                      <tr key={med.id || idx} className="border-b border-slate-200 odd:bg-white even:bg-slate-50/50">
-                        <td className="p-2 text-center border-r border-slate-200 font-bold text-slate-700">{idx + 1}</td>
-                        <td className="p-2 text-left border-r border-slate-200 font-bold text-slate-900 text-xs">{med.name}</td>
-                        <td className="p-2 text-center border-r border-slate-200 font-mono font-bold text-teal-900 text-xs">{med.dosage}</td>
-                        <td className="p-2 text-center border-r border-slate-200 font-medium text-xs">{med.duration}</td>
-                        <td className="p-2 text-left text-slate-700 font-medium text-xs">{med.instruction}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="p-3 text-center text-slate-400">No medicines prescribed</td>
+              {/* 5. Rx / Prescribed Medications Table */}
+              <div className="space-y-2.5 mb-5">
+                <div className="flex items-center gap-1 text-teal-800 border-b-2 border-teal-300 pb-1">
+                  <span className="text-lg font-serif font-bold italic">Rx</span>
+                  <span className="text-xs font-bold uppercase tracking-wider ml-1">Prescribed Medications</span>
+                </div>
+
+                <table className="w-full border-collapse border border-slate-200 text-xs">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-800 font-bold border-b border-slate-200">
+                      <th className="p-2 text-center border-r border-slate-200 w-9">#</th>
+                      <th className="p-2 text-left border-r border-slate-200">Medicine Name</th>
+                      <th className="p-2 text-center border-r border-slate-200 w-36">Dosage</th>
+                      <th className="p-2 text-center border-r border-slate-200 w-28">Duration</th>
+                      <th className="p-2 text-left">Instructions</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {medicines.length > 0 ? (
+                      medicines.map((med, idx) => (
+                        <tr key={med.id || idx} className="border-b border-slate-200 odd:bg-white even:bg-slate-50/50">
+                          <td className="p-2 text-center border-r border-slate-200 font-bold text-slate-700">{idx + 1}</td>
+                          <td className="p-2 text-left border-r border-slate-200 font-bold text-slate-900 text-xs">{med.name}</td>
+                          <td className="p-2 text-center border-r border-slate-200 font-mono font-bold text-teal-900 text-xs">{med.dosage}</td>
+                          <td className="p-2 text-center border-r border-slate-200 font-medium text-xs">{med.duration}</td>
+                          <td className="p-2 text-left text-slate-700 font-medium text-xs">{med.instruction}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="p-3 text-center text-slate-400">No medicines prescribed</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 6. Advice & Follow-Up */}
+              <div className="grid grid-cols-2 gap-4 border-t border-slate-200 pt-3.5 text-xs">
+                <div>
+                  <span className="font-bold text-slate-800 uppercase text-xs tracking-wider block mb-1">
+                    Advice & Special Instructions:
+                  </span>
+                  <p className="text-slate-800 font-medium">{advice || "Take prescribed medicines regularly as directed."}</p>
+                </div>
+                <div className="text-right">
+                  <span className="font-bold text-teal-800 uppercase text-xs tracking-wider block mb-1">
+                    Next Review / Follow-Up:
+                  </span>
+                  <p className="font-bold text-teal-950 text-xs">{followupDate}</p>
+                </div>
+              </div>
             </div>
 
-            {/* 6. Advice & Follow-Up */}
-            <div className="grid grid-cols-2 gap-4 border-t border-slate-200 pt-3.5 text-xs">
+            {/* 7. Footer / Doctor Signature & Notice */}
+            <div className="pt-8 border-t border-slate-200 mt-6 flex items-end justify-between text-xs">
               <div>
-                <span className="font-bold text-slate-800 uppercase text-xs tracking-wider block mb-1">
-                  Advice & Special Instructions:
-                </span>
-                <p className="text-slate-800 font-medium">{advice || "Take prescribed medicines regularly as directed."}</p>
+                <p className="text-slate-600 italic font-medium">This prescription is computer generated by HIMS Medical System.</p>
+                <p className="text-slate-500 text-[11px]">Printed Date: {new Date().toLocaleDateString("en-GB")} {new Date().toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit' })}</p>
               </div>
-              <div className="text-right">
-                <span className="font-bold text-teal-800 uppercase text-xs tracking-wider block mb-1">
-                  Next Review / Follow-Up:
-                </span>
-                <p className="font-bold text-teal-950 text-xs">{followupDate}</p>
+              <div className="text-center space-y-0.5 min-w-[180px]">
+                <div className="w-44 border-b border-slate-400 mb-1 mx-auto"></div>
+                {doctorStamp ? (
+                  <p className="text-sm text-slate-950 font-bold whitespace-pre-line leading-tight">{doctorStamp}</p>
+                ) : (
+                  <>
+                    <p className="font-bold text-slate-900 text-sm">{doctorName}</p>
+                    <p className="text-slate-500 text-xs">Signature & Stamp</p>
+                  </>
+                )}
               </div>
-            </div>
-          </div>
-
-          {/* 7. Footer / Doctor Signature & Notice */}
-          <div className="pt-8 border-t border-slate-200 mt-6 flex items-end justify-between text-xs">
-            <div>
-              <p className="text-slate-600 italic font-medium">This prescription is computer generated by HIMS Medical System.</p>
-              <p className="text-slate-500 text-[11px]">Printed Date: {new Date().toLocaleDateString("en-GB")} {new Date().toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit' })}</p>
-            </div>
-            <div className="text-center space-y-0.5 min-w-[180px]">
-              <div className="w-44 border-b border-slate-400 mb-1 mx-auto"></div>
-              {doctorStamp ? (
-                <p className="text-sm text-slate-950 font-bold whitespace-pre-line leading-tight">{doctorStamp}</p>
-              ) : (
-                <>
-                  <p className="font-bold text-slate-900 text-sm">{doctorName}</p>
-                  <p className="text-slate-500 text-xs">Signature & Stamp</p>
-                </>
-              )}
             </div>
           </div>
         </div>

@@ -42,6 +42,11 @@ use App\Http\Controllers\LabAnalyzerDataController;
 use App\Http\Controllers\LabMasterTestParameterController;
 use App\Http\Controllers\LabBoundingController;
 use App\Http\Controllers\LabCaseController;
+use App\Http\Controllers\MasterSymptomController;
+use App\Http\Controllers\MasterAllergyController;
+use App\Http\Controllers\MasterPhysicalExamController;
+use App\Http\Controllers\MasterDiagnosisController;
+use App\Http\Controllers\OpdPrescriptionController;
 use App\Http\Controllers\AcceptSampleController;
 use App\Http\Controllers\TestPerformController;
 use Illuminate\Support\Facades\Route;
@@ -149,6 +154,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('services', ServiceController::class);
     Route::apiResource('service-charges', ServiceChargeController::class);
     Route::apiResource('appointment-master', AppointmentMasterController::class);
+    Route::apiResource('master-symptoms', MasterSymptomController::class);
+    Route::apiResource('master-allergies', MasterAllergyController::class);
+    Route::apiResource('master-physical-exam', MasterPhysicalExamController::class);
+    Route::apiResource('master-diagnosis', MasterDiagnosisController::class);
+    Route::apiResource('opd-prescriptions', OpdPrescriptionController::class);
 
     // Patient Appointments
     Route::get('/patient-appointments/slots', [PatientAppointmentController::class, 'getSlots']);
