@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('prescriptionNo', 20)->unique();
             $table->string('visitId', 36);
             $table->string('patientId', 36);
-            $table->unsignedBigInteger('doctorId');
+            $table->string('doctorId', 36);
             $table->dateTime('presc_date')->default(now());
             $table->text('advice')->nullable();
             $table->date('followUpDate')->nullable();

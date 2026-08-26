@@ -39,16 +39,36 @@ class MasterSymptomController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'code' => 'required|string|max:50|unique:master_symptoms,code',
+            'code' => 'nullable|string|max:50|unique:master_symptoms,code',
             'name' => 'required|string|max:191',
-            'is_active' => 'boolean',
+            'is_active' => 'nullable|boolean',
         ]);
+
+        $trimmedName = trim($validated['name']);
+
+        // Check if symptom with same name already exists
+        $existing = DB::table('master_symptoms')
+            ->whereRaw('LOWER(name) = ?', [strtolower($trimmedName)])
+            ->first();
+
+        if ($existing) {
+            return response()->json($existing, 200);
+        }
+
+        $code = !empty($validated['code'])
+            ? strtoupper($validated['code'])
+            : 'SYM-' . strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $trimmedName), 0, 6)) . '-' . rand(100, 999);
+
+        // Ensure unique code
+        while (DB::table('master_symptoms')->where('code', $code)->exists()) {
+            $code = 'SYM-' . strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $trimmedName), 0, 6)) . '-' . rand(1000, 9999);
+        }
 
         $id = (string) Str::uuid();
         $data = [
             'id' => $id,
-            'code' => strtoupper($validated['code']),
-            'name' => $validated['name'],
+            'code' => $code,
+            'name' => $trimmedName,
             'is_active' => $validated['is_active'] ?? true,
         ];
 

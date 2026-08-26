@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('Code', 10)->nullable();
             $table->uuid('DepartmentId');
             $table->string('ServiceName', 50);
+            $table->enum('service_type', ['investigation', 'consultation', 'procedure', 'general_charge', 'nursing'])->default('general_charge');
             $table->decimal('DefaultCharges', 10, 2)->default(0);
             $table->boolean('isActive')->default(true);
             $table->boolean('printToken')->default(false);

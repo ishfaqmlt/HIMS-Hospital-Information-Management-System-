@@ -47,6 +47,7 @@ export default function ServicesPage() {
     defaultValues: {
       DepartmentId: "",
       ServiceName: "",
+      service_type: "general_charge",
       DefaultCharges: 0,
       isActive: true,
       printToken: false,
@@ -54,6 +55,7 @@ export default function ServicesPage() {
   });
 
   const deptValue = watch("DepartmentId");
+  const serviceTypeValue = watch("service_type");
 
   useEffect(() => { loadServices(); loadDepartments(); }, []);
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function ServicesPage() {
 
   const openCreate = () => {
     setEditingId(null);
-    reset({ DepartmentId: "", ServiceName: "", DefaultCharges: 0, isActive: true, printToken: false });
+    reset({ DepartmentId: "", ServiceName: "", service_type: "general_charge", DefaultCharges: 0, isActive: true, printToken: false });
     setIsDialogOpen(true);
   };
 
@@ -94,6 +96,7 @@ export default function ServicesPage() {
     reset({
       DepartmentId: item.DepartmentId || "",
       ServiceName: item.ServiceName || "",
+      service_type: item.service_type || "general_charge",
       DefaultCharges: item.DefaultCharges || 0,
       isActive: item.isActive ?? true,
       printToken: item.printToken ?? false,
@@ -179,6 +182,23 @@ export default function ServicesPage() {
               <Label>Service Name *</Label>
               <Input {...register("ServiceName")} placeholder="Service name" />
               {errors.ServiceName && <p className="text-sm text-destructive">{errors.ServiceName.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Service Type *</Label>
+              <Select value={serviceTypeValue} onValueChange={(val) => setValue("service_type", val)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="investigation">Investigation (Lab / X-Ray / ECG / Ultrasound)</SelectItem>
+                  <SelectItem value="consultation">Consultation (Doctor Fee / OPD)</SelectItem>
+                  <SelectItem value="procedure">Procedure (Surgery / Dressing / Minor OP)</SelectItem>
+                  <SelectItem value="nursing">Nursing / Ward Service</SelectItem>
+                  <SelectItem value="general_charge">General Charge</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.service_type && <p className="text-sm text-destructive">{errors.service_type.message}</p>}
             </div>
 
             <div className="space-y-2">

@@ -17,6 +17,7 @@ class Service extends Model
         'Code',
         'DepartmentId',
         'ServiceName',
+        'service_type',
         'DefaultCharges',
         'isActive',
         'printToken',

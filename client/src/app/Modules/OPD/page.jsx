@@ -25,6 +25,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { opdVisitSchema } from "@/lib/zodeSchema";
 import opdVisitService from "@/services/opdVisit.service";
+import opdPrescriptionService from "@/services/opdPrescription.service";
 import patientService from "@/services/patient.service";
 import doctorService from "@/services/doctor.service";
 import departmentService from "@/services/department.service";
@@ -269,34 +270,52 @@ export default function OPDPage() {
     loadTodaysVisits();
   };
 
-  const handleSelectPatient = (visit) => {
-    if (setActivePatient) {
-      setActivePatient(visit);
-      setMessage({ type: "success", text: `Selected Token #${String(visit.tokenNo || 1).padStart(2, "0")} - ${visit.patient_name || visit.patient?.pName}` });
-    }
-  };
-
   const handlePrescribePatient = async (visit) => {
     try {
-      if (setActivePatient) {
-        setActivePatient(visit);
+      const targetVisitId = visit.visit_id || visit.visitId || visit.id || visit.Id;
+      const targetPatientId = visit.patient_id || visit.patientId || visit.patient?.id;
+      const targetDoctorId = visit.DoctorId || visit.doctorId || visit.doctor?.id;
+
+      let prescriptionData = null;
+
+      // 1. Create or fetch existing today's prescription entry in opd_prescriptions table
+      if (targetVisitId && targetPatientId && targetDoctorId) {
+        try {
+          const res = await opdPrescriptionService.create({
+            visitId: targetVisitId,
+            patientId: targetPatientId,
+            doctorId: targetDoctorId,
+            presc_date: new Date().toISOString(),
+            advice: "",
+            followUpDate: null,
+            status: "pending",
+          });
+          prescriptionData = res?.data;
+        } catch (err) {
+          console.error("Prescription creation/fetch note:", err);
+        }
       }
 
-      // Update visit status to 'In Progress' if currently 'Waiting'
-      if (visit.Status === "Waiting" && (visit.Id || visit.id)) {
-        const visitId = visit.Id || visit.id;
-        await opdVisitService.update(visitId, { Status: "In Progress" });
+      if (setActivePatient) {
+        setActivePatient({
+          ...visit,
+          currentPrescription: prescriptionData,
+        });
+      }
+
+      // 2. Update visit status to 'In Progress' if currently 'Waiting'
+      if (visit.Status === "Waiting" && targetVisitId) {
+        await opdVisitService.update(targetVisitId, { Status: "In Progress" }).catch(() => {});
       }
 
       router.push("/Modules/OPD/prescription");
     } catch (error) {
-      console.error("Failed to update visit status:", error);
+      console.error("Failed to process prescribe action:", error);
       router.push("/Modules/OPD/prescription");
     }
   };
 
   const columns = getColumns({
-    onSelect: handleSelectPatient,
     onPrescribe: handlePrescribePatient,
   });
 

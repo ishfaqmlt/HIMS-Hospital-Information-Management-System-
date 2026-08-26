@@ -16,7 +16,6 @@ use App\Http\Controllers\OpdVisitController;
 use App\Http\Controllers\IpdAdmissionController;
 use App\Http\Controllers\EmergencyCaseController;
 use App\Http\Controllers\BillingController;
-use App\Http\Controllers\PharmacyItemController;
 use App\Http\Controllers\RadiologyScanController;
 use App\Http\Controllers\InsuranceCompanyController;
 use App\Http\Controllers\InsurancePlanController;
@@ -47,6 +46,11 @@ use App\Http\Controllers\MasterAllergyController;
 use App\Http\Controllers\MasterPhysicalExamController;
 use App\Http\Controllers\MasterDiagnosisController;
 use App\Http\Controllers\OpdPrescriptionController;
+use App\Http\Controllers\OpdHistoryController;
+use App\Http\Controllers\OpdSymptomController;
+use App\Http\Controllers\OpdPhysicalExamController;
+use App\Http\Controllers\OpdDiagnosisController;
+use App\Http\Controllers\OpdInvestigationController;
 use App\Http\Controllers\AcceptSampleController;
 use App\Http\Controllers\TestPerformController;
 use Illuminate\Support\Facades\Route;
@@ -159,6 +163,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('master-physical-exam', MasterPhysicalExamController::class);
     Route::apiResource('master-diagnosis', MasterDiagnosisController::class);
     Route::apiResource('opd-prescriptions', OpdPrescriptionController::class);
+    Route::apiResource('opd-histories', OpdHistoryController::class);
+    Route::post('/opd-symptoms/sync', [OpdSymptomController::class, 'sync']);
+    Route::apiResource('opd-symptoms', OpdSymptomController::class);
+    Route::post('/opd-physical-exams/sync', [OpdPhysicalExamController::class, 'sync']);
+    Route::apiResource('opd-physical-exams', OpdPhysicalExamController::class);
+    Route::post('/opd-diagnoses/sync', [OpdDiagnosisController::class, 'sync']);
+    Route::apiResource('opd-diagnoses', OpdDiagnosisController::class);
+    Route::post('/opd-investigations/sync', [OpdInvestigationController::class, 'sync']);
+    Route::apiResource('opd-investigations', OpdInvestigationController::class);
 
     // Patient Appointments
     Route::get('/patient-appointments/slots', [PatientAppointmentController::class, 'getSlots']);
@@ -172,7 +185,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('emergency-cases', EmergencyCaseController::class);
 
     // Pharmacy & Radiology
-    Route::apiResource('pharmacy-items', PharmacyItemController::class);
     Route::apiResource('radiology-scans', RadiologyScanController::class);
 
     // Laboratory

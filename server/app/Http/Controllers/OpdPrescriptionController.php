@@ -6,6 +6,7 @@ use App\Models\OpdPrescription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class OpdPrescriptionController extends Controller
 {
@@ -64,14 +65,32 @@ class OpdPrescriptionController extends Controller
             'visitId' => 'required|string',
             'patientId' => 'required|string',
             'doctorId' => 'required',
-            'presc_date' => 'nullable|date',
+            'presc_date' => 'nullable',
             'advice' => 'nullable|string',
-            'followUpDate' => 'nullable|date',
+            'followUpDate' => 'nullable',
             'status' => 'nullable|in:pending,In Process,completed',
         ]);
 
+        // 1. Check if prescription already registered for this visit or for this patient today
+        $existing = DB::table('opd_prescriptions')
+            ->where(function ($q) use ($validated) {
+                $q->where('visitId', $validated['visitId'])
+                  ->orWhere(function ($q2) use ($validated) {
+                      $q2->where('patientId', $validated['patientId'])
+                         ->whereDate('presc_date', now()->toDateString());
+                  });
+            })
+            ->first();
+
+        if ($existing) {
+            return response()->json($existing, 200);
+        }
+
         $id = (string) Str::uuid();
         $prescriptionNo = OpdPrescription::generatePrescriptionNo();
+
+        $prescDate = !empty($validated['presc_date']) ? Carbon::parse($validated['presc_date'])->toDateTimeString() : now();
+        $followUpDate = !empty($validated['followUpDate']) ? Carbon::parse($validated['followUpDate'])->toDateString() : null;
 
         $data = [
             'id' => $id,
@@ -79,9 +98,9 @@ class OpdPrescriptionController extends Controller
             'visitId' => $validated['visitId'],
             'patientId' => $validated['patientId'],
             'doctorId' => $validated['doctorId'],
-            'presc_date' => $validated['presc_date'] ?? now(),
-            'advice' => $validated['advice'] ?? null,
-            'followUpDate' => $validated['followUpDate'] ?? null,
+            'presc_date' => $prescDate,
+            'advice' => $validated['advice'] ?? '',
+            'followUpDate' => $followUpDate,
             'status' => $validated['status'] ?? 'pending',
             'created_at' => now(),
             'updated_at' => now(),
@@ -130,22 +149,25 @@ class OpdPrescriptionController extends Controller
             'visitId' => 'nullable|string',
             'patientId' => 'nullable|string',
             'doctorId' => 'nullable',
-            'presc_date' => 'nullable|date',
+            'presc_date' => 'nullable',
             'advice' => 'nullable|string',
-            'followUpDate' => 'nullable|date',
+            'followUpDate' => 'nullable',
             'status' => 'nullable|in:pending,In Process,completed',
         ]);
 
-        $data = array_filter([
+        $prescDate = !empty($validated['presc_date']) ? Carbon::parse($validated['presc_date'])->toDateTimeString() : $prescription->presc_date;
+        $followUpDate = !empty($validated['followUpDate']) ? Carbon::parse($validated['followUpDate'])->toDateString() : $prescription->followUpDate;
+
+        $data = [
             'visitId' => $validated['visitId'] ?? $prescription->visitId,
             'patientId' => $validated['patientId'] ?? $prescription->patientId,
             'doctorId' => $validated['doctorId'] ?? $prescription->doctorId,
-            'presc_date' => $validated['presc_date'] ?? $prescription->presc_date,
+            'presc_date' => $prescDate,
             'advice' => $validated['advice'] ?? $prescription->advice,
-            'followUpDate' => $validated['followUpDate'] ?? $prescription->followUpDate,
+            'followUpDate' => $followUpDate,
             'status' => $validated['status'] ?? $prescription->status,
             'updated_at' => now(),
-        ]);
+        ];
 
         DB::table('opd_prescriptions')->where('id', $id)->update($data);
 

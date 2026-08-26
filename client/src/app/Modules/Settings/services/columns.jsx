@@ -13,6 +13,32 @@ export const getColumns = ({ onEdit, onDelete }) => [
   },
   { accessorKey: "ServiceName", header: "Service Name" },
   {
+    accessorKey: "service_type",
+    header: "Type",
+    cell: ({ row }) => {
+      const type = row.getValue("service_type") || "general_charge";
+      const colors = {
+        investigation: "bg-amber-100 text-amber-900 border-amber-300",
+        consultation: "bg-blue-100 text-blue-900 border-blue-300",
+        procedure: "bg-purple-100 text-purple-900 border-purple-300",
+        nursing: "bg-teal-100 text-teal-900 border-teal-300",
+        general_charge: "bg-slate-100 text-slate-700 border-slate-200",
+      };
+      const labels = {
+        investigation: "Investigation",
+        consultation: "Consultation",
+        procedure: "Procedure",
+        nursing: "Nursing",
+        general_charge: "General",
+      };
+      return (
+        <Badge variant="outline" className={`font-medium text-xs ${colors[type] || ""}`}>
+          {labels[type] || type}
+        </Badge>
+      );
+    },
+  },
+  {
     accessorKey: "DefaultCharges",
     header: "Charges",
     cell: ({ row }) => `Rs. ${Number(row.getValue("DefaultCharges")).toLocaleString()}`,

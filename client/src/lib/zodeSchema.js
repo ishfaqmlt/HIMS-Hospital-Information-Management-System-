@@ -58,6 +58,7 @@ export const serviceSchema = z.object({
   Code: z.string().optional(),
   DepartmentId: z.string().min(1, "Department is required"),
   ServiceName: z.string().min(1, "Service name is required").max(50),
+  service_type: z.enum(["investigation", "consultation", "procedure", "general_charge", "nursing"]).default("general_charge").optional(),
   DefaultCharges: z.coerce.number().min(0, "Charges must be positive"),
   isActive: z.coerce.boolean(),
   printToken: z.coerce.boolean(),
@@ -482,9 +483,60 @@ export const masterDiagnosisSchema = z.object({
 export const opdPrescriptionSchema = z.object({
   visitId: z.string().min(1, "Patient visit is required"),
   patientId: z.string().min(1, "Patient is required"),
-  doctorId: z.coerce.number().min(1, "Doctor is required"),
+  doctorId: z.string().min(1, "Doctor is required"),
   presc_date: z.string().optional(),
   advice: z.string().optional().nullable(),
   followUpDate: z.string().optional().nullable(),
   status: z.enum(["pending", "In Process", "completed"]).default("pending"),
 });
+
+export const opdHistorySchema = z.object({
+  patientId: z.string().min(1, "Patient is required"),
+  past_medical_history: z.string().optional().nullable(),
+  past_surgical_history: z.string().optional().nullable(),
+  medication_history: z.string().optional().nullable(),
+  allergy_history: z.string().optional().nullable(),
+  family_history: z.string().optional().nullable(),
+  social_history: z.string().optional().nullable(),
+});
+
+export const opdSymptomSchema = z.object({
+  prescriptionId: z.string().optional().nullable(),
+  patientId: z.string().optional().nullable(),
+  visitId: z.string().optional().nullable(),
+  symptomId: z.string().optional().nullable(),
+  name: z.string().max(191).optional().nullable(),
+  isSynced: z.coerce.boolean().default(false),
+});
+
+export const opdPhysicalExamSchema = z.object({
+  prescriptionId: z.string().optional().nullable(),
+  patientId: z.string().optional().nullable(),
+  visitId: z.string().optional().nullable(),
+  physicalExamId: z.string().optional().nullable(),
+  name: z.string().max(191).optional().nullable(),
+  isSynced: z.coerce.boolean().default(false),
+});
+
+export const opdDiagnosisSchema = z.object({
+  prescriptionId: z.string().optional().nullable(),
+  patientId: z.string().optional().nullable(),
+  visitId: z.string().optional().nullable(),
+  diagnosisId: z.string().optional().nullable(),
+  name: z.string().max(191).optional().nullable(),
+  isSynced: z.coerce.boolean().default(false),
+});
+
+export const opdInvestigationSchema = z.object({
+  prescriptionId: z.string().optional().nullable(),
+  patientId: z.string().optional().nullable(),
+  visitId: z.string().optional().nullable(),
+  departmentId: z.string().optional().nullable(),
+  serviceId: z.string().optional().nullable(),
+  name: z.string().max(191).optional().nullable(),
+  instructions: z.string().max(255).optional().nullable(),
+  isSynced: z.coerce.boolean().default(false),
+});
+
+
+

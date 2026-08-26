@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Pill } from "lucide-react";
+import { Pill } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 const statusColors = {
@@ -24,7 +24,7 @@ const calculateAge = (dob) => {
   return age > 0 ? `${age} Yrs` : "Child";
 };
 
-export const getColumns = ({ onSelect, onPrescribe }) => [
+export const getColumns = ({ onPrescribe }) => [
   {
     accessorKey: "tokenNo",
     header: "Token",
@@ -128,28 +128,15 @@ export const getColumns = ({ onSelect, onPrescribe }) => [
     cell: ({ row }) => {
       const item = row.original;
       return (
-        <div className="flex items-center gap-1.5">
-          <Button
-            size="sm"
-            className="bg-teal-600 hover:bg-teal-700 text-white text-xs h-7 px-2.5 flex items-center gap-1 font-semibold"
-            onClick={() => onPrescribe && onPrescribe(item)}
-            title="Prescribe Medicine"
-          >
-            <Pill className="h-3.5 w-3.5" />
-            Prescribe
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs h-7 px-2 flex items-center gap-1 text-slate-700 hover:bg-slate-50 border-slate-200"
-            onClick={() => onSelect && onSelect(item)}
-            title="Select Patient for Context"
-          >
-            <CheckCircle className="h-3.5 w-3.5 text-teal-600" />
-            Select
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          className="bg-teal-600 hover:bg-teal-700 text-white text-xs h-7 px-3 flex items-center gap-1.5 font-semibold shadow-2xs"
+          onClick={() => onPrescribe && onPrescribe(item)}
+          title="Create / Open Prescription"
+        >
+          <Pill className="h-3.5 w-3.5" />
+          Prescribe
+        </Button>
       );
     },
   },

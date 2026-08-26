@@ -30,6 +30,10 @@ class ServiceController extends Controller
             $query->whereNotIn('id', DB::table('lab_master_tests')->pluck('serviceId'));
         }
 
+        if ($request->has('service_type') && $request->service_type) {
+            $query->where('service_type', $request->service_type);
+        }
+
         return response()->json($query->latest()->get());
     }
 
@@ -38,6 +42,7 @@ class ServiceController extends Controller
         $validated = $request->validate([
             'DepartmentId' => 'required|exists:departments,id',
             'ServiceName' => 'required|string|max:50',
+            'service_type' => 'nullable|in:investigation,consultation,procedure,general_charge,nursing',
             'DefaultCharges' => 'required|numeric|min:0',
             'isActive' => 'boolean',
             'printToken' => 'boolean',
@@ -64,6 +69,7 @@ class ServiceController extends Controller
             'Code' => 'nullable|string|max:10',
             'DepartmentId' => 'required|exists:departments,id',
             'ServiceName' => 'required|string|max:50',
+            'service_type' => 'nullable|in:investigation,consultation,procedure,general_charge,nursing',
             'DefaultCharges' => 'required|numeric|min:0',
             'isActive' => 'boolean',
             'printToken' => 'boolean',

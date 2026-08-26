@@ -83,6 +83,17 @@ class LabCaseController extends Controller
             $query->where('lab_cases.billingId', $request->billingId);
         }
 
+        if ($request->has('patientId') && $request->patientId) {
+            $query->where(function ($q) use ($request) {
+                $q->where('patient_visits.patientId', $request->patientId)
+                  ->orWhere('patients.id', $request->patientId);
+            });
+        }
+
+        if ($request->has('mrn') && $request->mrn) {
+            $query->where('patients.mrn', $request->mrn);
+        }
+
         $rows = $query->orderBy('lab_cases.created_at', 'desc')->get();
 
         $cases = $rows->map(function ($row) {

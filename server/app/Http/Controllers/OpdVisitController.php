@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\OpdVisit;
 use App\Models\Doctor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,41 +12,48 @@ class OpdVisitController extends Controller
 {
     public function index(Request $request)
     {
-        $query = OpdVisit::with(['patient', 'doctor', 'department']);
+        $query = DB::table('patient_visits')
+            ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.id')
+            ->leftJoin('doctors', 'patient_visits.doctorId', '=', 'doctors.id')
+            ->select(
+                'patient_visits.*',
+                'patients.pName as patient_name',
+                'patients.mrn as patient_mrn',
+                'patients.mobile as patient_mobile',
+                'patients.gender as patient_gender',
+                'patients.dob as patient_dob',
+                'doctors.Name as doctor_name'
+            );
 
         if ($request->has('patientId') && $request->patientId) {
-            $query->where('patientId', $request->patientId);
+            $query->where('patient_visits.patientId', $request->patientId);
         }
 
-        if ($request->has('DoctorId') && $request->DoctorId) {
-            $query->where('DoctorId', $request->DoctorId);
-        }
-
-        if ($request->has('DepartmentId') && $request->DepartmentId) {
-            $query->where('DepartmentId', $request->DepartmentId);
+        if ($request->has('doctorId') && $request->doctorId) {
+            $query->where('patient_visits.doctorId', $request->doctorId);
         }
 
         if ($request->has('status') && $request->status && $request->status !== 'All') {
-            $query->where('Status', $request->status);
+            $query->where('patient_visits.status', $request->status);
         }
 
         if ($request->has('today') && $request->today) {
-            $query->whereDate('VisitDate', Carbon::today());
+            $query->whereDate('patient_visits.visitDate', Carbon::today());
         }
 
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('VisitNo', 'like', "%{$search}%")
-                  ->orWhereHas('patient', function ($q2) use ($search) {
-                      $q2->where('pName', 'like', "%{$search}%")
-                         ->orWhere('patientId', 'like', "%{$search}%")
-                         ->orWhere('mobile', 'like', "%{$search}%");
-                  });
+                $q->where('patient_visits.visitNo', 'like', "%{$search}%")
+                  ->orWhere('patients.pName', 'like', "%{$search}%")
+                  ->orWhere('patients.mrn', 'like', "%{$search}%")
+                  ->orWhere('patients.mobile', 'like', "%{$search}%");
             });
         }
 
-        return response()->json($query->latest('VisitDate')->get());
+        $visits = $query->orderBy('patient_visits.visitDate', 'desc')->get();
+
+        return response()->json($visits);
     }
 
     public function getOpdQueue(Request $request)
@@ -87,6 +93,7 @@ class OpdVisitController extends Controller
                 'patients.cnic as patient_cnic',
                 'patient_visits.id as visit_id',
                 'patient_visits.visitNo',
+                'patient_visits.status as Status',
                 'departments.DepartmentName as department_name',
                 'doctors.Name as doctor_name'
             )
@@ -122,63 +129,45 @@ class OpdVisitController extends Controller
         return response()->json($queue);
     }
 
-    public function store(Request $request)
+    public function show($id)
     {
-        $validated = $request->validate([
-            'patientId' => 'required|exists:patients,id',
-            'DoctorId' => 'required|exists:doctors,id',
-            'DepartmentId' => 'nullable|exists:departments,id',
-            'VisitDate' => 'required|date',
-            'VisitNo' => 'required|string|max:20',
-            'VisitType' => 'required|in:OPD,Followup,Emergency',
-            'ConsultationFee' => 'required|numeric|min:0',
-            'ChiefComplaint' => 'nullable|string',
-            'Diagnosis' => 'nullable|string',
-            'Notes' => 'nullable|string',
-            'Status' => 'required|in:Waiting,In Progress,Completed,Cancelled',
-            'isPrescriptionGiven' => 'boolean',
-            'isSynced' => 'boolean',
-        ]);
+        $visit = DB::table('patient_visits')
+            ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.id')
+            ->leftJoin('doctors', 'patient_visits.doctorId', '=', 'doctors.id')
+            ->where('patient_visits.id', $id)
+            ->first();
 
-        $validated['CreatedBy'] = Auth::id();
+        if (!$visit) {
+            return response()->json(['message' => 'Visit not found'], 404);
+        }
 
-        $item = OpdVisit::create($validated);
-
-        return response()->json($item->load(['patient', 'doctor', 'department']), 201);
+        return response()->json($visit);
     }
 
-    public function show(OpdVisit $opdVisit)
+    public function update(Request $request, $id)
     {
-        return response()->json($opdVisit->load(['patient', 'doctor', 'department']));
+        $data = [];
+        if ($request->has('Status') || $request->has('status')) {
+            $data['status'] = $request->input('Status') ?? $request->input('status');
+        }
+        if ($request->has('doctorId')) {
+            $data['doctorId'] = $request->input('doctorId');
+        }
+
+        if (!empty($data)) {
+            $data['updated_at'] = now();
+            DB::table('patient_visits')->where('id', $id)->update($data);
+        }
+
+        $updated = DB::table('patient_visits')->where('id', $id)->first();
+
+        return response()->json($updated);
     }
 
-    public function update(Request $request, OpdVisit $opdVisit)
+    public function destroy($id)
     {
-        $validated = $request->validate([
-            'patientId' => 'required|exists:patients,id',
-            'DoctorId' => 'required|exists:doctors,id',
-            'DepartmentId' => 'nullable|exists:departments,id',
-            'VisitDate' => 'required|date',
-            'VisitNo' => 'required|string|max:20',
-            'VisitType' => 'required|in:OPD,Followup,Emergency',
-            'ConsultationFee' => 'required|numeric|min:0',
-            'ChiefComplaint' => 'nullable|string',
-            'Diagnosis' => 'nullable|string',
-            'Notes' => 'nullable|string',
-            'Status' => 'required|in:Waiting,In Progress,Completed,Cancelled',
-            'isPrescriptionGiven' => 'boolean',
-            'isSynced' => 'boolean',
-        ]);
+        DB::table('patient_visits')->where('id', $id)->delete();
 
-        $opdVisit->update($validated);
-
-        return response()->json($opdVisit->load(['patient', 'doctor', 'department']));
-    }
-
-    public function destroy(OpdVisit $opdVisit)
-    {
-        $opdVisit->delete();
-
-        return response()->json(['message' => 'OPD visit deleted']);
+        return response()->json(['message' => 'Patient visit deleted']);
     }
 }

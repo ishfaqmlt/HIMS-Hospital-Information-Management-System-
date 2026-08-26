@@ -30,14 +30,24 @@ class MasterDiagnosisController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:191|unique:master_diagnosis,name',
-            'is_active' => 'boolean',
+            'name' => 'required|string|max:191',
+            'is_active' => 'nullable|boolean',
         ]);
+
+        $trimmedName = trim($validated['name']);
+
+        $existing = DB::table('master_diagnosis')
+            ->whereRaw('LOWER(name) = ?', [strtolower($trimmedName)])
+            ->first();
+
+        if ($existing) {
+            return response()->json($existing, 200);
+        }
 
         $id = (string) Str::uuid();
         $data = [
             'id' => $id,
-            'name' => $validated['name'],
+            'name' => $trimmedName,
             'is_active' => $validated['is_active'] ?? true,
         ];
 
