@@ -538,5 +538,38 @@ export const opdInvestigationSchema = z.object({
   isSynced: z.coerce.boolean().default(false),
 });
 
+// Pharmacy Master Schemas
+export const pharmacyUnitSchema = z.object({
+  name: z.string().min(1, "Unit name is required").max(100),
+  is_active: z.coerce.boolean().default(true),
+});
+
+export const pharmacyDosageFormSchema = z.object({
+  name: z.string().min(1, "Dosage form name is required").max(100),
+  is_active: z.coerce.boolean().default(true),
+});
+
+export const pharmacyCategorySchema = z.object({
+  name: z.string().min(1, "Category name is required").max(150),
+  code: z.string().max(50).optional().nullable(),
+  description: z.string().optional().nullable(),
+  is_active: z.coerce.boolean().default(true),
+});
+
+export const pharmacyGenericSchema = z.object({
+  generic_name: z.string().min(1, "Generic molecule name is required").max(255),
+  therapeutic_class: z.string().max(150).optional().nullable(),
+  is_active: z.coerce.boolean().default(true),
+});
+
+export const pharmacyManufacturerSchema = z.object({
+  name: z.string().min(1, "Manufacturer name is required").max(200),
+  contact_number: z.string().max(50).optional().nullable(),
+  email: z.string().email("Invalid email address").optional().nullable().or(z.literal("")),
+  country: z.string().max(100).optional().nullable(),
+  is_active: z.coerce.boolean().default(true),
+});
+
+
 
 

@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             LabMasterTestSeeder::class,
             LabMasterTestParameterSeeder::class,
             LabBoundingSeeder::class,
+            PharmacyMasterSeeder::class,
         ]);
     }
 }

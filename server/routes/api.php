@@ -17,6 +17,11 @@ use App\Http\Controllers\IpdAdmissionController;
 use App\Http\Controllers\EmergencyCaseController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\RadiologyScanController;
+use App\Http\Controllers\PharmacyUnitController;
+use App\Http\Controllers\PharmacyDosageFormController;
+use App\Http\Controllers\PharmacyCategoryController;
+use App\Http\Controllers\PharmacyGenericController;
+use App\Http\Controllers\PharmacyManufacturerController;
 use App\Http\Controllers\InsuranceCompanyController;
 use App\Http\Controllers\InsurancePlanController;
 use App\Http\Controllers\PatientVisitController;
@@ -184,7 +189,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('ipd-admissions', IpdAdmissionController::class);
     Route::apiResource('emergency-cases', EmergencyCaseController::class);
 
-    // Pharmacy & Radiology
+    // Pharmacy Masters & Operations
+    Route::apiResource('pharmacy-units', PharmacyUnitController::class);
+    Route::apiResource('pharmacy-dosage-forms', PharmacyDosageFormController::class);
+    Route::apiResource('pharmacy-categories', PharmacyCategoryController::class);
+    Route::apiResource('pharmacy-generics', PharmacyGenericController::class);
+    Route::apiResource('pharmacy-manufacturers', PharmacyManufacturerController::class);
+
+    // Radiology
     Route::apiResource('radiology-scans', RadiologyScanController::class);
 
     // Laboratory
