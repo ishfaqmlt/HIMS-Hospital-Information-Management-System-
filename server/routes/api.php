@@ -22,6 +22,8 @@ use App\Http\Controllers\PharmacyDosageFormController;
 use App\Http\Controllers\PharmacyCategoryController;
 use App\Http\Controllers\PharmacyGenericController;
 use App\Http\Controllers\PharmacyManufacturerController;
+use App\Http\Controllers\PharmacySupplierController;
+use App\Http\Controllers\PharmacyMedicineController;
 use App\Http\Controllers\InsuranceCompanyController;
 use App\Http\Controllers\InsurancePlanController;
 use App\Http\Controllers\PatientVisitController;
@@ -195,6 +197,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('pharmacy-categories', PharmacyCategoryController::class);
     Route::apiResource('pharmacy-generics', PharmacyGenericController::class);
     Route::apiResource('pharmacy-manufacturers', PharmacyManufacturerController::class);
+    Route::apiResource('pharmacy-suppliers', PharmacySupplierController::class);
+    Route::get('/pharmacy-medicines/barcode/{barcode}', [PharmacyMedicineController::class, 'searchBarcode']);
+    Route::apiResource('pharmacy-medicines', PharmacyMedicineController::class);
 
     // Radiology
     Route::apiResource('radiology-scans', RadiologyScanController::class);

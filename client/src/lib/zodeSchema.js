@@ -570,6 +570,48 @@ export const pharmacyManufacturerSchema = z.object({
   is_active: z.coerce.boolean().default(true),
 });
 
+export const pharmacySupplierSchema = z.object({
+  name: z.string().min(1, "Supplier/Distributor name is required").max(150),
+  contact_person: z.string().max(100).optional().nullable(),
+  phone: z.string().max(50).optional().nullable(),
+  mobile: z.string().max(50).optional().nullable(),
+  email: z.string().email("Invalid email address").optional().nullable().or(z.literal("")),
+  address: z.string().optional().nullable(),
+  city: z.string().max(50).optional().nullable(),
+  ntn_number: z.string().max(50).optional().nullable(),
+  strn_number: z.string().max(50).optional().nullable(),
+  drug_license_no: z.string().max(50).optional().nullable(),
+  opening_balance: z.coerce.number().min(0).default(0),
+  current_balance: z.coerce.number().min(0).default(0),
+  is_active: z.coerce.boolean().default(true),
+});
+
+export const pharmacyMedicineSchema = z.object({
+  item_code: z.string().max(50).optional().nullable(),
+  barcode: z.string().max(100).optional().nullable(),
+  brand_name: z.string().min(1, "Brand name is required").max(200),
+  generic_id: z.string().optional().nullable(),
+  category_id: z.string().optional().nullable(),
+  dosage_form_id: z.string().optional().nullable(),
+  manufacturer_id: z.string().optional().nullable(),
+  purchase_unit_id: z.string().optional().nullable(),
+  sale_unit_id: z.string().optional().nullable(),
+  unit_conversion: z.coerce.number().min(1, "Must be at least 1").default(1),
+  strength: z.string().max(100).optional().nullable(),
+  purchase_price: z.coerce.number().min(0, "Price must be positive").default(0),
+  sale_price: z.coerce.number().min(0, "Price must be positive").default(0),
+  mrp: z.coerce.number().min(0, "MRP must be positive").default(0),
+  tax_percent: z.coerce.number().min(0).default(0),
+  discount_percent: z.coerce.number().min(0).default(0),
+  min_reorder_level: z.coerce.number().min(0).default(10),
+  max_stock_level: z.coerce.number().min(0).optional().nullable(),
+  rack_location: z.string().max(50).optional().nullable(),
+  requires_prescription: z.coerce.boolean().default(false),
+  is_narcotic: z.coerce.boolean().default(false),
+  is_active: z.coerce.boolean().default(true),
+});
+
+
 
 
 

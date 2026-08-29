@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { usePharmacyContext } from "./layout";
 import MasterDataManager from "./MasterDataManager";
+import SupplierManager from "./suppliers/SupplierManager";
+import MedicineManager from "./medicines/MedicineManager";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +46,7 @@ import {
   FlaskConical,
   Scale,
   Factory,
+  Users,
 } from "lucide-react";
 
 export default function PharmacyPage() {
@@ -126,12 +129,129 @@ export default function PharmacyPage() {
     },
   ];
 
-  // Check if selected item belongs to Master Data lookups
+  // ----------------------------------------------------
+  // 1. Render Medicine Formulary Master
+  // ----------------------------------------------------
+  if (selectedItem && selectedItem.id === "medicine-formulary") {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedItem(null);
+                  setActiveSection("dashboard");
+                }}
+                className="hover:text-emerald-700 font-medium transition-colors"
+              >
+                Pharmacy
+              </button>
+              <span>/</span>
+              <span className="text-slate-600 font-medium">D. Master Formulary & Settings</span>
+              <span>/</span>
+              <span className="text-emerald-700 font-bold">Medicine Formulary Master</span>
+            </div>
+
+            <div className="flex items-center gap-2.5 pt-0.5">
+              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
+                <Pill className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-800">
+                  Medicine Formulary Master
+                </h1>
+                <p className="text-xs text-muted-foreground">
+                  Drug catalog, brand names, generic formulas, pack conversion multipliers, and retail pricing
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSelectedItem(null);
+              setActiveSection("dashboard");
+            }}
+            className="h-8 text-xs border-slate-200 text-slate-700 self-start sm:self-auto"
+          >
+            Back to Overview
+          </Button>
+        </div>
+
+        <MedicineManager />
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------
+  // 2. Render Suppliers & Distributors Directory
+  // ----------------------------------------------------
+  if (selectedItem && selectedItem.id === "suppliers-vendors") {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedItem(null);
+                  setActiveSection("dashboard");
+                }}
+                className="hover:text-emerald-700 font-medium transition-colors"
+              >
+                Pharmacy
+              </button>
+              <span>/</span>
+              <span className="text-slate-600 font-medium">D. Master Formulary & Settings</span>
+              <span>/</span>
+              <span className="text-emerald-700 font-bold">Suppliers & Distributors</span>
+            </div>
+
+            <div className="flex items-center gap-2.5 pt-0.5">
+              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
+                <Truck className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-800">
+                  Suppliers & Distributors Directory
+                </h1>
+                <p className="text-xs text-muted-foreground">
+                  Vendor credentials, drug sales licenses, contact persons, and supplier ledger balances
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSelectedItem(null);
+              setActiveSection("dashboard");
+            }}
+            className="h-8 text-xs border-slate-200 text-slate-700 self-start sm:self-auto"
+          >
+            Back to Overview
+          </Button>
+        </div>
+
+        <SupplierManager />
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------
+  // 3. Render Foundational Master Lookups (Categories, Generics, Dosage Forms, Units, Mfrs)
+  // ----------------------------------------------------
   const isMasterLookup =
     selectedItem &&
     (selectedItem.id === "drug-categories-generics" ||
       selectedItem.id === "pharmacy-settings" ||
-      selectedItem.id === "suppliers-vendors" ||
       selectedItem.id === "product-categories" ||
       selectedItem.id === "generic-medicine" ||
       selectedItem.id === "dosage-forms" ||
@@ -139,23 +259,18 @@ export default function PharmacyPage() {
       selectedItem.id === "manufacturer" ||
       selectedItem.groupCode === "D");
 
-  // Determine which master tab to display
   const getInitialMasterTab = () => {
     if (!selectedItem) return "categories";
     if (selectedItem.id === "pharmacy-settings" || selectedItem.id === "units") return "units";
-    if (selectedItem.id === "suppliers-vendors" || selectedItem.id === "manufacturer") return "manufacturers";
+    if (selectedItem.id === "manufacturer") return "manufacturers";
     if (selectedItem.id === "generic-medicine") return "generics";
     if (selectedItem.id === "dosage-forms") return "dosage-forms";
     return "categories";
   };
 
-  // ----------------------------------------------------
-  // 1. Render Master Data Manager (When Master items are selected)
-  // ----------------------------------------------------
-  if (isMasterLookup && selectedItem.id !== "medicine-formulary") {
+  if (isMasterLookup) {
     return (
       <div className="space-y-6">
-        {/* Workspace Breadcrumbs & Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -181,7 +296,7 @@ export default function PharmacyPage() {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-slate-800">
-                  Pharmacy Master Data Management
+                  Pharmacy Master Data Lookups
                 </h1>
                 <p className="text-xs text-muted-foreground">
                   Manage categories, generics, dosage formulations, dispensing units, and manufacturers
@@ -203,14 +318,13 @@ export default function PharmacyPage() {
           </Button>
         </div>
 
-        {/* Render Master Data Manager with active tab */}
         <MasterDataManager initialTab={getInitialMasterTab()} />
       </div>
     );
   }
 
   // ----------------------------------------------------
-  // 2. Render Specific Operational Section Workspace
+  // 4. Render Specific Operational Section Workspace
   // ----------------------------------------------------
   if (selectedItem) {
     const ItemIcon = selectedItem.icon || Store;
@@ -218,7 +332,6 @@ export default function PharmacyPage() {
 
     return (
       <div className="space-y-6">
-        {/* Workspace Header with Breadcrumbs */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -256,7 +369,6 @@ export default function PharmacyPage() {
             </div>
           </div>
 
-          {/* Action Buttons for this Section */}
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -284,7 +396,6 @@ export default function PharmacyPage() {
           </div>
         </div>
 
-        {/* Section Workspace Placeholder Card */}
         <Card className="shadow-xs border-slate-200/80">
           <CardHeader className="p-4 pb-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
@@ -320,30 +431,47 @@ export default function PharmacyPage() {
 
             <div className="max-w-md mx-auto space-y-1">
               <h3 className="text-sm font-bold text-slate-800">
-                {selectedItem.label} Workspace
+                {selectedItem.label} Operations
               </h3>
               <p className="text-xs text-muted-foreground">
-                We will implement the backend database schema, API controllers, and transactions for <strong>{selectedItem.label}</strong> in the next step.
+                We will implement the inventory & transaction workflows for <strong>{selectedItem.label}</strong> next.
               </p>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 flex items-center justify-center gap-2">
               <Button
                 size="sm"
                 onClick={() =>
                   setSelectedItem({
-                    id: "drug-categories-generics",
-                    label: "Categories & Generics",
-                    icon: Tags,
+                    id: "medicine-formulary",
+                    label: "Medicine Formulary Master",
+                    icon: Pill,
+                    groupTitle: "D. Master Formulary & Settings",
+                    groupCode: "D",
+                  })
+                }
+                className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+              >
+                <Pill className="h-3.5 w-3.5 mr-1.5" />
+                Open Medicine Formulary
+              </Button>
+
+              <Button
+                size="sm"
+                onClick={() =>
+                  setSelectedItem({
+                    id: "suppliers-vendors",
+                    label: "Suppliers & Distributors",
+                    icon: Users,
                     groupTitle: "D. Master Formulary & Settings",
                     groupCode: "D",
                   })
                 }
                 variant="outline"
-                className="text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-medium"
+                className="text-xs border-slate-200 text-slate-700 hover:bg-slate-50"
               >
-                <Database className="h-3.5 w-3.5 mr-1" />
-                Open Pharmacy Master Data Manager
+                <Truck className="h-3.5 w-3.5 mr-1.5" />
+                Suppliers & Vendors
               </Button>
             </div>
           </CardContent>
@@ -353,7 +481,7 @@ export default function PharmacyPage() {
   }
 
   // ----------------------------------------------------
-  // 3. Default Overview Dashboard View
+  // 5. Default Overview Dashboard View
   // ----------------------------------------------------
   return (
     <div className="space-y-6">
@@ -381,6 +509,42 @@ export default function PharmacyPage() {
             size="sm"
             onClick={() =>
               setSelectedItem({
+                id: "medicine-formulary",
+                label: "Medicine Formulary Master",
+                icon: Pill,
+                groupTitle: "D. Master Formulary & Settings",
+                groupCode: "D",
+              })
+            }
+            className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
+          >
+            <Pill className="h-3.5 w-3.5 mr-1.5" />
+            Medicines Master
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              setSelectedItem({
+                id: "suppliers-vendors",
+                label: "Suppliers & Distributors",
+                icon: Users,
+                groupTitle: "D. Master Formulary & Settings",
+                groupCode: "D",
+              })
+            }
+            className="h-8 text-xs border-slate-200 text-slate-700 hover:bg-slate-50 font-medium"
+          >
+            <Truck className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
+            Suppliers & Vendors
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              setSelectedItem({
                 id: "drug-categories-generics",
                 label: "Categories & Generics",
                 icon: Tags,
@@ -388,53 +552,16 @@ export default function PharmacyPage() {
                 groupCode: "D",
               })
             }
-            className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
-          >
-            <Database className="h-3.5 w-3.5 mr-1.5" />
-            Master Data Manager
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              setSelectedItem({
-                id: "stock-purchases-grn",
-                label: "Stock Purchases & GRN",
-                icon: Truck,
-                groupTitle: "C. Purchasing & Procurement",
-                groupCode: "C",
-              })
-            }
             className="h-8 text-xs border-slate-200 text-slate-700 hover:bg-slate-50 font-medium"
           >
-            <Truck className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-            Stock In (GRN)
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              setSelectedItem({
-                id: "pharmacy-pos",
-                label: "POS Counter Sale & Dispense",
-                icon: ShoppingCart,
-                groupTitle: "A. Sales & Dispensing",
-                groupCode: "A",
-              })
-            }
-            className="h-8 text-xs border-slate-200 text-slate-700 hover:bg-slate-50 font-medium"
-          >
-            <ShoppingCart className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-            New POS Sale
+            <Database className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
+            Master Lookups
           </Button>
         </div>
       </div>
 
       {/* KPI Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1: Today's Revenue */}
         <Card className="shadow-xs border-slate-200/80">
           <CardContent className="p-4 flex items-center justify-between">
             <div className="space-y-1">
@@ -455,7 +582,6 @@ export default function PharmacyPage() {
           </CardContent>
         </Card>
 
-        {/* Metric 2: Pending e-Prescriptions */}
         <Card className="shadow-xs border-slate-200/80 bg-linear-to-br from-white to-amber-50/30">
           <CardContent className="p-4 flex items-center justify-between">
             <div className="space-y-1">
@@ -476,18 +602,28 @@ export default function PharmacyPage() {
           </CardContent>
         </Card>
 
-        {/* Metric 3: Active Drugs Formulary */}
-        <Card className="shadow-xs border-slate-200/80">
+        <Card
+          className="shadow-xs border-slate-200/80 cursor-pointer hover:border-emerald-300 transition-colors"
+          onClick={() =>
+            setSelectedItem({
+              id: "medicine-formulary",
+              label: "Medicine Formulary Master",
+              icon: Pill,
+              groupTitle: "D. Master Formulary & Settings",
+              groupCode: "D",
+            })
+          }
+        >
           <CardContent className="p-4 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                Formulary Items
+                Formulary Medicines
               </p>
               <h3 className="text-2xl font-bold text-slate-900">
-                1,420 Drugs
+                Active Catalog
               </h3>
-              <p className="text-[11px] text-slate-500 font-medium">
-                96.4% available in shelf stock
+              <p className="text-[11px] text-emerald-600 font-medium">
+                Click to manage products →
               </p>
             </div>
             <div className="p-3 rounded-xl bg-teal-50 text-teal-600">
@@ -496,7 +632,6 @@ export default function PharmacyPage() {
           </CardContent>
         </Card>
 
-        {/* Metric 4: Low Stock & Expiry Alerts */}
         <Card className="shadow-xs border-slate-200/80 bg-linear-to-br from-white to-rose-50/30">
           <CardContent className="p-4 flex items-center justify-between">
             <div className="space-y-1">
@@ -521,7 +656,6 @@ export default function PharmacyPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Live OPD Prescriptions & Sales (7 Cols) */}
         <div className="lg:col-span-7 space-y-6">
-          {/* Section 1: Live OPD Prescriptions Queue */}
           <Card className="shadow-xs border-slate-200/80">
             <CardHeader className="p-4 pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
               <div>
@@ -601,7 +735,6 @@ export default function PharmacyPage() {
             </CardContent>
           </Card>
 
-          {/* Section 2: Recent POS Counter Invoices */}
           <Card className="shadow-xs border-slate-200/80">
             <CardHeader className="p-4 pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
               <div>
@@ -674,7 +807,6 @@ export default function PharmacyPage() {
 
         {/* Right Column: Fast Search, Stock Alerts & Formulary (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Fast Medicine Price & Shelf Stock Lookup */}
           <Card className="shadow-xs border-slate-200/80 bg-slate-50/50">
             <CardHeader className="p-4 pb-2">
               <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -726,7 +858,6 @@ export default function PharmacyPage() {
             </CardContent>
           </Card>
 
-          {/* Low Stock Watchlist */}
           <Card className="shadow-xs border-slate-200/80">
             <CardHeader className="p-4 pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
               <div>

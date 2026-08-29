@@ -52,45 +52,85 @@ function InvoicePrintComponent({ format, hospitalProfile, invoice, services, pay
 
 export async function printInvoiceSlip(invoice, format = "thermal", setMessage) {
   try {
+    const billingId = invoice?.id || invoice?.Id;
+    const invoiceNo = invoice?.InvoiceNo || invoice?.invoiceNo;
+
+    // Check if details or services are already in invoice object
+    const existingDetails = invoice?.details || invoice?.services;
+    const existingPayment = invoice?.payment;
+
     const [profileRes, detailsRes, settingsRes] = await Promise.all([
-      hospitalProfileService.get(),
-      billingDetailService.getAll({ BillingId: invoice.id }),
+      hospitalProfileService.get().catch(() => ({ data: {} })),
+      (!existingDetails && billingId)
+        ? billingDetailService.getAll({ BillingId: billingId }).catch(() => ({ data: [] }))
+        : Promise.resolve({ data: existingDetails || [] }),
       hospitalOutputSettingService.get().catch(() => ({ data: null })),
     ]);
 
     const profile = profileRes.data?.[0] || profileRes.data || {};
-    const details = detailsRes.data || [];
+    const details = detailsRes.data || existingDetails || [];
     const settings = settingsRes.data || null;
 
-    let payment = null;
-    try {
-      const payRes = await patientPaymentService.getAll({ invoiceNo: invoice.InvoiceNo });
-      payment = payRes.data?.[0] || null;
-    } catch {}
+    let payment = existingPayment || null;
+    if (!payment && invoiceNo) {
+      try {
+        const payRes = await patientPaymentService.getAll({ invoiceNo });
+        payment = payRes.data?.[0] || null;
+      } catch {}
+    }
 
     const flatInvoice = {
-      InvoiceNo: invoice.InvoiceNo,
-      InvoiceDate: invoice.InvoiceDate,
-      mrn: invoice.patientVisit?.patient?.mrn || "-",
-      SubTotal: invoice.SubTotal,
-      Discount: invoice.Discount,
-      TotalAmount: invoice.TotalAmount,
-      PaymentStatus: invoice.PaymentStatus,
-      BillType: invoice.BillType,
-      patientName: invoice.patientVisit?.patient?.pName || "-",
-      mobile: invoice.patientVisit?.patient?.mobile || "-",
-      gender: invoice.patientVisit?.patient?.gender || "-",
-      doctorName: invoice.doctor?.Name || "-",
-      departmentName: invoice.department?.DepartmentName || "-",
-      tokenNo: invoice.tokenNo || null,
+      InvoiceNo: invoiceNo || "-",
+      InvoiceDate: invoice?.InvoiceDate || invoice?.invoiceDate || new Date().toISOString(),
+      mrn:
+        invoice?.patientVisit?.patient?.mrn ||
+        invoice?.patient_mrn ||
+        invoice?.mrn ||
+        invoice?.patient?.mrn ||
+        "-",
+      SubTotal: invoice?.SubTotal || invoice?.subTotal || 0,
+      Discount: invoice?.Discount || invoice?.discount || 0,
+      TotalAmount: invoice?.TotalAmount || invoice?.totalAmount || 0,
+      PaymentStatus: invoice?.PaymentStatus || invoice?.paymentStatus || "Paid",
+      BillType: invoice?.BillType || invoice?.billType || "Normal",
+      patientName:
+        invoice?.patientVisit?.patient?.pName ||
+        invoice?.patient_name ||
+        invoice?.patientName ||
+        invoice?.pName ||
+        invoice?.patient?.pName ||
+        "-",
+      mobile:
+        invoice?.patientVisit?.patient?.mobile ||
+        invoice?.patient_mobile ||
+        invoice?.mobile ||
+        invoice?.patient?.mobile ||
+        "-",
+      gender:
+        invoice?.patientVisit?.patient?.gender ||
+        invoice?.patient_gender ||
+        invoice?.gender ||
+        invoice?.patient?.gender ||
+        "-",
+      doctorName:
+        invoice?.doctor?.Name ||
+        invoice?.doctor_name ||
+        invoice?.doctorName ||
+        "-",
+      departmentName:
+        invoice?.department?.DepartmentName ||
+        invoice?.department_name ||
+        invoice?.departmentName ||
+        "-",
+      tokenNo: invoice?.tokenNo || null,
     };
 
-    const serviceRows = details.map((d) => ({
-      serviceCode: d.service?.Code || "",
-      serviceName: d.service?.ServiceName || "-",
-      Qty: d.Qty,
-      Rate: d.Rate,
-      Amount: d.Amount,
+    const serviceRows = (Array.isArray(details) ? details : []).map((d) => ({
+      serviceCode: d.service?.Code || d.serviceCode || d.Code || d.code || "",
+      serviceName: d.service?.ServiceName || d.serviceName || d.ServiceName || d.name || "-",
+      Qty: Number(d.Qty || d.qty || 1),
+      Rate: Number(d.Rate || d.fee || d.rate || 0),
+      Amount: Number(d.Amount || d.amount || (Number(d.Rate || d.fee || 0) * Number(d.Qty || d.qty || 1))),
     }));
 
     const printContainer = document.createElement("div");

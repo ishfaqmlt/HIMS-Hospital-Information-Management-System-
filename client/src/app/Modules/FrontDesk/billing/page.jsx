@@ -708,13 +708,19 @@ export default function BillingPage() {
     try {
       let visitIdToUse = existingVisitId;
 
+      const hasPrintToken = (formData.services || []).some((s) => {
+        const svc = services.find((sv) => sv.id === s.serviceId);
+        return svc && (svc.printToken === 1 || svc.printToken === true || svc.printToken === "1");
+      });
+      const tokenNoToSave = (hasPrintToken && formData.tokenNo) ? Number(formData.tokenNo) : null;
+
       let billingRes;
       if (editingInvoiceId) {
         billingRes = await billingService.update(editingInvoiceId, {
           visitId: visitIdToUse,
           DepartmentId: formData.selectedDepartment || null,
           DoctorId: formData.selectedConsultant || null,
-          tokenNo: formData.tokenNo ? Number(formData.tokenNo) : null,
+          tokenNo: tokenNoToSave,
           InvoiceDate: formData.regDate || new Date().toISOString(),
           SubTotal: totalBill,
           Discount: formData.discount,
@@ -728,7 +734,7 @@ export default function BillingPage() {
           visitId: visitIdToUse,
           DepartmentId: formData.selectedDepartment || null,
           DoctorId: formData.selectedConsultant || null,
-          tokenNo: formData.tokenNo ? Number(formData.tokenNo) : null,
+          tokenNo: tokenNoToSave,
           InvoiceDate: formData.regDate || new Date().toISOString(),
           SubTotal: totalBill,
           Discount: formData.discount,
@@ -742,9 +748,9 @@ export default function BillingPage() {
       const billingId = billingRes.data.id || billingRes.data.Id;
       const invoiceNo = billingRes.data.InvoiceNo;
 
-      for (const svc of formData.services) {
+      const detailPromises = formData.services.map((svc) => {
         if (svc.flag === "U" && svc.billingDetailId) {
-          await billingDetailService.update(svc.billingDetailId, {
+          return billingDetailService.update(svc.billingDetailId, {
             serviceId: svc.serviceId,
             Qty: svc.qty,
             Rate: svc.fee,
@@ -753,7 +759,7 @@ export default function BillingPage() {
             ShareAmount: svc.shareAmount || 0,
           });
         } else if (svc.flag === "I") {
-          await billingDetailService.create({
+          return billingDetailService.create({
             BillingId: billingId,
             serviceId: svc.serviceId,
             Qty: svc.qty,
@@ -763,10 +769,12 @@ export default function BillingPage() {
             ShareAmount: svc.shareAmount || 0,
           });
         }
-      }
+        return Promise.resolve();
+      });
+
+      const otherPromises = [...detailPromises];
 
       if (formData.paid > 0) {
-        const billingId = billingRes.data?.id || billingRes.data?.Id;
         const paymentPayload = {
           visitId: visitIdToUse,
           mrn: selectedPatient?.mrn || null,
@@ -779,59 +787,79 @@ export default function BillingPage() {
           billingAmounts: billingId ? [formData.paid] : [],
           remarks: formData.remarks || null,
         };
-        if (existingPaymentId) {
-          await patientPaymentService.update(existingPaymentId, paymentPayload);
-        } else {
-          await patientPaymentService.create(paymentPayload);
-        }
+        otherPromises.push(
+          existingPaymentId
+            ? patientPaymentService.update(existingPaymentId, paymentPayload)
+            : patientPaymentService.create(paymentPayload)
+        );
       } else if (existingPaymentId) {
-        await patientPaymentService.update(existingPaymentId, {
-          visitId: visitIdToUse,
-          invoiceNo,
-          debit: 0,
-          credit: 0,
-          remarks: formData.remarks || null,
-        });
+        otherPromises.push(
+          patientPaymentService.update(existingPaymentId, {
+            visitId: visitIdToUse,
+            invoiceNo,
+            debit: 0,
+            credit: 0,
+            remarks: formData.remarks || null,
+          })
+        );
       }
 
       if (applyAdvance && advancePaymentId && advanceBalance > 0) {
         const applyAmount = Math.min(advanceBalance, netAmount - (formData.paid || 0));
         if (applyAmount > 0) {
-          await patientPaymentService.applyAdvance({
-            paymentId: advancePaymentId,
-            billingId: billingRes.data.id || billingRes.data.Id,
-            amount: applyAmount,
-          });
+          otherPromises.push(
+            patientPaymentService.applyAdvance({
+              paymentId: advancePaymentId,
+              billingId: billingId,
+              amount: applyAmount,
+            })
+          );
         }
       }
 
-      if (formData.tokenNo && formData.selectedConsultant && formData.selectedConsultant !== "self" && selectedPatient) {
-        const today = new Date().toISOString().split("T")[0];
-        const existingAppt = await patientAppointmentService.getAll({
-          DoctorId: formData.selectedConsultant,
-          mrn: selectedPatient.mrn,
-          date: today,
-        });
-        if (!existingAppt.data || existingAppt.data.length === 0) {
-          await patientAppointmentService.create({
-            DoctorId: formData.selectedConsultant,
-            mrn: selectedPatient.mrn,
-            Appointmentat: new Date().toISOString(),
-            TokenNo: Number(formData.tokenNo),
-            Status: "Pending",
-            CreatedBy: user?.id || 1,
-          });
-        }
-      }
+      await Promise.all(otherPromises);
 
       setMessage({ type: "success", text: `${editingInvoiceId ? "Invoice updated" : "Bill saved"} successfully. Invoice: ${invoiceNo}` });
 
-      // Automatically call thermal print right after saving the invoice
+      // Automatically call thermal print with full patient and service data
       try {
-        const fullInvRes = await billingService.getById(billingId);
-        if (fullInvRes?.data) {
-          handlePrintSlip(fullInvRes.data);
-        }
+        const doctorObj = doctors.find((d) => d.id === formData.selectedConsultant);
+        const deptObj = departments.find((d) => d.id === formData.selectedDepartment);
+
+        const printData = {
+          ...billingRes.data,
+          id: billingId,
+          InvoiceNo: invoiceNo,
+          InvoiceDate: formData.regDate || new Date().toISOString(),
+          tokenNo: tokenNoToSave,
+          mrn: selectedPatient?.mrn || billingRes.data?.patient_mrn || "-",
+          patient_mrn: selectedPatient?.mrn || billingRes.data?.patient_mrn || "-",
+          patientName: selectedPatient?.pName || selectedPatient?.name || billingRes.data?.patient_name || "-",
+          patient_name: selectedPatient?.pName || selectedPatient?.name || billingRes.data?.patient_name || "-",
+          mobile: selectedPatient?.mobile || billingRes.data?.patient_mobile || "-",
+          patient_mobile: selectedPatient?.mobile || billingRes.data?.patient_mobile || "-",
+          gender: selectedPatient?.gender || billingRes.data?.patient_gender || "-",
+          patient_gender: selectedPatient?.gender || billingRes.data?.patient_gender || "-",
+          doctorName: doctorObj?.Name || billingRes.data?.doctor_name || "-",
+          doctor_name: doctorObj?.Name || billingRes.data?.doctor_name || "-",
+          departmentName: deptObj?.DepartmentName || billingRes.data?.department_name || "-",
+          department_name: deptObj?.DepartmentName || billingRes.data?.department_name || "-",
+          SubTotal: totalBill,
+          Discount: formData.discount || 0,
+          TotalAmount: netAmount,
+          PaymentStatus: formData.paid >= netAmount ? "Paid" : formData.paid > 0 ? "Partial" : "Pending",
+          BillType: "Normal",
+          services: formData.services.map((s) => ({
+            serviceCode: s.serviceCode || s.Code || s.code || "",
+            serviceName: s.serviceName || s.ServiceName || "-",
+            Qty: Number(s.qty || 1),
+            Rate: Number(s.fee || 0),
+            Amount: (Number(s.fee) || 0) * (Number(s.qty) || 0),
+          })),
+          payment: formData.paid > 0 ? { debit: formData.paid } : null,
+        };
+
+        handlePrintSlip(printData);
       } catch (printErr) {
         console.error("Auto thermal print error:", printErr);
       }

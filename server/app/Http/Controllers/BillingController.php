@@ -256,7 +256,9 @@ class BillingController extends Controller
         ]);
 
         return DB::transaction(function () use ($validated) {
-            if (!empty($validated['DoctorId'])) {
+            // Only handle appointment / tokenNo if tokenNo is explicitly provided and > 0
+            if (!empty($validated['DoctorId']) && !empty($validated['tokenNo']) && intval($validated['tokenNo']) > 0) {
+                $validated['tokenNo'] = intval($validated['tokenNo']);
                 $mrn = DB::table('patient_visits')
                     ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.id')
                     ->where('patient_visits.id', $validated['visitId'])
@@ -284,44 +286,122 @@ class BillingController extends Controller
                                 'updated_at' => now(),
                             ]);
                     }
-                } else {
-                    if (empty($validated['tokenNo']) || $validated['tokenNo'] <= 0) {
-                        $validated['tokenNo'] = self::generateNextTokenNo($validated['DoctorId'], $mrn);
-                    }
-
-                    if ($mrn && !empty($validated['tokenNo'])) {
-                        DB::table('patient_appointments')->insert([
-                            'Id' => (string) Str::uuid(),
-                            'DoctorId' => $validated['DoctorId'],
-                            'mrn' => $mrn,
-                            'Appointmentat' => now(),
-                            'TokenNo' => $validated['tokenNo'],
-                            'Status' => 'Booked',
-                            'Remarks' => 'Auto-created from Billing',
-                            'CreatedBy' => Auth::id() ?: 1,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-                    }
+                } else if ($mrn) {
+                    DB::table('patient_appointments')->insert([
+                        'Id' => (string) Str::uuid(),
+                        'DoctorId' => $validated['DoctorId'],
+                        'mrn' => $mrn,
+                        'Appointmentat' => now(),
+                        'TokenNo' => $validated['tokenNo'],
+                        'Status' => 'Booked',
+                        'Remarks' => 'Auto-created from Billing',
+                        'CreatedBy' => Auth::id() ?: 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
                 }
+            } else {
+                $validated['tokenNo'] = null;
             }
 
             $validated['createdBy'] = Auth::id();
-            $validated['Id'] = (string) Str::uuid();
+            $validated['id'] = (string) Str::uuid();
             $validated['InvoiceNo'] = Billing::generateInvoiceNo();
             $validated['InvoiceDate'] = date('Y-m-d H:i:s', strtotime($validated['InvoiceDate']));
 
             DB::table('billings')->insert($validated);
 
-            $billing = DB::table('billings')->where('id', $validated['Id'])->first();
+            $billing = DB::table('billings')
+                ->leftJoin('patient_visits', 'billings.visitId', '=', 'patient_visits.id')
+                ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.id')
+                ->leftJoin('departments', 'billings.DepartmentId', '=', 'departments.id')
+                ->leftJoin('doctors', 'billings.DoctorId', '=', 'doctors.id')
+                ->where('billings.id', $validated['id'])
+                ->select(
+                    'billings.*',
+                    'patient_visits.visitNo',
+                    'patients.pName as patient_name',
+                    'patients.mrn as patient_mrn',
+                    'patients.mobile as patient_mobile',
+                    'patients.cnic as patient_cnic',
+                    'patients.gender as patient_gender',
+                    'departments.DepartmentName as department_name',
+                    'doctors.Name as doctor_name'
+                )
+                ->first();
 
             return response()->json($billing, 201);
         });
     }
 
-    public function show(Billing $billing)
+    public function show($id)
     {
-        return response()->json($billing->load(['patientVisit.patient', 'doctor', 'department', 'creator']));
+        $billingId = $id instanceof Billing ? $id->id : $id;
+
+        $row = DB::table('billings')
+            ->leftJoin('patient_visits', 'billings.visitId', '=', 'patient_visits.id')
+            ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.id')
+            ->leftJoin('departments', 'billings.DepartmentId', '=', 'departments.id')
+            ->leftJoin('doctors', 'billings.DoctorId', '=', 'doctors.id')
+            ->leftJoin('users as creators', 'billings.createdBy', '=', 'creators.id')
+            ->where('billings.id', $billingId)
+            ->orWhere('billings.InvoiceNo', $billingId)
+            ->select(
+                'billings.*',
+                'patient_visits.visitNo',
+                'patients.pName as patient_name',
+                'patients.mrn as patient_mrn',
+                'patients.mobile as patient_mobile',
+                'patients.cnic as patient_cnic',
+                'patients.gender as patient_gender',
+                'departments.DepartmentName as department_name',
+                'doctors.Name as doctor_name',
+                'creators.name as creator_name'
+            )
+            ->first();
+
+        if (!$row) {
+            return response()->json(['message' => 'Invoice not found'], 404);
+        }
+
+        $details = DB::table('billing_details')
+            ->leftJoin('services', 'billing_details.serviceId', '=', 'services.id')
+            ->where('billing_details.BillingId', $row->id)
+            ->select(
+                'billing_details.*',
+                'services.ServiceName as serviceName',
+                'services.Code as serviceCode'
+            )
+            ->get();
+
+        $payment = DB::table('patient_payments')
+            ->where('invoiceNo', $row->InvoiceNo)
+            ->first();
+
+        $result = (array) $row;
+        $result['patientVisit'] = [
+            'id' => $row->visitId,
+            'visitNo' => $row->visitNo,
+            'patient' => [
+                'pName' => $row->patient_name,
+                'mrn' => $row->patient_mrn,
+                'mobile' => $row->patient_mobile,
+                'cnic' => $row->patient_cnic,
+                'gender' => $row->patient_gender,
+            ]
+        ];
+        $result['doctor'] = [
+            'id' => $row->DoctorId,
+            'Name' => $row->doctor_name,
+        ];
+        $result['department'] = [
+            'id' => $row->DepartmentId,
+            'DepartmentName' => $row->department_name,
+        ];
+        $result['details'] = $details;
+        $result['payment'] = $payment;
+
+        return response()->json($result);
     }
 
     public function update(Request $request, Billing $billing)
@@ -345,7 +425,9 @@ class BillingController extends Controller
         ]);
 
         return DB::transaction(function () use ($validated, $billing) {
-            if (!empty($validated['DoctorId'])) {
+            // Only handle appointment / tokenNo if tokenNo is explicitly provided and > 0
+            if (!empty($validated['DoctorId']) && !empty($validated['tokenNo']) && intval($validated['tokenNo']) > 0) {
+                $validated['tokenNo'] = intval($validated['tokenNo']);
                 $mrn = DB::table('patient_visits')
                     ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.id')
                     ->where('patient_visits.id', $validated['visitId'])
@@ -373,26 +455,22 @@ class BillingController extends Controller
                                 'updated_at' => now(),
                             ]);
                     }
-                } else {
-                    if (empty($validated['tokenNo']) || $validated['tokenNo'] <= 0) {
-                        $validated['tokenNo'] = self::generateNextTokenNo($validated['DoctorId'], $mrn);
-                    }
-
-                    if ($mrn && !empty($validated['tokenNo'])) {
-                        DB::table('patient_appointments')->insert([
-                            'Id' => (string) Str::uuid(),
-                            'DoctorId' => $validated['DoctorId'],
-                            'mrn' => $mrn,
-                            'Appointmentat' => now(),
-                            'TokenNo' => $validated['tokenNo'],
-                            'Status' => 'Booked',
-                            'Remarks' => 'Auto-created from Billing',
-                            'CreatedBy' => Auth::id() ?: 1,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-                    }
+                } else if ($mrn) {
+                    DB::table('patient_appointments')->insert([
+                        'Id' => (string) Str::uuid(),
+                        'DoctorId' => $validated['DoctorId'],
+                        'mrn' => $mrn,
+                        'Appointmentat' => now(),
+                        'TokenNo' => $validated['tokenNo'],
+                        'Status' => 'Booked',
+                        'Remarks' => 'Auto-created from Billing',
+                        'CreatedBy' => Auth::id() ?: 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
                 }
+            } else {
+                $validated['tokenNo'] = null;
             }
 
             $oldTotal = DB::table('billings')->where('id', $billing->id)->lockForUpdate()->value('TotalAmount');
