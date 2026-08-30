@@ -3,10 +3,10 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit } from "lucide-react";
 
 // Columns for Pharmacy Units
-export const getUnitColumns = ({ onEdit, onDelete }) => [
+export const getUnitColumns = ({ onEdit }) => [
   {
     accessorKey: "name",
     header: "Unit Name",
@@ -51,15 +51,6 @@ export const getUnitColumns = ({ onEdit, onDelete }) => [
           >
             <Edit className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 w-7 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-            onClick={() => onDelete(item)}
-            title="Delete Unit"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
         </div>
       );
     },
@@ -67,7 +58,7 @@ export const getUnitColumns = ({ onEdit, onDelete }) => [
 ];
 
 // Columns for Pharmacy Dosage Forms
-export const getDosageFormColumns = ({ onEdit, onDelete }) => [
+export const getDosageFormColumns = ({ onEdit }) => [
   {
     accessorKey: "name",
     header: "Formulation Name",
@@ -112,15 +103,6 @@ export const getDosageFormColumns = ({ onEdit, onDelete }) => [
           >
             <Edit className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 w-7 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-            onClick={() => onDelete(item)}
-            title="Delete Dosage Form"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
         </div>
       );
     },
@@ -128,7 +110,7 @@ export const getDosageFormColumns = ({ onEdit, onDelete }) => [
 ];
 
 // Columns for Pharmacy Categories
-export const getCategoryColumns = ({ onEdit, onDelete }) => [
+export const getCategoryColumns = ({ onEdit }) => [
   {
     accessorKey: "code",
     header: "Category Code",
@@ -191,15 +173,6 @@ export const getCategoryColumns = ({ onEdit, onDelete }) => [
           >
             <Edit className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 w-7 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-            onClick={() => onDelete(item)}
-            title="Delete Category"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
         </div>
       );
     },
@@ -207,7 +180,7 @@ export const getCategoryColumns = ({ onEdit, onDelete }) => [
 ];
 
 // Columns for Pharmacy Generics
-export const getGenericColumns = ({ onEdit, onDelete }) => [
+export const getGenericColumns = ({ onEdit }) => [
   {
     accessorKey: "generic_name",
     header: "Generic Molecule Name",
@@ -261,15 +234,6 @@ export const getGenericColumns = ({ onEdit, onDelete }) => [
           >
             <Edit className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 w-7 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-            onClick={() => onDelete(item)}
-            title="Delete Generic Molecule"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
         </div>
       );
     },
@@ -277,7 +241,7 @@ export const getGenericColumns = ({ onEdit, onDelete }) => [
 ];
 
 // Columns for Pharmacy Manufacturers
-export const getManufacturerColumns = ({ onEdit, onDelete }) => [
+export const getManufacturerColumns = ({ onEdit }) => [
   {
     accessorKey: "name",
     header: "Manufacturer Name",
@@ -348,15 +312,6 @@ export const getManufacturerColumns = ({ onEdit, onDelete }) => [
             title="Edit Manufacturer"
           >
             <Edit className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 w-7 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-            onClick={() => onDelete(item)}
-            title="Delete Manufacturer"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
       );

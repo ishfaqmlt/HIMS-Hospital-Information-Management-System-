@@ -23,6 +23,7 @@ import {
   RotateCcw,
   Database,
   Pill,
+  Package,
   Tags,
   Users,
   Settings,
@@ -149,9 +150,9 @@ export const pharmacyNavigation = [
     items: [
       {
         id: "medicine-formulary",
-        label: "Medicine Formulary Master",
-        description: "Active drug directory, strengths, brands, and selling prices",
-        icon: Pill,
+        label: "Product Master Directory",
+        description: "Active product directory, brands, generic formulas, and selling prices",
+        icon: Package,
       },
       {
         id: "drug-categories-generics",

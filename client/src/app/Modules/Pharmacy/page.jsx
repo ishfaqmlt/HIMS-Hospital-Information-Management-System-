@@ -151,19 +151,19 @@ export default function PharmacyPage() {
               <span>/</span>
               <span className="text-slate-600 font-medium">D. Master Formulary & Settings</span>
               <span>/</span>
-              <span className="text-emerald-700 font-bold">Medicine Formulary Master</span>
+              <span className="text-emerald-700 font-bold">Product Master Directory</span>
             </div>
 
             <div className="flex items-center gap-2.5 pt-0.5">
               <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
-                <Pill className="h-5 w-5" />
+                <Package className="h-5 w-5" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-slate-800">
-                  Medicine Formulary Master
+                  Product Master Directory
                 </h1>
                 <p className="text-xs text-muted-foreground">
-                  Drug catalog, brand names, generic formulas, pack conversion multipliers, and retail pricing
+                  Product catalog, brand names, generic formulas, pack conversion multipliers, and retail pricing
                 </p>
               </div>
             </div>
@@ -510,16 +510,16 @@ export default function PharmacyPage() {
             onClick={() =>
               setSelectedItem({
                 id: "medicine-formulary",
-                label: "Medicine Formulary Master",
-                icon: Pill,
+                label: "Product Master Directory",
+                icon: Package,
                 groupTitle: "D. Master Formulary & Settings",
                 groupCode: "D",
               })
             }
             className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
           >
-            <Pill className="h-3.5 w-3.5 mr-1.5" />
-            Medicines Master
+            <Package className="h-3.5 w-3.5 mr-1.5" />
+            Product Master
           </Button>
 
           <Button
@@ -607,8 +607,8 @@ export default function PharmacyPage() {
           onClick={() =>
             setSelectedItem({
               id: "medicine-formulary",
-              label: "Medicine Formulary Master",
-              icon: Pill,
+              label: "Product Master Directory",
+              icon: Package,
               groupTitle: "D. Master Formulary & Settings",
               groupCode: "D",
             })
@@ -617,7 +617,7 @@ export default function PharmacyPage() {
           <CardContent className="p-4 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                Formulary Medicines
+                Products & Medicines
               </p>
               <h3 className="text-2xl font-bold text-slate-900">
                 Active Catalog
@@ -627,7 +627,7 @@ export default function PharmacyPage() {
               </p>
             </div>
             <div className="p-3 rounded-xl bg-teal-50 text-teal-600">
-              <Pill className="h-6 w-6" />
+              <Package className="h-6 w-6" />
             </div>
           </CardContent>
         </Card>

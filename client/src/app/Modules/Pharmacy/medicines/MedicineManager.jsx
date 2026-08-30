@@ -37,22 +37,19 @@ import {
 import {
   Plus,
   RefreshCw,
-  Pill,
+  Package,
   CheckCircle2,
   AlertCircle,
-  QrCode,
   Tag,
-  FlaskConical,
-  Factory,
   Boxes,
-  MapPin,
-  Filter,
+  Sparkles,
 } from "lucide-react";
 
 export default function MedicineManager() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(null);
+  const [generatingBarcode, setGeneratingBarcode] = useState(false);
 
   // Lookups data
   const [generics, setGenerics] = useState([]);
@@ -96,7 +93,6 @@ export default function MedicineManager() {
       purchase_unit_id: "",
       sale_unit_id: "",
       unit_conversion: 1,
-      strength: "",
       purchase_price: 0,
       sale_price: 0,
       mrp: 0,
@@ -151,7 +147,7 @@ export default function MedicineManager() {
       setUnits(unitRes.data || []);
     } catch (error) {
       console.error(error);
-      setMessage({ type: "error", text: "Failed to load medicine formulary" });
+      setMessage({ type: "error", text: "Failed to load products" });
     } finally {
       setLoading(false);
     }
@@ -170,7 +166,6 @@ export default function MedicineManager() {
       purchase_unit_id: "",
       sale_unit_id: "",
       unit_conversion: 1,
-      strength: "",
       purchase_price: 0,
       sale_price: 0,
       mrp: 0,
@@ -199,7 +194,6 @@ export default function MedicineManager() {
       purchase_unit_id: item.purchase_unit_id || "",
       sale_unit_id: item.sale_unit_id || "",
       unit_conversion: Number(item.unit_conversion || 1),
-      strength: item.strength || "",
       purchase_price: Number(item.purchase_price || 0),
       sale_price: Number(item.sale_price || 0),
       mrp: Number(item.mrp || 0),
@@ -215,10 +209,26 @@ export default function MedicineManager() {
     setIsDialogOpen(true);
   };
 
+  const handleGenerateBarcode = async () => {
+    try {
+      setGeneratingBarcode(true);
+      const res = await pharmacyMedicineService.generateBarcode();
+      if (res.data?.barcode) {
+        setValue("barcode", res.data.barcode);
+      }
+    } catch (error) {
+      // Fallback: 12-digit internal barcode (896 + YY + 7 digits)
+      const yr = new Date().getFullYear().toString().slice(-2);
+      const rand = Math.floor(1000000 + Math.random() * 9000000);
+      setValue("barcode", `896${yr}${rand}`);
+    } finally {
+      setGeneratingBarcode(false);
+    }
+  };
+
   const onSubmit = async (formData) => {
     try {
       setSaving(true);
-      // Convert empty strings to null for UUID foreign keys
       const payload = {
         ...formData,
         generic_id: formData.generic_id || null,
@@ -232,10 +242,10 @@ export default function MedicineManager() {
 
       if (editingItem) {
         await pharmacyMedicineService.update(editingItem.id, payload);
-        setMessage({ type: "success", text: "Medicine item updated successfully" });
+        setMessage({ type: "success", text: "Product updated successfully" });
       } else {
         await pharmacyMedicineService.create(payload);
-        setMessage({ type: "success", text: "Medicine item added to formulary" });
+        setMessage({ type: "success", text: "Product added successfully" });
       }
       setIsDialogOpen(false);
       const res = await pharmacyMedicineService.getAll();
@@ -244,7 +254,7 @@ export default function MedicineManager() {
       console.error(error);
       setMessage({
         type: "error",
-        text: error.response?.data?.message || "Failed to save medicine",
+        text: error.response?.data?.message || "Failed to save product",
       });
     } finally {
       setSaving(false);
@@ -261,7 +271,7 @@ export default function MedicineManager() {
     try {
       setDeleting(true);
       await pharmacyMedicineService.delete(itemToDelete.id);
-      setMessage({ type: "success", text: "Medicine deleted successfully" });
+      setMessage({ type: "success", text: "Product deleted successfully" });
       setIsDeleteDialogOpen(false);
       setItemToDelete(null);
       const res = await pharmacyMedicineService.getAll();
@@ -270,7 +280,7 @@ export default function MedicineManager() {
       console.error(error);
       setMessage({
         type: "error",
-        text: error.response?.data?.message || "Failed to delete medicine",
+        text: error.response?.data?.message || "Failed to delete product",
       });
     } finally {
       setDeleting(false);
@@ -290,7 +300,6 @@ export default function MedicineManager() {
     () =>
       getMedicineColumns({
         onEdit: openEditDialog,
-        onDelete: confirmDelete,
       }),
     []
   );
@@ -322,14 +331,14 @@ export default function MedicineManager() {
         <CardHeader className="p-4 pb-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
-              <Pill className="h-5 w-5" />
+              <Package className="h-5 w-5" />
             </div>
             <div>
               <CardTitle className="text-base font-bold text-slate-800">
-                Medicine Formulary Master
+                Product Master Directory
               </CardTitle>
               <CardDescription className="text-xs">
-                Drug brands, formulas, strength, pack conversions, retail pricing, and rack positions
+                Product brands, generic formulas, pack conversions, retail pricing, and rack positions
               </CardDescription>
             </div>
           </div>
@@ -387,7 +396,7 @@ export default function MedicineManager() {
               className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" />
-              + Add Medicine
+              + Add Product
             </Button>
           </div>
         </CardHeader>
@@ -396,45 +405,45 @@ export default function MedicineManager() {
           {loading ? (
             <div className="py-12 text-center text-xs text-muted-foreground">
               <RefreshCw className="h-6 w-6 animate-spin mx-auto text-emerald-600 mb-2" />
-              Loading medicine formulary catalog...
+              Loading product catalog...
             </div>
           ) : (
             <DataTable
               columns={columns}
               data={filteredData}
               filterColumn="brand_name"
-              placeholder="Search by brand name..."
+              placeholder="Search by product / brand name..."
             />
           )}
         </CardContent>
       </Card>
 
-      {/* Add / Edit Medicine Dialog */}
+      {/* Add / Edit Product Dialog — Increased Width (max-w-5xl) */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl sm:max-w-5xl lg:max-w-6xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Pill className="h-5 w-5 text-emerald-600" />
-              {editingItem ? `Edit Medicine (${editingItem.item_code})` : "Add Medicine to Formulary"}
+              <Package className="h-5 w-5 text-emerald-600" />
+              {editingItem ? `Edit Product (${editingItem.item_code})` : "Add Product"}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
             {/* Section 1: Identification & Names */}
-            <div className="bg-slate-50/70 p-3.5 rounded-lg border border-slate-200/80 space-y-3">
+            <div className="bg-slate-50/70 p-4 rounded-lg border border-slate-200/80 space-y-3">
               <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                 <Tag className="h-3.5 w-3.5 text-emerald-600" />
-                1. Drug Identity & Classification
+                1. Product Identity & Classification
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1 sm:col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                <div className="space-y-1 sm:col-span-2 lg:col-span-3">
                   <Label className="text-xs font-semibold text-slate-700">
-                    Trade / Brand Name <span className="text-destructive">*</span>
+                    Product / Brand Name <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     {...register("brand_name")}
-                    placeholder="e.g. Panadol 500mg / Augmentin 625mg"
+                    placeholder="e.g. Panadol 500mg Tablet / Augmentin 625mg Tablet"
                     className="h-8 text-xs bg-white"
                   />
                   {errors.brand_name && (
@@ -442,21 +451,10 @@ export default function MedicineManager() {
                   )}
                 </div>
 
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-slate-700">
-                    Strength
-                  </Label>
-                  <Input
-                    {...register("strength")}
-                    placeholder="e.g. 500mg, 10mg/5ml"
-                    className="h-8 text-xs bg-white"
-                  />
-                </div>
-
                 {/* Generic Molecule Selector */}
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold text-slate-700">
-                    Generic Molecule
+                    Generic Molecule (Formula)
                   </Label>
                   <Select
                     value={selectedGenericId || "none"}
@@ -545,28 +543,50 @@ export default function MedicineManager() {
                   </Select>
                 </div>
 
-                {/* Barcode */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-slate-700">
-                    POS Barcode (Scanner)
-                  </Label>
-                  <Input
-                    {...register("barcode")}
-                    placeholder="e.g. 896400010011"
-                    className="h-8 text-xs font-mono bg-white"
-                  />
+                {/* Barcode (Hybrid: Scanned, Manual, or Auto-Generated) */}
+                <div className="space-y-1 sm:col-span-1">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-slate-700">
+                      POS Barcode (Scanner)
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground italic">
+                      Optional / Auto-generated
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      {...register("barcode")}
+                      placeholder="Scan box or click Generate"
+                      className="h-8 text-xs font-mono bg-white shrink"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateBarcode}
+                      disabled={generatingBarcode}
+                      className="h-8 px-2.5 text-xs text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 border-emerald-200 shrink-0 font-medium"
+                      title="Generate internal unique barcode"
+                    >
+                      <Sparkles className={`h-3.5 w-3.5 mr-1 text-emerald-600 ${generatingBarcode ? "animate-spin" : ""}`} />
+                      Generate
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    Scan box barcode, or leave empty to auto-generate upon saving.
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Section 2: Packaging & Dispensing Units */}
-            <div className="bg-slate-50/70 p-3.5 rounded-lg border border-slate-200/80 space-y-3">
+            <div className="bg-slate-50/70 p-4 rounded-lg border border-slate-200/80 space-y-3">
               <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                 <Boxes className="h-3.5 w-3.5 text-teal-600" />
                 2. Packaging, Units & Stock Parameters
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 {/* Purchase Unit */}
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold text-slate-700">
@@ -670,13 +690,13 @@ export default function MedicineManager() {
             </div>
 
             {/* Section 3: Pricing & Discounts */}
-            <div className="bg-slate-50/70 p-3.5 rounded-lg border border-slate-200/80 space-y-3">
+            <div className="bg-slate-50/70 p-4 rounded-lg border border-slate-200/80 space-y-3">
               <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                 <Tag className="h-3.5 w-3.5 text-emerald-600" />
                 3. Cost, Retail Sale Price & Tax
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold text-slate-700">
                     Purchase Cost (TP) (Rs.)
@@ -736,9 +756,9 @@ export default function MedicineManager() {
             </div>
 
             {/* Section 4: Clinical Controls & Active Status */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               {/* Prescription Required */}
-              <div className="flex items-center justify-between p-2.5 bg-rose-50/60 border border-rose-200 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-rose-50/60 border border-rose-200 rounded-lg">
                 <div>
                   <Label className="text-xs font-bold text-rose-900">
                     Prescription Required (Rx)
@@ -754,7 +774,7 @@ export default function MedicineManager() {
               </div>
 
               {/* Narcotic / Scheduled */}
-              <div className="flex items-center justify-between p-2.5 bg-amber-50/60 border border-amber-200 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-amber-50/60 border border-amber-200 rounded-lg">
                 <div>
                   <Label className="text-xs font-bold text-amber-900">
                     Narcotic / Controlled
@@ -770,10 +790,10 @@ export default function MedicineManager() {
               </div>
 
               {/* Active Status */}
-              <div className="flex items-center justify-between p-2.5 bg-emerald-50/60 border border-emerald-200 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-emerald-50/60 border border-emerald-200 rounded-lg">
                 <div>
                   <Label className="text-xs font-bold text-emerald-900">
-                    Active Formulary Item
+                    Active Product
                   </Label>
                   <p className="text-[10px] text-emerald-700">
                     Available for POS and GRN
@@ -802,7 +822,7 @@ export default function MedicineManager() {
                 disabled={saving}
                 className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
               >
-                {saving ? "Saving..." : editingItem ? "Update Medicine" : "Save Medicine"}
+                {saving ? "Saving..." : editingItem ? "Update Product" : "Save Product"}
               </Button>
             </DialogFooter>
           </form>
@@ -819,7 +839,7 @@ export default function MedicineManager() {
           </DialogHeader>
           <div className="text-xs text-slate-600 space-y-2 py-2">
             <p>
-              Are you sure you want to delete medicine{" "}
+              Are you sure you want to delete product{" "}
               <strong>{itemToDelete?.brand_name}</strong> ({itemToDelete?.item_code})?
             </p>
             <p className="text-muted-foreground text-[11px]">

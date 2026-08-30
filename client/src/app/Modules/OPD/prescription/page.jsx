@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useOPDContext } from "../layout";
 import { useReactToPrint } from "react-to-print";
@@ -34,6 +34,7 @@ import serviceService from "@/services/serviceService";
 import departmentService from "@/services/department.service";
 import patientService from "@/services/patient.service";
 import opdPrescriptionService from "@/services/opdPrescription.service";
+import pharmacyMedicineService from "@/services/pharmacyMedicine.service";
 import labCaseService from "@/services/labCase.service";
 import hospitalProfileService from "@/services/hospitalProfile.service";
 import hospitalOutputSettingService from "@/services/hospitalOutputSetting.service";
@@ -43,6 +44,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -219,6 +221,15 @@ export default function OPDPrescriptionPage() {
   const [investigationSearchQuery, setInvestigationSearchQuery] = useState("");
   const [selectedInvestigationsDraft, setSelectedInvestigationsDraft] = useState([]);
   const [isSavingInvestigations, setIsSavingInvestigations] = useState(false);
+
+  // Patient Medication State & Dialog
+  const [isMedicationOpen, setIsMedicationOpen] = useState(false);
+  const [masterMedicines, setMasterMedicines] = useState([]);
+  const [loadingMasterMedicines, setLoadingMasterMedicines] = useState(false);
+  const [medicineSearchQuery, setMedicineSearchQuery] = useState("");
+  const [selectedFormFilter, setSelectedFormFilter] = useState("all");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("all");
+  const [selectedMedicinesDraft, setSelectedMedicinesDraft] = useState([]);
 
   const targetVisitId = activePatient?.visit_id || activePatient?.visitId || activePatient?.id || activePatient?.Id;
 
@@ -1219,6 +1230,105 @@ export default function OPDPrescriptionPage() {
     }
   };
 
+  const fetchMasterMedicines = async () => {
+    try {
+      setLoadingMasterMedicines(true);
+      const res = await pharmacyMedicineService.getAll();
+      const list = Array.isArray(res.data) ? res.data : res.data?.data || [];
+      setMasterMedicines(list);
+    } catch (err) {
+      console.error("Failed to fetch pharmacy medicines:", err);
+    } finally {
+      setLoadingMasterMedicines(false);
+    }
+  };
+
+  // Medication Dialog Handlers
+  const handleOpenMedicationDialog = () => {
+    setDialogError(null);
+    setMedicineSearchQuery("");
+    setSelectedFormFilter("all");
+    setSelectedCategoryFilter("all");
+    const drafts = medicines.map((item) => ({
+      medicineId: item.medicineId || item.id,
+      name: item.name || item.brand_name,
+      genericName: item.genericName || item.generic_name || "",
+      dosageForm: item.dosageForm || item.dosage_form_name || "",
+      dosage: item.dosage || "1-0-1",
+      duration: item.duration || "5 Days",
+      instruction: item.instruction || "After meals with water",
+      quantity: item.quantity || 10,
+    }));
+    setSelectedMedicinesDraft(drafts);
+    fetchMasterMedicines();
+    setIsMedicationOpen(true);
+  };
+
+  const handleToggleMedicine = (med) => {
+    const exists = selectedMedicinesDraft.some(
+      (item) => item.medicineId === med.id || item.name === med.brand_name
+    );
+    if (exists) {
+      setSelectedMedicinesDraft(
+        selectedMedicinesDraft.filter(
+          (item) => item.medicineId !== med.id && item.name !== med.brand_name
+        )
+      );
+    } else {
+      setSelectedMedicinesDraft([
+        ...selectedMedicinesDraft,
+        {
+          medicineId: med.id,
+          name: med.brand_name,
+          genericName: med.generic_name || "",
+          dosageForm: med.dosage_form_name || "",
+          dosage: "1-0-1",
+          duration: "5 Days",
+          instruction: "After meals with water",
+          quantity: 10,
+        },
+      ]);
+    }
+  };
+
+  const handleUpdateMedicineDraft = (index, field, value) => {
+    setSelectedMedicinesDraft((prev) =>
+      prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item))
+    );
+  };
+
+  const handleRemoveMedicineDraft = (index) => {
+    setSelectedMedicinesDraft((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleSaveMedications = () => {
+    setMedicines(selectedMedicinesDraft);
+    setIsMedicationOpen(false);
+    setMessage({
+      type: "success",
+      text: `${selectedMedicinesDraft.length} prescribed medication(s) updated successfully!`,
+    });
+  };
+
+  // Filtered medicines for formulary dialog
+  const filteredMedicines = useMemo(() => {
+    return masterMedicines.filter((med) => {
+      const matchForm =
+        selectedFormFilter === "all" ||
+        med.dosage_form_name?.toLowerCase() === selectedFormFilter.toLowerCase();
+      const matchCat =
+        selectedCategoryFilter === "all" || med.category_id === selectedCategoryFilter;
+      const q = medicineSearchQuery.toLowerCase().trim();
+      const matchQuery =
+        !q ||
+        med.brand_name?.toLowerCase().includes(q) ||
+        med.generic_name?.toLowerCase().includes(q) ||
+        med.item_code?.toLowerCase().includes(q) ||
+        med.category_name?.toLowerCase().includes(q);
+      return matchForm && matchCat && matchQuery;
+    });
+  }, [masterMedicines, selectedFormFilter, selectedCategoryFilter, medicineSearchQuery]);
+
   const reactToPrintFn = useReactToPrint({
     contentRef,
     documentTitle: `Prescription_${activePatient?.patient_name || "Patient"}_${activePatient?.tokenNo || "01"}`,
@@ -1425,6 +1535,21 @@ export default function OPDPrescriptionPage() {
             {patientInvestigations && patientInvestigations.length > 0 && (
               <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[10px] bg-amber-100 text-amber-900 border-amber-300">
                 {patientInvestigations.length}
+              </Badge>
+            )}
+          </Button>
+
+          <Button
+            onClick={handleOpenMedicationDialog}
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs border-emerald-400 text-emerald-900 hover:bg-emerald-50 font-semibold relative shadow-2xs"
+          >
+            <Pill className="h-3.5 w-3.5 mr-1 text-emerald-600" />
+            Medication
+            {medicines && medicines.length > 0 && (
+              <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[10px] bg-emerald-100 text-emerald-900 border-emerald-300">
+                {medicines.length}
               </Badge>
             )}
           </Button>
@@ -1811,316 +1936,358 @@ export default function OPDPrescriptionPage() {
                   <span className="print:hidden">[ Blank Header Space: {headerHeightMargin}px ]</span>
                 </div>
               ) : (
-                <div className="flex items-start justify-between border-b-2 border-teal-600 pb-5 mb-5 min-h-24">
+                <div className="flex items-start justify-between border-b-2 border-slate-900 pb-4 mb-4 min-h-24">
                   {/* Left: Hospital Info + Logo / Banner Image */}
-                  <div className="flex items-center gap-4 max-w-[65%]">
+                  <div className="flex items-center gap-3.5 max-w-[62%]">
                     {outputSettings?.headerImage ? (
                       <Image
                         src={getImageUrl(outputSettings.headerImage)}
                         alt="Header Banner"
                         width={400}
                         height={80}
-                        className="h-20 w-auto object-contain shrink-0"
+                        className="h-18 w-auto object-contain shrink-0"
                         unoptimized
                       />
                     ) : logoSrc ? (
                       <Image
                         src={getImageUrl(logoSrc)}
                         alt="Hospital Logo"
-                        width={80}
-                        height={80}
-                        className="h-20 w-20 object-contain rounded-xl border-2 border-teal-100 bg-white p-1.5 shrink-0 shadow-xs"
+                        width={70}
+                        height={70}
+                        className="h-16 w-16 object-contain rounded-lg border border-slate-200 bg-white p-1 shrink-0"
                         unoptimized
                       />
                     ) : (
-                      <div className="p-3.5 rounded-xl bg-teal-600 text-white font-bold text-xl shrink-0">HIMS</div>
+                      <div className="p-2.5 rounded-lg bg-slate-900 text-white font-bold text-lg shrink-0">HIMS</div>
                     )}
 
-                    <div className="space-y-1">
-                      <h2 className="text-xl font-extrabold uppercase tracking-wide text-teal-800 leading-tight">
+                    <div className="space-y-0.5">
+                      <h2 className="text-lg font-black uppercase tracking-tight text-slate-950 font-serif leading-tight">
                         {hospitalName}
                       </h2>
-                      <p className="text-xs text-slate-700 font-semibold">{hospitalAddress}</p>
-                      <p className="text-xs text-slate-600 font-medium">
+                      <p className="text-[11px] text-slate-700 font-medium">{hospitalAddress}</p>
+                      <p className="text-[10px] text-slate-500 font-mono">
                         Ph: {hospitalPhone} {hospitalEmail ? `| Email: ${hospitalEmail}` : ""}
                       </p>
                     </div>
                   </div>
 
                   {/* Right: Logged-in Doctor Info */}
-                  <div className="text-right space-y-1">
-                    <h3 className="text-lg font-bold text-slate-900 leading-none">{doctorName}</h3>
-                    <p className="text-xs font-bold text-teal-700">{doctorQualification}</p>
+                  <div className="text-right space-y-0.5">
+                    <h3 className="text-base font-bold text-slate-950 leading-tight">{doctorName}</h3>
+                    <p className="text-xs font-bold text-teal-800">{doctorQualification}</p>
                     <p className="text-xs font-medium text-slate-700">{doctorDept}</p>
-                    <p className="text-xs text-slate-500 font-mono font-medium">{doctorPmdc}</p>
+                    <p className="text-[11px] text-slate-500 font-mono">{doctorPmdc}</p>
                   </div>
                 </div>
               )}
 
               {/* 2. Patient Demographics Bar */}
-              <div className="grid grid-cols-12 gap-3 bg-teal-50/50 border border-teal-200/80 rounded-xl p-3.5 mb-4 text-xs items-center shadow-2xs">
-                <div className="col-span-4 border-r border-teal-200/60 pr-3 space-y-0.5">
-                  <p className="font-bold text-slate-900 text-sm tracking-tight leading-tight">{patientName}</p>
-                  <p className="text-slate-600 text-xs font-medium">{guardianName}</p>
-                </div>
+              <div className="border border-slate-300 rounded-md p-2.5 mb-3 bg-slate-50/40 text-xs shadow-2xs">
+                <div className="grid grid-cols-12 gap-2 items-center">
+                  <div className="col-span-4 border-r border-slate-200 pr-2">
+                    <p className="font-extrabold text-slate-950 text-xs tracking-tight">{patientName}</p>
+                    <p className="text-[11px] text-slate-500 font-medium">{guardianName}</p>
+                  </div>
 
-                <div className="col-span-3 border-r border-teal-200/60 px-3 space-y-1">
-                  <p className="text-slate-600 font-medium">
-                    MRN: <strong className="text-slate-900 font-mono text-xs font-bold">{patientMrn}</strong>
-                  </p>
-                  <p className="text-slate-600 font-medium">
-                    Mobile: <strong className="text-slate-900 font-mono text-xs font-bold">{patientMobile}</strong>
-                  </p>
-                </div>
+                  <div className="col-span-3 border-r border-slate-200 px-2 space-y-0.5">
+                    <p className="text-[11px] text-slate-600">
+                      MRN: <strong className="text-slate-950 font-mono font-bold">{patientMrn}</strong>
+                    </p>
+                    <p className="text-[11px] text-slate-600">
+                      Mobile: <strong className="text-slate-950 font-mono font-medium">{patientMobile}</strong>
+                    </p>
+                  </div>
 
-                <div className="col-span-3 border-r border-teal-200/60 px-3 space-y-1">
-                  <p className="text-slate-600 font-medium">
-                    Age / Sex: <strong className="text-slate-900 text-xs font-bold">{patientAge} / {patientGender}</strong>
-                  </p>
-                  <p className="text-slate-600 font-medium">
-                    Visit No: <strong className="text-slate-900 font-mono text-xs font-bold">{visitNo}</strong>
-                  </p>
-                </div>
+                  <div className="col-span-3 border-r border-slate-200 px-2 space-y-0.5">
+                    <p className="text-[11px] text-slate-600">
+                      Age / Sex: <strong className="text-slate-950 font-bold">{patientAge} / {patientGender}</strong>
+                    </p>
+                    <p className="text-[11px] text-slate-600">
+                      Visit No: <strong className="text-slate-950 font-mono font-bold">{visitNo}</strong>
+                    </p>
+                  </div>
 
-                <div className="col-span-2 text-right pl-3 space-y-1">
-                  <p className="text-slate-600 font-medium">Date:</p>
-                  <p className="text-slate-900 text-xs font-bold">{visitDate}</p>
+                  <div className="col-span-2 text-right pl-2 space-y-0.5">
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Date:</p>
+                    <p className="text-slate-950 font-bold text-xs font-mono">{visitDate}</p>
+                  </div>
                 </div>
               </div>
 
-              {/* 3. Vitals Bar */}
+              {/* 3. Vitals Strip (Compact) */}
               {vitals && (vitals.bp || vitals.pulse || vitals.temp || vitals.weight || vitals.spo2 || vitals.bsr) && (
-                <div className="flex flex-wrap items-center gap-5 bg-slate-50 border border-slate-200 rounded-md p-2.5 mb-4 text-xs font-medium">
-                  <span className="font-bold text-slate-800 uppercase flex items-center gap-1">
-                    <Activity className="h-4 w-4 text-teal-600" /> Vitals:
+                <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 mb-3 text-xs">
+                  <span className="font-bold text-slate-900 uppercase text-[10px] tracking-wider flex items-center gap-1 shrink-0">
+                    <Activity className="h-3.5 w-3.5 text-teal-700" />
+                    VITALS:
                   </span>
-                  {vitals.bp && <span>BP: <strong className="text-slate-900 font-bold">{vitals.bp}</strong></span>}
-                  {vitals.pulse && <span>Pulse: <strong className="text-slate-900 font-bold">{vitals.pulse}</strong></span>}
-                  {vitals.temp && <span>Temp: <strong className="text-slate-900 font-bold">{vitals.temp}</strong></span>}
-                  {vitals.weight && <span>Weight: <strong className="text-slate-900 font-bold">{vitals.weight}</strong></span>}
-                  {vitals.spo2 && <span>SpO2: <strong className="text-slate-900 font-bold">{vitals.spo2}</strong></span>}
-                  {vitals.bsr && <span>BSR: <strong className="text-slate-900 font-bold">{vitals.bsr}</strong></span>}
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-700">
+                    {vitals.bp && <span>BP: <strong className="text-slate-950 font-bold font-mono">{vitals.bp}</strong></span>}
+                    {vitals.pulse && <span>Pulse: <strong className="text-slate-950 font-bold font-mono">{vitals.pulse} bpm</strong></span>}
+                    {vitals.temp && <span>Temp: <strong className="text-slate-950 font-bold font-mono">{vitals.temp} °F</strong></span>}
+                    {vitals.weight && <span>Weight: <strong className="text-slate-950 font-bold font-mono">{vitals.weight} kg</strong></span>}
+                    {vitals.spo2 && <span>SpO2: <strong className="text-slate-950 font-bold font-mono">{vitals.spo2}%</strong></span>}
+                    {vitals.bsr && <span>BSR: <strong className="text-slate-950 font-bold font-mono">{vitals.bsr} mg/dL</strong></span>}
+                  </div>
                 </div>
               )}
 
-              {/* 3.1 Patient Medical History Bar */}
-              {patientHistory && (
-                patientHistory.past_medical_history ||
-                patientHistory.past_surgical_history ||
-                patientHistory.medication_history ||
-                patientHistory.allergy_history ||
-                patientHistory.family_history ||
-                patientHistory.social_history
+              {/* 4. Unified Clinical Assessment Block (No Box Clutter) */}
+              {(
+                (patientSymptoms && patientSymptoms.length > 0) ||
+                (patientExams && patientExams.length > 0) ||
+                (patientDiagnoses && patientDiagnoses.length > 0) ||
+                diagnosis ||
+                (patientInvestigations && patientInvestigations.length > 0) ||
+                investigations ||
+                (patientHistory && (
+                  patientHistory.past_medical_history ||
+                  patientHistory.past_surgical_history ||
+                  patientHistory.medication_history ||
+                  patientHistory.allergy_history ||
+                  patientHistory.family_history ||
+                  patientHistory.social_history
+                ))
               ) && (
-                <div className="bg-blue-50/60 border border-blue-200/80 rounded-md p-2.5 mb-4 text-xs">
-                  <div className="flex items-center gap-1.5 font-bold text-blue-900 uppercase text-[11px] mb-1.5">
-                    <FileText className="h-3.5 w-3.5 text-blue-700" />
-                    <span>Patient Medical History:</span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1.5 text-slate-700 text-xs">
-                    {patientHistory.past_medical_history && (
-                      <div>
-                        <strong className="text-slate-900">Medical:</strong> {patientHistory.past_medical_history}
-                      </div>
-                    )}
-                    {patientHistory.past_surgical_history && (
-                      <div>
-                        <strong className="text-slate-900">Surgical:</strong> {patientHistory.past_surgical_history}
-                      </div>
-                    )}
-                    {patientHistory.medication_history && (
-                      <div>
-                        <strong className="text-slate-900">Medications:</strong> {patientHistory.medication_history}
-                      </div>
-                    )}
-                    {patientHistory.allergy_history && (
-                      <div className="text-rose-900">
-                        <strong className="text-rose-950">Allergies:</strong> {patientHistory.allergy_history}
-                      </div>
-                    )}
-                    {patientHistory.family_history && (
-                      <div>
-                        <strong className="text-slate-900">Family:</strong> {patientHistory.family_history}
-                      </div>
-                    )}
-                    {patientHistory.social_history && (
-                      <div>
-                        <strong className="text-slate-900">Social:</strong> {patientHistory.social_history}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+                <div className="border border-slate-200 rounded-lg p-3 mb-4 bg-white space-y-2.5 shadow-2xs">
+                  {/* Row 1: Symptoms & History */}
+                  {((patientSymptoms && patientSymptoms.length > 0) || (patientHistory && (patientHistory.past_medical_history || patientHistory.medication_history || patientHistory.allergy_history))) && (
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 text-xs">
+                      {patientSymptoms && patientSymptoms.length > 0 && (
+                        <div className="md:col-span-6 space-y-1">
+                          <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                            <Sparkles className="h-3 w-3 text-amber-600" />
+                            Presenting Symptoms:
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {patientSymptoms.map((symptom, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center px-2 py-0.5 rounded bg-amber-50/80 border border-amber-200 text-amber-950 font-medium text-[11px]"
+                              >
+                                • {symptom}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-              {/* 3.2 Patient Symptoms / Complaints */}
-              {patientSymptoms && patientSymptoms.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 bg-amber-50/50 border border-amber-200/80 rounded-md p-2.5 mb-3 text-xs">
-                  <span className="flex items-center gap-1.5 font-bold text-amber-900 uppercase text-[11px] shrink-0">
-                    <Sparkles className="h-3.5 w-3.5 text-amber-700" />
-                    Presenting Symptoms:
-                  </span>
-                  <div className="flex flex-wrap items-center gap-1.5 flex-1">
-                    {patientSymptoms.map((symptom, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center px-2 py-0.5 rounded bg-white border border-amber-300 text-amber-950 font-medium text-xs shadow-2xs"
-                      >
-                        • {symptom}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 3.3 Patient Physical Examination Findings */}
-              {patientExams && patientExams.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200/80 rounded-md p-2.5 mb-3 text-xs">
-                  <span className="flex items-center gap-1.5 font-bold text-slate-800 uppercase text-[11px] shrink-0">
-                    <Stethoscope className="h-3.5 w-3.5 text-blue-600" />
-                    Physical Examination Findings:
-                  </span>
-                  <div className="flex flex-wrap items-center gap-1.5 flex-1">
-                    {patientExams.map((exam, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center px-2 py-0.5 rounded bg-white border border-slate-300 text-slate-900 font-medium text-xs shadow-2xs"
-                      >
-                        • {exam}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 3.4 Patient Diagnosis / Clinical Impression */}
-              {((patientDiagnoses && patientDiagnoses.length > 0) || diagnosis) && (
-                <div className="flex flex-wrap items-center gap-2 bg-teal-50/70 border border-teal-200 rounded-md p-2.5 mb-3 text-xs">
-                  <span className="flex items-center gap-1.5 font-bold text-teal-950 uppercase text-[11px] shrink-0">
-                    <Brain className="h-3.5 w-3.5 text-teal-700" />
-                    Diagnosis / Clinical Impression:
-                  </span>
-                  {patientDiagnoses && patientDiagnoses.length > 0 ? (
-                    <div className="flex flex-wrap items-center gap-1.5 flex-1">
-                      {patientDiagnoses.map((diag, idx) => (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded bg-white border border-teal-400 text-teal-950 font-bold text-xs shadow-2xs"
-                        >
-                          ✓ {diag}
-                        </span>
-                      ))}
+                      {patientHistory && (patientHistory.past_medical_history || patientHistory.medication_history || patientHistory.allergy_history) && (
+                        <div className="md:col-span-6 space-y-1">
+                          <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                            <FileText className="h-3 w-3 text-blue-600" />
+                            Patient Medical History:
+                          </span>
+                          <div className="text-[11px] text-slate-700 space-y-0.5">
+                            {patientHistory.medication_history && (
+                              <p><strong className="text-slate-900">Medications:</strong> {patientHistory.medication_history}</p>
+                            )}
+                            {patientHistory.allergy_history && (
+                              <p className="text-rose-700"><strong className="text-rose-900">Allergies:</strong> {patientHistory.allergy_history}</p>
+                            )}
+                            {patientHistory.past_medical_history && (
+                              <p><strong className="text-slate-900">Medical:</strong> {patientHistory.past_medical_history}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <span className="text-xs font-bold text-teal-950 bg-white px-2 py-0.5 rounded border border-teal-200">
-                      {diagnosis}
-                    </span>
                   )}
-                </div>
-              )}
 
-              {/* 4. Investigations Ordered Grid */}
-              {((patientInvestigations && patientInvestigations.length > 0) || investigations) && (
-                <div className="flex flex-wrap items-center gap-2 bg-amber-50/60 border border-amber-200/80 rounded-md p-2.5 mb-4 text-xs">
-                  <span className="flex items-center gap-1.5 font-bold text-amber-950 uppercase text-[11px] shrink-0">
-                    <TestTube className="h-3.5 w-3.5 text-amber-700" />
-                    Investigations Ordered:
-                  </span>
-                  {patientInvestigations && patientInvestigations.length > 0 ? (
-                    <div className="flex flex-wrap items-center gap-1.5 flex-1">
-                      {patientInvestigations.map((inv, idx) => {
-                        const invName = typeof inv === "string" ? inv : (inv.serviceName || inv.name);
-                        return (
+                  {/* Row 2: Physical Examination */}
+                  {patientExams && patientExams.length > 0 && (
+                    <div className="border-t border-slate-100 pt-2 text-xs space-y-1">
+                      <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                        <Stethoscope className="h-3 w-3 text-blue-600" />
+                        Physical Examination Findings:
+                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {patientExams.map((exam, idx) => (
                           <span
                             key={idx}
-                            className="inline-flex items-center px-2.5 py-0.5 rounded bg-white border border-amber-300 text-slate-900 font-bold text-xs shadow-2xs font-mono"
+                            className="inline-flex items-center px-2 py-0.5 rounded bg-slate-50 border border-slate-200 text-slate-900 font-medium text-[11px]"
                           >
-                            • {invName}
+                            • {exam}
                           </span>
-                        );
-                      })}
+                        ))}
+                      </div>
                     </div>
-                  ) : (
-                    <span className="text-xs font-bold text-slate-900 bg-white px-2.5 py-0.5 rounded border border-amber-300 font-mono">
-                      {investigations}
-                    </span>
+                  )}
+
+                  {/* Row 3: Diagnosis & Ordered Investigations (Clinical Impression) */}
+                  {(((patientDiagnoses && patientDiagnoses.length > 0) || diagnosis) || ((patientInvestigations && patientInvestigations.length > 0) || investigations)) && (
+                    <div className="border-t border-slate-100 pt-2 grid grid-cols-1 md:grid-cols-12 gap-3 text-xs items-start">
+                      {/* Diagnosis */}
+                      {((patientDiagnoses && patientDiagnoses.length > 0) || diagnosis) && (
+                        <div className="md:col-span-6 space-y-1">
+                          <span className="text-[10px] font-bold text-teal-900 uppercase tracking-wider flex items-center gap-1">
+                            <Brain className="h-3 w-3 text-teal-700" />
+                            Diagnosis / Clinical Impression:
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {patientDiagnoses && patientDiagnoses.length > 0 ? (
+                              patientDiagnoses.map((diag, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-flex items-center px-2.5 py-0.5 rounded bg-teal-50 border border-teal-300 text-teal-950 font-bold text-xs shadow-2xs"
+                                >
+                                  ✓ {diag}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-xs font-bold text-teal-950 bg-teal-50 px-2 py-0.5 rounded border border-teal-300">
+                                {diagnosis}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Investigations */}
+                      {((patientInvestigations && patientInvestigations.length > 0) || investigations) && (
+                        <div className="md:col-span-6 space-y-1">
+                          <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1">
+                            <TestTube className="h-3 w-3 text-amber-700" />
+                            Investigations Ordered:
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {patientInvestigations && patientInvestigations.length > 0 ? (
+                              patientInvestigations.map((inv, idx) => {
+                                const invName = typeof inv === "string" ? inv : (inv.serviceName || inv.name);
+                                return (
+                                  <span
+                                    key={idx}
+                                    className="inline-flex items-center px-2 py-0.5 rounded bg-amber-50/70 border border-amber-300 text-slate-900 font-bold text-[11px] font-mono"
+                                  >
+                                    • {invName}
+                                  </span>
+                                );
+                              })
+                            ) : (
+                              <span className="text-xs font-bold text-slate-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-300 font-mono">
+                                {investigations}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
 
-              {/* 5. Rx / Prescribed Medications Table */}
-              <div className="space-y-2.5 mb-5">
-                <div className="flex items-center gap-1 text-teal-800 border-b-2 border-teal-300 pb-1">
-                  <span className="text-lg font-serif font-bold italic">Rx</span>
-                  <span className="text-xs font-bold uppercase tracking-wider ml-1">Prescribed Medications</span>
+              {/* 5. Rx / Prescribed Medications (Hero Section) */}
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1">
+                  <div className="flex items-center gap-1 text-slate-950">
+                    <span className="text-2xl font-serif font-black italic text-teal-800 leading-none">℞</span>
+                    <span className="text-xs font-extrabold uppercase tracking-wider ml-1">Prescribed Medications</span>
+                  </div>
+                  {medicines.length > 0 && (
+                    <span className="text-[10px] font-mono text-slate-500 font-semibold">
+                      Total: {medicines.length} Item(s)
+                    </span>
+                  )}
                 </div>
 
-                <table className="w-full border-collapse border border-slate-200 text-xs">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-800 font-bold border-b border-slate-200">
-                      <th className="p-2 text-center border-r border-slate-200 w-9">#</th>
-                      <th className="p-2 text-left border-r border-slate-200">Medicine Name</th>
-                      <th className="p-2 text-center border-r border-slate-200 w-36">Dosage</th>
-                      <th className="p-2 text-center border-r border-slate-200 w-28">Duration</th>
-                      <th className="p-2 text-left">Instructions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {medicines.length > 0 ? (
-                      medicines.map((med, idx) => (
-                        <tr key={med.id || idx} className="border-b border-slate-200 odd:bg-white even:bg-slate-50/50">
-                          <td className="p-2 text-center border-r border-slate-200 font-bold text-slate-700">{idx + 1}</td>
-                          <td className="p-2 text-left border-r border-slate-200 font-bold text-slate-900 text-xs">{med.name}</td>
-                          <td className="p-2 text-center border-r border-slate-200 font-mono font-bold text-teal-900 text-xs">{med.dosage}</td>
-                          <td className="p-2 text-center border-r border-slate-200 font-medium text-xs">{med.duration}</td>
-                          <td className="p-2 text-left text-slate-700 font-medium text-xs">{med.instruction}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="p-3 text-center text-slate-400">No medicines prescribed</td>
+                <div className="border border-slate-300 rounded-md overflow-hidden">
+                  <table className="w-full border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-200 border-b border-slate-300 font-bold text-[10px] uppercase tracking-wider">
+                        <th className="py-2 px-2 text-center w-8 border-r border-slate-700">#</th>
+                        <th className="py-2 px-3 text-left border-r border-slate-700">Medicine / Formulation</th>
+                        <th className="py-2 px-2 text-center w-28 border-r border-slate-700">Dosage / Freq</th>
+                        <th className="py-2 px-2 text-center w-24 border-r border-slate-700">Duration</th>
+                        <th className="py-2 px-3 text-left">Instructions & Timing</th>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {medicines.length > 0 ? (
+                        medicines.map((med, idx) => (
+                          <tr key={med.id || idx} className="border-b border-slate-200 odd:bg-white even:bg-slate-50/70 hover:bg-teal-50/20">
+                            <td className="py-2.5 px-2 text-center border-r border-slate-200 font-bold text-slate-600 font-mono text-xs">
+                              {idx + 1}
+                            </td>
+                            <td className="py-2.5 px-3 text-left border-r border-slate-200">
+                              <div className="font-bold text-slate-950 text-xs">
+                                {med.name}
+                              </div>
+                              {med.genericName && (
+                                <div className="text-[10px] text-slate-500 font-normal">
+                                  {med.genericName}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-2 text-center border-r border-slate-200">
+                              <span className="font-mono font-bold text-teal-900 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded text-[11px] inline-block shadow-2xs">
+                                {med.dosage}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-2 text-center border-r border-slate-200 font-semibold text-xs text-slate-800">
+                              {med.duration}
+                            </td>
+                            <td className="py-2.5 px-3 text-left text-slate-700 font-medium text-xs">
+                              {med.instruction}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-slate-400 italic">
+                            No medicines prescribed for this visit.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               {/* 6. Advice & Follow-Up */}
-              <div className="grid grid-cols-2 gap-4 border-t border-slate-200 pt-3.5 text-xs">
-               {advice &&( <div>
-                  <span className="font-bold text-slate-800 uppercase text-xs tracking-wider block mb-1">
-                    Advice & Special Instructions:
-                  </span>
-                  <p className="text-slate-800 font-medium">{advice }</p>
+              {(advice || followupDate) && (
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 border-t border-slate-200 pt-3 text-xs">
+                  {advice && (
+                    <div className={`${followupDate ? "sm:col-span-8" : "sm:col-span-12"} border-l-4 border-teal-600 bg-slate-50 p-2.5 rounded-r-md`}>
+                      <span className="font-bold text-slate-900 uppercase text-[10px] tracking-wider block mb-1">
+                        Advice & Special Instructions:
+                      </span>
+                      <p className="text-slate-800 font-medium leading-relaxed">{advice}</p>
+                    </div>
+                  )}
+
+                  {followupDate && (
+                    <div className={`${advice ? "sm:col-span-4" : "sm:col-span-12"} bg-teal-50/70 border border-teal-200 p-2.5 rounded-md text-right flex flex-col justify-center`}>
+                      <span className="font-bold text-teal-900 uppercase text-[10px] tracking-wider block mb-0.5">
+                        Next Review / Follow-Up:
+                      </span>
+                      <p className="font-extrabold text-teal-950 text-xs font-mono">{followupDate}</p>
+                    </div>
+                  )}
                 </div>
-                )}
-                
-                {followupDate && (
-                  <div className="text-right">
-                    <span className="font-bold text-teal-800 uppercase text-xs tracking-wider block mb-1">
-                      Next Review / Follow-Up:
-                    </span>
-                    <p className="font-bold text-teal-950 text-xs">{followupDate}</p>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
 
-            {/* 7. Footer / Doctor Signature & Notice */}
-            <div className="pt-8 border-t border-slate-200 mt-6 flex items-end justify-between text-xs">
-              <div>
-                <p className="text-slate-500 text-[11px]">
-                  Printed Date: {new Date().toLocaleDateString("en-GB")}{" "}
+            {/* 7. Footer / Doctor Signature & Verification */}
+            <div className="pt-6 border-t border-slate-200 mt-6 flex items-end justify-between text-xs">
+              <div className="space-y-0.5">
+                <p className="text-slate-500 text-[10px] font-mono">
+                  Printed: {new Date().toLocaleDateString("en-GB")}{" "}
                   {new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                 </p>
+                <p className="text-[9px] text-slate-400">
+                  Electronic Medical Record • Valid without physical stamp if digitally authorized
+                </p>
               </div>
-              <div className="text-center space-y-0.5 min-w-45">
-                <div className="w-44 border-b border-slate-400 mb-1 mx-auto"></div>
+
+              <div className="text-center space-y-0.5 min-w-48">
+                <div className="w-44 border-b border-slate-400 mb-1.5 mx-auto"></div>
                 {doctorStamp ? (
-                  <p className="text-sm text-slate-950 font-bold whitespace-pre-line leading-tight">{doctorStamp}</p>
+                  <p className="text-xs text-slate-950 font-bold whitespace-pre-line leading-tight">{doctorStamp}</p>
                 ) : (
                   <>
-                    <p className="font-bold text-slate-900 text-sm">{doctorName}</p>
-                    <p className="text-slate-500 text-xs">Signature & Stamp</p>
+                    <p className="font-bold text-slate-900 text-xs">{doctorName}</p>
+                    <p className="text-slate-500 text-[11px]">Consultant Physician / Authorized Signature</p>
                   </>
                 )}
               </div>
@@ -3510,6 +3677,363 @@ export default function OPDPrescriptionPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Patient Medications Modal (Pharmacy Formulary - ui-ux-pro-max) */}
+      <Dialog open={isMedicationOpen} onOpenChange={setIsMedicationOpen}>
+        <DialogContent className="max-w-5xl lg:max-w-6xl max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden">
+          {/* Dialog Header */}
+          <DialogHeader className="p-4 border-b bg-slate-50/90 shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-emerald-100/80 text-emerald-800 border border-emerald-200 shadow-2xs">
+                  <Pill className="h-5 w-5 text-emerald-700" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    Prescribe Medications (Rx)
+                    <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold text-[11px] px-2 py-0.5">
+                      Pharmacy Formulary
+                    </Badge>
+                  </DialogTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Select medicines from pharmacy stock and configure dosage regimens for <strong>{patientName}</strong> ({patientMrn || "No MRN"})
+                  </p>
+                </div>
+              </div>
+
+              {selectedMedicinesDraft.length > 0 && (
+                <Badge variant="outline" className="bg-emerald-50 text-emerald-900 border-emerald-300 font-mono text-xs px-2.5 py-1 shrink-0 self-start sm:self-auto">
+                  {selectedMedicinesDraft.length} prescribed
+                </Badge>
+              )}
+            </div>
+          </DialogHeader>
+
+          {/* Modal Body: 2-Panel Clinical Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 flex-1 overflow-hidden min-h-0">
+            {/* Left Panel: 5 Cols - Search & Catalog Selection */}
+            <div className="lg:col-span-5 border-r border-slate-200 p-4 flex flex-col gap-3 bg-slate-50/40 overflow-hidden">
+              <div className="flex items-center justify-between shrink-0">
+                <Label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Search className="h-3.5 w-3.5 text-emerald-600" />
+                  Select From Formulary
+                </Label>
+                <span className="text-[11px] text-muted-foreground font-mono">
+                  {filteredMedicines.length} items
+                </span>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative shrink-0">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                <Input
+                  type="text"
+                  placeholder="Search brand name, formula, code..."
+                  value={medicineSearchQuery}
+                  onChange={(e) => setMedicineSearchQuery(e.target.value)}
+                  className="pl-8 h-9 text-xs bg-white border-slate-300"
+                />
+                {medicineSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setMedicineSearchQuery("")}
+                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Dosage Form Filter Tabs */}
+              <div className="flex flex-wrap gap-1 shrink-0">
+                {["all", "Tablet", "Syrup", "Capsule", "Injection", "Drops"].map((form) => (
+                  <button
+                    key={form}
+                    type="button"
+                    onClick={() => setSelectedFormFilter(form)}
+                    className={`text-[11px] px-2 py-1 rounded-md font-medium transition-all ${
+                      selectedFormFilter === form
+                        ? "bg-emerald-600 text-white shadow-2xs font-semibold"
+                        : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    {form === "all" ? "All Forms" : form}
+                  </button>
+                ))}
+              </div>
+
+              {/* Medicine Formulary List */}
+              <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 min-h-[260px] max-h-[480px]">
+                {loadingMasterMedicines ? (
+                  <div className="p-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                    <RefreshCw className="h-4 w-4 animate-spin text-emerald-600" />
+                    Loading pharmacy formulary...
+                  </div>
+                ) : filteredMedicines.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-slate-400">
+                    No medicines match your search.
+                  </div>
+                ) : (
+                  filteredMedicines.map((med) => {
+                    const isSelected = selectedMedicinesDraft.some(
+                      (item) => item.medicineId === med.id || item.name === med.brand_name
+                    );
+                    return (
+                      <div
+                        key={med.id}
+                        onClick={() => handleToggleMedicine(med)}
+                        className={`p-2.5 rounded-lg border transition-all cursor-pointer flex items-center justify-between text-xs ${
+                          isSelected
+                            ? "bg-emerald-50/90 border-emerald-400 text-emerald-950 font-medium shadow-2xs"
+                            : "bg-white border-slate-200/90 hover:border-emerald-300 hover:bg-emerald-50/30 text-slate-800"
+                        }`}
+                      >
+                        <div className="space-y-0.5 min-w-0 pr-2">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-slate-900 text-xs">
+                              {med.brand_name}
+                            </span>
+                            {med.dosage_form_name && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-slate-100 border-slate-300 text-slate-700 font-normal">
+                                {med.dosage_form_name}
+                              </Badge>
+                            )}
+                          </div>
+                          {med.generic_name && (
+                            <p className="text-[11px] text-slate-500 truncate">
+                              Formula: {med.generic_name}
+                            </p>
+                          )}
+                          {med.category_name && (
+                            <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200 inline-block">
+                              {med.category_name}
+                            </span>
+                          )}
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant={isSelected ? "default" : "outline"}
+                          className={`h-7 px-2.5 text-[11px] font-semibold shrink-0 ${
+                            isSelected
+                              ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                              : "border-slate-300 hover:border-emerald-500 text-slate-700 hover:text-emerald-700"
+                          }`}
+                        >
+                          {isSelected ? (
+                            <>
+                              <Check className="h-3.5 w-3.5 mr-1" /> Added
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-3.5 w-3.5 mr-1" /> Select
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Right Panel: 7 Cols - Prescribed Items & Regimen Config */}
+            <div className="lg:col-span-7 p-4 flex flex-col gap-3 bg-white overflow-hidden">
+              <div className="flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                    Configure Prescribed Regimen ({selectedMedicinesDraft.length})
+                  </Label>
+                </div>
+                {selectedMedicinesDraft.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedMedicinesDraft([])}
+                    className="h-6 text-[11px] text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2"
+                  >
+                    Clear All
+                  </Button>
+                )}
+              </div>
+
+              {/* Selected Medication Cards List */}
+              <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-[260px] max-h-[480px]">
+                {selectedMedicinesDraft.length === 0 ? (
+                  <div className="h-full min-h-[260px] flex flex-col items-center justify-center p-8 text-center text-slate-400 border border-dashed rounded-lg border-slate-200">
+                    <Pill className="h-10 w-10 text-slate-300 mb-2" />
+                    <p className="font-semibold text-xs text-slate-600">No medicines selected</p>
+                    <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
+                      Search and click on medicines from the pharmacy catalog on the left to add and customize dosage, frequency, and instructions.
+                    </p>
+                  </div>
+                ) : (
+                  selectedMedicinesDraft.map((item, index) => (
+                    <div
+                      key={index}
+                      className="p-3 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-all space-y-2.5 shadow-2xs"
+                    >
+                      {/* Medicine Header */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 text-xs">
+                              {index + 1}. {item.name}
+                            </span>
+                            {item.dosageForm && (
+                              <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-800 border-emerald-300 font-medium">
+                                {item.dosageForm}
+                              </Badge>
+                            )}
+                          </div>
+                          {item.genericName && (
+                            <p className="text-[10px] text-slate-500">
+                              Formula: {item.genericName}
+                            </p>
+                          )}
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveMedicineDraft(index)}
+                          className="h-6 w-6 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                          title="Remove medicine"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+
+                      {/* Dosage, Duration, and Instructions Configuration Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                        {/* Dosage / Frequency */}
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-semibold text-slate-700">
+                            Dosage / Frequency
+                          </Label>
+                          <Input
+                            type="text"
+                            value={item.dosage}
+                            onChange={(e) => handleUpdateMedicineDraft(index, "dosage", e.target.value)}
+                            placeholder="e.g. 1-0-1"
+                            className="h-7 text-xs bg-white font-mono font-bold text-teal-900"
+                          />
+                          <div className="flex flex-wrap gap-1 pt-0.5">
+                            {["1-0-1", "1-1-1", "1-0-0", "0-0-1", "SOS", "Stat"].map((freq) => (
+                              <button
+                                key={freq}
+                                type="button"
+                                onClick={() => handleUpdateMedicineDraft(index, "dosage", freq)}
+                                className={`text-[10px] px-1.5 py-0.5 rounded border transition-all ${
+                                  item.dosage === freq
+                                    ? "bg-teal-600 text-white font-bold border-teal-600 shadow-2xs"
+                                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                                }`}
+                              >
+                                {freq}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Duration */}
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-semibold text-slate-700">
+                            Duration
+                          </Label>
+                          <Input
+                            type="text"
+                            value={item.duration}
+                            onChange={(e) => handleUpdateMedicineDraft(index, "duration", e.target.value)}
+                            placeholder="e.g. 5 Days"
+                            className="h-7 text-xs bg-white font-medium"
+                          />
+                          <div className="flex flex-wrap gap-1 pt-0.5">
+                            {["3 Days", "5 Days", "7 Days", "14 Days", "1 Month"].map((dur) => (
+                              <button
+                                key={dur}
+                                type="button"
+                                onClick={() => handleUpdateMedicineDraft(index, "duration", dur)}
+                                className={`text-[10px] px-1.5 py-0.5 rounded border transition-all ${
+                                  item.duration === dur
+                                    ? "bg-emerald-600 text-white font-bold border-emerald-600 shadow-2xs"
+                                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                                }`}
+                              >
+                                {dur}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Instructions */}
+                        <div className="space-y-1 sm:col-span-1">
+                          <Label className="text-[11px] font-semibold text-slate-700">
+                            Instructions
+                          </Label>
+                          <Input
+                            type="text"
+                            value={item.instruction}
+                            onChange={(e) => handleUpdateMedicineDraft(index, "instruction", e.target.value)}
+                            placeholder="e.g. After meals"
+                            className="h-7 text-xs bg-white font-medium"
+                          />
+                          <div className="flex flex-wrap gap-1 pt-0.5">
+                            {["After meals", "Before meals", "At bedtime", "Empty stomach"].map((inst) => (
+                              <button
+                                key={inst}
+                                type="button"
+                                onClick={() => handleUpdateMedicineDraft(index, "instruction", inst)}
+                                className={`text-[10px] px-1.5 py-0.5 rounded border transition-all ${
+                                  item.instruction === inst
+                                    ? "bg-indigo-600 text-white font-bold border-indigo-600 shadow-2xs"
+                                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                                }`}
+                              >
+                                {inst}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Dialog Footer */}
+          <DialogFooter className="p-3 border-t bg-slate-50 flex items-center justify-between shrink-0">
+            <div className="text-xs text-slate-600 font-medium">
+              Total Prescribed: <strong className="text-emerald-800">{selectedMedicinesDraft.length}</strong> medicine(s)
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsMedicationOpen(false)}
+                className="h-8 text-xs text-slate-600"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleSaveMedications}
+                className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-2xs"
+              >
+                <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                Apply to Prescription ({selectedMedicinesDraft.length})
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

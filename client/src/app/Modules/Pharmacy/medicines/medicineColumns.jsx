@@ -3,9 +3,9 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit2, Trash2, MapPin, AlertCircle, ShieldAlert, FileText } from "lucide-react";
+import { Edit2, MapPin, AlertCircle, ShieldAlert, FileText } from "lucide-react";
 
-export const getMedicineColumns = ({ onEdit, onDelete }) => [
+export const getMedicineColumns = ({ onEdit }) => [
   {
     accessorKey: "item_code",
     header: "Code / Barcode",
@@ -25,7 +25,7 @@ export const getMedicineColumns = ({ onEdit, onDelete }) => [
   },
   {
     accessorKey: "brand_name",
-    header: "Drug Brand & Formula",
+    header: "Product / Brand & Formula",
     cell: ({ row }) => {
       const item = row.original;
       return (
@@ -46,11 +46,6 @@ export const getMedicineColumns = ({ onEdit, onDelete }) => [
           {item.generic_name && (
             <p className="text-[11px] text-emerald-700 font-medium">
               {item.generic_name}
-            </p>
-          )}
-          {item.strength && (
-            <p className="text-[10px] text-slate-500">
-              Strength: <span className="text-slate-700 font-medium">{item.strength}</span>
             </p>
           )}
         </div>
@@ -169,18 +164,9 @@ export const getMedicineColumns = ({ onEdit, onDelete }) => [
           size="sm"
           onClick={() => onEdit(row.original)}
           className="h-7 w-7 p-0 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50"
-          title="Edit Medicine"
+          title="Edit Product"
         >
           <Edit2 className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onDelete(row.original)}
-          className="h-7 w-7 p-0 text-slate-600 hover:text-destructive hover:bg-destructive/10"
-          title="Delete Medicine"
-        >
-          <Trash2 className="h-3.5 w-3.5 text-destructive" />
         </Button>
       </div>
     ),

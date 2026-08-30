@@ -198,6 +198,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('pharmacy-generics', PharmacyGenericController::class);
     Route::apiResource('pharmacy-manufacturers', PharmacyManufacturerController::class);
     Route::apiResource('pharmacy-suppliers', PharmacySupplierController::class);
+    Route::get('/pharmacy-medicines/generate-barcode', [PharmacyMedicineController::class, 'getNextBarcode']);
     Route::get('/pharmacy-medicines/barcode/{barcode}', [PharmacyMedicineController::class, 'searchBarcode']);
     Route::apiResource('pharmacy-medicines', PharmacyMedicineController::class);
 

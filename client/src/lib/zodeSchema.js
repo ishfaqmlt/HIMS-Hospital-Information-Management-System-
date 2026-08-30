@@ -589,7 +589,7 @@ export const pharmacySupplierSchema = z.object({
 export const pharmacyMedicineSchema = z.object({
   item_code: z.string().max(50).optional().nullable(),
   barcode: z.string().max(100).optional().nullable(),
-  brand_name: z.string().min(1, "Brand name is required").max(200),
+  brand_name: z.string().min(1, "Product / Brand name is required").max(200),
   generic_id: z.string().optional().nullable(),
   category_id: z.string().optional().nullable(),
   dosage_form_id: z.string().optional().nullable(),
@@ -597,7 +597,6 @@ export const pharmacyMedicineSchema = z.object({
   purchase_unit_id: z.string().optional().nullable(),
   sale_unit_id: z.string().optional().nullable(),
   unit_conversion: z.coerce.number().min(1, "Must be at least 1").default(1),
-  strength: z.string().max(100).optional().nullable(),
   purchase_price: z.coerce.number().min(0, "Price must be positive").default(0),
   sale_price: z.coerce.number().min(0, "Price must be positive").default(0),
   mrp: z.coerce.number().min(0, "MRP must be positive").default(0),

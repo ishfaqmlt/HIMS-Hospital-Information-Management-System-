@@ -86,7 +86,6 @@ class PharmacyMedicineController extends Controller
             'purchase_unit_id' => 'nullable|string|exists:pharmacy_units,id',
             'sale_unit_id' => 'nullable|string|exists:pharmacy_units,id',
             'unit_conversion' => 'nullable|integer|min:1',
-            'strength' => 'nullable|string|max:100',
             'purchase_price' => 'nullable|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
             'mrp' => 'nullable|numeric|min:0',
@@ -102,11 +101,12 @@ class PharmacyMedicineController extends Controller
 
         $id = (string) Str::uuid();
         $itemCode = !empty($validated['item_code']) ? $validated['item_code'] : PharmacyMedicine::generateItemCode();
+        $barcode = !empty(trim($validated['barcode'] ?? '')) ? trim($validated['barcode']) : PharmacyMedicine::generateBarcode($itemCode);
 
         $data = [
             'id' => $id,
             'item_code' => $itemCode,
-            'barcode' => $validated['barcode'] ?? null,
+            'barcode' => $barcode,
             'brand_name' => $validated['brand_name'],
             'generic_id' => $validated['generic_id'] ?? null,
             'category_id' => $validated['category_id'] ?? null,
@@ -115,7 +115,6 @@ class PharmacyMedicineController extends Controller
             'purchase_unit_id' => $validated['purchase_unit_id'] ?? null,
             'sale_unit_id' => $validated['sale_unit_id'] ?? null,
             'unit_conversion' => $validated['unit_conversion'] ?? 1,
-            'strength' => $validated['strength'] ?? null,
             'purchase_price' => $validated['purchase_price'] ?? 0.00,
             'sale_price' => $validated['sale_price'] ?? 0.00,
             'mrp' => $validated['mrp'] ?? ($validated['sale_price'] ?? 0.00),
@@ -178,7 +177,6 @@ class PharmacyMedicineController extends Controller
             'purchase_unit_id' => 'nullable|string|exists:pharmacy_units,id',
             'sale_unit_id' => 'nullable|string|exists:pharmacy_units,id',
             'unit_conversion' => 'nullable|integer|min:1',
-            'strength' => 'nullable|string|max:100',
             'purchase_price' => 'nullable|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
             'mrp' => 'nullable|numeric|min:0',
@@ -207,7 +205,6 @@ class PharmacyMedicineController extends Controller
             'purchase_unit_id' => $validated['purchase_unit_id'] ?? null,
             'sale_unit_id' => $validated['sale_unit_id'] ?? null,
             'unit_conversion' => $validated['unit_conversion'] ?? 1,
-            'strength' => $validated['strength'] ?? null,
             'purchase_price' => $validated['purchase_price'] ?? 0.00,
             'sale_price' => $validated['sale_price'] ?? 0.00,
             'mrp' => $validated['mrp'] ?? ($validated['sale_price'] ?? 0.00),
@@ -269,5 +266,11 @@ class PharmacyMedicineController extends Controller
         }
 
         return response()->json($medicine);
+    }
+
+    public function getNextBarcode()
+    {
+        $barcode = PharmacyMedicine::generateBarcode();
+        return response()->json(['barcode' => $barcode]);
     }
 }

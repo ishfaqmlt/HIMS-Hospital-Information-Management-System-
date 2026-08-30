@@ -20,7 +20,6 @@ return new class extends Migration
             $table->foreignUuid('purchase_unit_id')->nullable()->constrained('pharmacy_units')->nullOnDelete();
             $table->foreignUuid('sale_unit_id')->nullable()->constrained('pharmacy_units')->nullOnDelete();
             $table->integer('unit_conversion')->default(1);
-            $table->string('strength', 100)->nullable();
             $table->decimal('purchase_price', 12, 2)->default(0.00);
             $table->decimal('sale_price', 12, 2)->default(0.00);
             $table->decimal('mrp', 12, 2)->default(0.00);

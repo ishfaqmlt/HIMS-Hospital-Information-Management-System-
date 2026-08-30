@@ -193,7 +193,7 @@ export default function MasterDataManager({ initialTab = "categories" }) {
 
   // Get dynamic columns based on active master tab
   const getColumnsForTab = () => {
-    const handlers = { onEdit: openEditDialog, onDelete: openDeleteDialog };
+    const handlers = { onEdit: openEditDialog };
     switch (activeTab) {
       case "units":
         return getUnitColumns(handlers);

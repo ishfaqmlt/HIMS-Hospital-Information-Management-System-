@@ -191,7 +191,6 @@ export default function SupplierManager() {
     () =>
       getSupplierColumns({
         onEdit: openEditDialog,
-        onDelete: confirmDelete,
       }),
     []
   );

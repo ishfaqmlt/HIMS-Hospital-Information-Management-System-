@@ -3,9 +3,9 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit2, Trash2, Phone, Mail, MapPin } from "lucide-react";
+import { Edit2, Phone, Mail, MapPin } from "lucide-react";
 
-export const getSupplierColumns = ({ onEdit, onDelete }) => [
+export const getSupplierColumns = ({ onEdit }) => [
   {
     accessorKey: "name",
     header: "Supplier / Distributor",
@@ -127,15 +127,6 @@ export const getSupplierColumns = ({ onEdit, onDelete }) => [
           title="Edit Supplier"
         >
           <Edit2 className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onDelete(row.original)}
-          className="h-7 w-7 p-0 text-slate-600 hover:text-destructive hover:bg-destructive/10"
-          title="Delete Supplier"
-        >
-          <Trash2 className="h-3.5 w-3.5 text-destructive" />
         </Button>
       </div>
     ),

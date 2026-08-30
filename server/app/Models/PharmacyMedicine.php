@@ -27,7 +27,6 @@ class PharmacyMedicine extends Model
         'purchase_unit_id',
         'sale_unit_id',
         'unit_conversion',
-        'strength',
         'purchase_price',
         'sale_price',
         'mrp',
@@ -63,6 +62,9 @@ class PharmacyMedicine extends Model
             }
             if (empty($model->item_code)) {
                 $model->item_code = self::generateItemCode();
+            }
+            if (empty($model->barcode)) {
+                $model->barcode = self::generateBarcode($model->item_code);
             }
         });
     }
@@ -106,6 +108,59 @@ class PharmacyMedicine extends Model
             }
 
             return $prefix . $nextVal;
+        });
+    }
+
+    public static function generateBarcode(?string $itemCode = null): string
+    {
+        // 12-digit standard numeric barcode format: 896 (PK Country prefix) + YY (Year) + 7-digit sequence
+        // e.g. 896260001001
+        $prefix = 'BC-' . date('y') . '-';
+
+        return DB::transaction(function () use ($prefix, $itemCode) {
+            $seqNumber = null;
+            if ($itemCode && preg_match('/-(\d+)$/', $itemCode, $matches)) {
+                $seqNumber = intval($matches[1]);
+            }
+
+            if ($seqNumber !== null) {
+                return '896' . date('y') . str_pad((string) $seqNumber, 7, '0', STR_PAD_LEFT);
+            }
+
+            $sequence = DB::table('system_sequences')
+                ->where('prefix', $prefix)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$sequence) {
+                $maxSeq = DB::table('pharmacy_medicines')
+                    ->where('barcode', 'like', '896' . date('y') . '%')
+                    ->get()
+                    ->map(function ($row) {
+                        return intval(substr($row->barcode, 5));
+                    })
+                    ->max();
+
+                $startVal = $maxSeq ? $maxSeq + 1 : 1;
+
+                DB::table('system_sequences')->insert([
+                    'prefix' => $prefix,
+                    'current_value' => $startVal,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $nextVal = $startVal;
+            } else {
+                $nextVal = $sequence->current_value + 1;
+                DB::table('system_sequences')
+                    ->where('prefix', $prefix)
+                    ->update([
+                        'current_value' => $nextVal,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            return '896' . date('y') . str_pad((string) $nextVal, 7, '0', STR_PAD_LEFT);
         });
     }
 
