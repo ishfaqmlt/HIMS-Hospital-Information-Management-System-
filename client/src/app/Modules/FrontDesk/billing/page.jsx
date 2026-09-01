@@ -175,11 +175,12 @@ export default function BillingPage() {
     return Number(serviceObj.DefaultCharges) || 0;
   };
 
-  const fetchTokenNo = async (serviceList) => {
-    const consultant = getValues("selectedConsultant");
-    const hasPrintToken = (serviceList || []).some((s) => {
+  const fetchTokenNo = async (serviceList, consultantOverride) => {
+    const consultant = consultantOverride !== undefined ? consultantOverride : getValues("selectedConsultant");
+    const currentServices = serviceList || getValues("services") || [];
+    const hasPrintToken = currentServices.some((s) => {
       const svc = services.find((sv) => sv.id === s.serviceId);
-      return svc && svc.printToken;
+      return svc && (svc.printToken === 1 || svc.printToken === true || svc.printToken === "1" || Boolean(svc.printToken));
     });
     if (!hasPrintToken || !consultant || consultant === "self" || !selectedPatient) {
       setValue("tokenNo", "");
@@ -223,7 +224,7 @@ export default function BillingPage() {
     }
     const serviceObj = services.find((s) => s.id === serviceId);
     const fee = getServiceFee(serviceObj);
-    append({
+    const newService = {
       id: Date.now(),
       serviceId: serviceObj.id,
       serviceCode: serviceObj?.Code || "",
@@ -233,14 +234,16 @@ export default function BillingPage() {
       sharePercent: 0,
       shareAmount: 0,
       flag: "I",
-    });
-    const updatedServices = [...currentServices, { id: Date.now(), serviceId: serviceObj.id, fee, qty: 1 }];
+    };
+    append(newService);
+    const updatedServices = [...currentServices, newService];
     if (!getValues("selectedDepartment") && serviceObj) {
       setValue("selectedDepartment", serviceObj.DepartmentId);
     }
     setValue("selectedService", "");
     setServicePopoverOpen(false);
     updateTotals(updatedServices);
+    fetchTokenNo(updatedServices);
     setTimeout(() => serviceTriggerRef.current?.focus(), 0);
   };
 
@@ -253,6 +256,7 @@ export default function BillingPage() {
     remove(index);
     const updatedServices = getValues("services").filter((_, i) => i !== index);
     updateTotals(updatedServices);
+    fetchTokenNo(updatedServices);
   };
 
   const handleServiceCodeSearch = () => {
@@ -305,6 +309,7 @@ export default function BillingPage() {
       const updated = [...currentServices, ...newServices];
       replace(updated);
       updateTotals(updated);
+      fetchTokenNo(updated);
     }
     setServiceCodeSearch("");
   };
@@ -710,43 +715,35 @@ export default function BillingPage() {
 
       const hasPrintToken = (formData.services || []).some((s) => {
         const svc = services.find((sv) => sv.id === s.serviceId);
-        return svc && (svc.printToken === 1 || svc.printToken === true || svc.printToken === "1");
+        return svc && (svc.printToken === 1 || svc.printToken === true || svc.printToken === "1" || Boolean(svc.printToken));
       });
       const tokenNoToSave = (hasPrintToken && formData.tokenNo) ? Number(formData.tokenNo) : null;
 
+      const payload = {
+        visitId: visitIdToUse,
+        DepartmentId: formData.selectedDepartment || null,
+        DoctorId: formData.selectedConsultant || null,
+        tokenNo: tokenNoToSave,
+        services: formData.services || [],
+        InvoiceDate: formData.regDate || new Date().toISOString(),
+        SubTotal: totalBill,
+        Discount: formData.discount,
+        TotalAmount: netAmount,
+        PaymentStatus: formData.paid >= netAmount ? "Paid" : formData.paid > 0 ? "Partial" : "Pending",
+        BillType: "Normal",
+        Notes: formData.remarks || null,
+      };
+
       let billingRes;
       if (editingInvoiceId) {
-        billingRes = await billingService.update(editingInvoiceId, {
-          visitId: visitIdToUse,
-          DepartmentId: formData.selectedDepartment || null,
-          DoctorId: formData.selectedConsultant || null,
-          tokenNo: tokenNoToSave,
-          InvoiceDate: formData.regDate || new Date().toISOString(),
-          SubTotal: totalBill,
-          Discount: formData.discount,
-          TotalAmount: netAmount,
-          PaymentStatus: formData.paid >= netAmount ? "Paid" : formData.paid > 0 ? "Partial" : "Pending",
-          BillType: "Normal",
-          Notes: formData.remarks || null,
-        });
+        billingRes = await billingService.update(editingInvoiceId, payload);
       } else {
-        billingRes = await billingService.create({
-          visitId: visitIdToUse,
-          DepartmentId: formData.selectedDepartment || null,
-          DoctorId: formData.selectedConsultant || null,
-          tokenNo: tokenNoToSave,
-          InvoiceDate: formData.regDate || new Date().toISOString(),
-          SubTotal: totalBill,
-          Discount: formData.discount,
-          TotalAmount: netAmount,
-          PaymentStatus: formData.paid >= netAmount ? "Paid" : formData.paid > 0 ? "Partial" : "Pending",
-          BillType: "Normal",
-          Notes: formData.remarks || null,
-        });
+        billingRes = await billingService.create(payload);
       }
 
       const billingId = billingRes.data.id || billingRes.data.Id;
       const invoiceNo = billingRes.data.InvoiceNo;
+      const finalTokenNo = billingRes.data.tokenNo || tokenNoToSave;
 
       const detailPromises = formData.services.map((svc) => {
         if (svc.flag === "U" && svc.billingDetailId) {
@@ -831,7 +828,7 @@ export default function BillingPage() {
           id: billingId,
           InvoiceNo: invoiceNo,
           InvoiceDate: formData.regDate || new Date().toISOString(),
-          tokenNo: tokenNoToSave,
+          tokenNo: finalTokenNo,
           mrn: selectedPatient?.mrn || billingRes.data?.patient_mrn || "-",
           patient_mrn: selectedPatient?.mrn || billingRes.data?.patient_mrn || "-",
           patientName: selectedPatient?.pName || selectedPatient?.name || billingRes.data?.patient_name || "-",

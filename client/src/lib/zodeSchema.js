@@ -480,6 +480,21 @@ export const masterDiagnosisSchema = z.object({
   is_active: z.coerce.boolean().default(true),
 });
 
+export const masterFrequencySchema = z.object({
+  frequency: z.string().min(1, "Frequency is required").max(191),
+  isActive: z.coerce.boolean().default(true),
+});
+
+export const masterDurationSchema = z.object({
+  duration: z.string().min(1, "Duration is required").max(191),
+  isActive: z.coerce.boolean().default(true),
+});
+
+export const masterInstructionSchema = z.object({
+  instruction: z.string().min(1, "Instruction is required").max(191),
+  isActive: z.coerce.boolean().default(true),
+});
+
 export const opdPrescriptionSchema = z.object({
   visitId: z.string().min(1, "Patient visit is required"),
   patientId: z.string().min(1, "Patient is required"),

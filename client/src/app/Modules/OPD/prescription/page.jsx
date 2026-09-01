@@ -35,6 +35,9 @@ import departmentService from "@/services/department.service";
 import patientService from "@/services/patient.service";
 import opdPrescriptionService from "@/services/opdPrescription.service";
 import pharmacyMedicineService from "@/services/pharmacyMedicine.service";
+import masterFrequencyService from "@/services/masterFrequency.service";
+import masterDurationService from "@/services/masterDuration.service";
+import masterInstructionService from "@/services/masterInstruction.service";
 import labCaseService from "@/services/labCase.service";
 import hospitalProfileService from "@/services/hospitalProfile.service";
 import hospitalOutputSettingService from "@/services/hospitalOutputSetting.service";
@@ -46,6 +49,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Printer,
@@ -230,12 +240,17 @@ export default function OPDPrescriptionPage() {
   const [selectedFormFilter, setSelectedFormFilter] = useState("all");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("all");
   const [selectedMedicinesDraft, setSelectedMedicinesDraft] = useState([]);
+  const [masterFrequencies, setMasterFrequencies] = useState([]);
+  const [masterDurations, setMasterDurations] = useState([]);
+  const [masterInstructions, setMasterInstructions] = useState([]);
+  const [loadingMasterRegimens, setLoadingMasterRegimens] = useState(false);
 
   const targetVisitId = activePatient?.visit_id || activePatient?.visitId || activePatient?.id || activePatient?.Id;
 
   useEffect(() => {
     fetchHeaderData();
     fetchPatientVitals();
+    fetchMasterRegimens();
     fetchCurrentPrescription(targetVisitId, targetPatientId);
     fetchPatientSymptoms(currentPrescription?.id, targetPatientId, targetVisitId);
     fetchPatientExams(currentPrescription?.id, targetPatientId, targetVisitId);
@@ -594,15 +609,15 @@ export default function OPDPrescriptionPage() {
         setVitals({
           bp:
             latest.blood_pressure || (latest.systolic && latest.diastolic)
-              ? (latest.blood_pressure || `${latest.systolic}/${latest.diastolic}`) + " mmHg"
+              ? (latest.blood_pressure || `${latest.systolic}/${latest.diastolic}`)
               : latest.systolic
-              ? `${latest.systolic} mmHg`
+              ? `${latest.systolic}`
               : null,
-          pulse: latest.pulse_rate ? `${latest.pulse_rate} bpm` : null,
-          temp: latest.temperature ? `${latest.temperature} °F` : null,
-          weight: latest.weight ? `${latest.weight} kg` : null,
-          spo2: latest.spo2 ? `${latest.spo2}%` : null,
-          bsr: latest.bsr ? `${latest.bsr} mg/dL` : null,
+          pulse: latest.pulse_rate ? String(latest.pulse_rate) : null,
+          temp: latest.temperature ? String(latest.temperature) : null,
+          weight: latest.weight ? String(latest.weight) : null,
+          spo2: latest.spo2 ? String(latest.spo2) : null,
+          bsr: latest.bsr ? String(latest.bsr) : null,
         });
 
         resetVital({
@@ -729,14 +744,19 @@ export default function OPDPrescriptionPage() {
         }
       }
 
-      setVitals({
-        bp: data.systolic || data.diastolic ? `${data.systolic || ""}/${data.diastolic || ""} mmHg` : null,
-        pulse: data.pulse_rate ? `${data.pulse_rate} bpm` : null,
-        temp: data.temperature ? `${data.temperature} °F` : null,
-        weight: data.weight ? `${data.weight} kg` : null,
-        spo2: data.spo2 ? `${data.spo2}%` : null,
-        bsr: data.bsr ? `${data.bsr} mg/dL` : null,
-      });
+      const formattedVitals = {
+        bp:
+          data.systolic || data.diastolic
+            ? `${data.systolic || ""}/${data.diastolic || ""}`
+            : data.blood_pressure || null,
+        pulse: data.pulse_rate ? String(data.pulse_rate) : null,
+        temp: data.temperature ? String(data.temperature) : null,
+        weight: data.weight ? String(data.weight) : null,
+        spo2: data.spo2 ? String(data.spo2) : null,
+        bsr: data.bsr ? String(data.bsr) : null,
+      };
+
+      setVitals(formattedVitals);
 
       setMessage({
         type: "success",
@@ -744,7 +764,6 @@ export default function OPDPrescriptionPage() {
       });
       setIsVitalsOpen(false);
       setDialogError(null);
-      resetVital();
     } catch (err) {
       console.error("Failed to save patient vitals:", err);
       const errMsg =
@@ -815,16 +834,29 @@ export default function OPDPrescriptionPage() {
   const onSubmitHistory = async (data) => {
     try {
       setDialogError(null);
-      if (!targetPatientId) {
+      let pId = targetPatientId;
+      if (!pId) {
+        try {
+          const patientsRes = await patientService.getAll().catch(() => ({ data: [] }));
+          const patientsList = Array.isArray(patientsRes.data) ? patientsRes.data : patientsRes.data?.data || [];
+          if (patientsList.length > 0) {
+            pId = patientsList[0].id;
+          }
+        } catch (e) {
+          console.error("Failed to fetch fallback patient for history:", e);
+        }
+      }
+
+      if (!pId) {
         setDialogError("Please select a patient first to record medical history.");
         return;
       }
       const payload = {
         ...data,
-        patientId: targetPatientId,
+        patientId: pId,
       };
       const res = await opdHistoryService.create(payload);
-      setPatientHistory(res.data);
+      setPatientHistory(res.data || payload);
       setMessage({ type: "success", text: "Patient medical history saved successfully!" });
       setIsHistoryOpen(false);
     } catch (err) {
@@ -1230,6 +1262,33 @@ export default function OPDPrescriptionPage() {
     }
   };
 
+  const fetchMasterRegimens = async () => {
+    try {
+      setLoadingMasterRegimens(true);
+      const [freqRes, durRes, instRes] = await Promise.all([
+        masterFrequencyService.getAll({ isActive: true }),
+        masterDurationService.getAll({ isActive: true }),
+        masterInstructionService.getAll({ isActive: true }),
+      ]);
+      const rawFreq = Array.isArray(freqRes.data) ? freqRes.data : freqRes.data?.data || [];
+      const rawDur = Array.isArray(durRes.data) ? durRes.data : durRes.data?.data || [];
+      const rawInst = Array.isArray(instRes.data) ? instRes.data : instRes.data?.data || [];
+
+      // Deduplicate by trimmed label
+      const freqList = Array.from(new Map(rawFreq.filter((f) => f.frequency?.trim()).map((f) => [f.frequency.trim(), f])).values());
+      const durList = Array.from(new Map(rawDur.filter((d) => d.duration?.trim()).map((d) => [d.duration.trim(), d])).values());
+      const instList = Array.from(new Map(rawInst.filter((i) => i.instruction?.trim()).map((i) => [i.instruction.trim(), i])).values());
+
+      setMasterFrequencies(freqList);
+      setMasterDurations(durList);
+      setMasterInstructions(instList);
+    } catch (err) {
+      console.error("Failed to fetch master prescription regimens:", err);
+    } finally {
+      setLoadingMasterRegimens(false);
+    }
+  };
+
   const fetchMasterMedicines = async () => {
     try {
       setLoadingMasterMedicines(true);
@@ -1261,6 +1320,7 @@ export default function OPDPrescriptionPage() {
     }));
     setSelectedMedicinesDraft(drafts);
     fetchMasterMedicines();
+    fetchMasterRegimens();
     setIsMedicationOpen(true);
   };
 
@@ -2023,12 +2083,36 @@ export default function OPDPrescriptionPage() {
                     VITALS:
                   </span>
                   <div className="flex flex-wrap items-center gap-3 text-xs text-slate-700">
-                    {vitals.bp && <span>BP: <strong className="text-slate-950 font-bold font-mono">{vitals.bp}</strong></span>}
-                    {vitals.pulse && <span>Pulse: <strong className="text-slate-950 font-bold font-mono">{vitals.pulse} bpm</strong></span>}
-                    {vitals.temp && <span>Temp: <strong className="text-slate-950 font-bold font-mono">{vitals.temp} °F</strong></span>}
-                    {vitals.weight && <span>Weight: <strong className="text-slate-950 font-bold font-mono">{vitals.weight} kg</strong></span>}
-                    {vitals.spo2 && <span>SpO2: <strong className="text-slate-950 font-bold font-mono">{vitals.spo2}%</strong></span>}
-                    {vitals.bsr && <span>BSR: <strong className="text-slate-950 font-bold font-mono">{vitals.bsr} mg/dL</strong></span>}
+                    {vitals.bp && (
+                      <span>
+                        BP: <strong className="text-slate-950 font-bold font-mono">{String(vitals.bp).includes("mmHg") ? vitals.bp : `${vitals.bp} mmHg`}</strong>
+                      </span>
+                    )}
+                    {vitals.pulse && (
+                      <span>
+                        Pulse: <strong className="text-slate-950 font-bold font-mono">{String(vitals.pulse).includes("bpm") ? vitals.pulse : `${vitals.pulse} bpm`}</strong>
+                      </span>
+                    )}
+                    {vitals.temp && (
+                      <span>
+                        Temp: <strong className="text-slate-950 font-bold font-mono">{String(vitals.temp).includes("°F") ? vitals.temp : `${vitals.temp} °F`}</strong>
+                      </span>
+                    )}
+                    {vitals.weight && (
+                      <span>
+                        Weight: <strong className="text-slate-950 font-bold font-mono">{String(vitals.weight).includes("kg") ? vitals.weight : `${vitals.weight} kg`}</strong>
+                      </span>
+                    )}
+                    {vitals.spo2 && (
+                      <span>
+                        SpO2: <strong className="text-slate-950 font-bold font-mono">{String(vitals.spo2).includes("%") ? vitals.spo2 : `${vitals.spo2}%`}</strong>
+                      </span>
+                    )}
+                    {vitals.bsr && (
+                      <span>
+                        BSR: <strong className="text-slate-950 font-bold font-mono">{String(vitals.bsr).includes("mg/dL") ? vitals.bsr : `${vitals.bsr} mg/dL`}</strong>
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
@@ -2052,10 +2136,24 @@ export default function OPDPrescriptionPage() {
               ) && (
                 <div className="border border-slate-200 rounded-lg p-3 mb-4 bg-white space-y-2.5 shadow-2xs">
                   {/* Row 1: Symptoms & History */}
-                  {((patientSymptoms && patientSymptoms.length > 0) || (patientHistory && (patientHistory.past_medical_history || patientHistory.medication_history || patientHistory.allergy_history))) && (
+                  {((patientSymptoms && patientSymptoms.length > 0) || (patientHistory && (
+                    patientHistory.past_medical_history ||
+                    patientHistory.past_surgical_history ||
+                    patientHistory.medication_history ||
+                    patientHistory.allergy_history ||
+                    patientHistory.family_history ||
+                    patientHistory.social_history
+                  ))) && (
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-3 text-xs">
                       {patientSymptoms && patientSymptoms.length > 0 && (
-                        <div className="md:col-span-6 space-y-1">
+                        <div className={(patientHistory && (
+                          patientHistory.past_medical_history ||
+                          patientHistory.past_surgical_history ||
+                          patientHistory.medication_history ||
+                          patientHistory.allergy_history ||
+                          patientHistory.family_history ||
+                          patientHistory.social_history
+                        )) ? "md:col-span-6 space-y-1" : "md:col-span-12 space-y-1"}>
                           <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
                             <Sparkles className="h-3 w-3 text-amber-600" />
                             Presenting Symptoms:
@@ -2073,8 +2171,15 @@ export default function OPDPrescriptionPage() {
                         </div>
                       )}
 
-                      {patientHistory && (patientHistory.past_medical_history || patientHistory.medication_history || patientHistory.allergy_history) && (
-                        <div className="md:col-span-6 space-y-1">
+                      {patientHistory && (
+                        patientHistory.past_medical_history ||
+                        patientHistory.past_surgical_history ||
+                        patientHistory.medication_history ||
+                        patientHistory.allergy_history ||
+                        patientHistory.family_history ||
+                        patientHistory.social_history
+                      ) && (
+                        <div className={(patientSymptoms && patientSymptoms.length > 0) ? "md:col-span-6 space-y-1" : "md:col-span-12 space-y-1"}>
                           <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
                             <FileText className="h-3 w-3 text-blue-600" />
                             Patient Medical History:
@@ -2088,6 +2193,15 @@ export default function OPDPrescriptionPage() {
                             )}
                             {patientHistory.past_medical_history && (
                               <p><strong className="text-slate-900">Medical:</strong> {patientHistory.past_medical_history}</p>
+                            )}
+                            {patientHistory.past_surgical_history && (
+                              <p><strong className="text-slate-900">Surgical:</strong> {patientHistory.past_surgical_history}</p>
+                            )}
+                            {patientHistory.family_history && (
+                              <p><strong className="text-slate-900">Family:</strong> {patientHistory.family_history}</p>
+                            )}
+                            {patientHistory.social_history && (
+                              <p><strong className="text-slate-900">Social:</strong> {patientHistory.social_history}</p>
                             )}
                           </div>
                         </div>
@@ -2220,14 +2334,14 @@ export default function OPDPrescriptionPage() {
                               )}
                             </td>
                             <td className="py-2.5 px-2 text-center border-r border-slate-200">
-                              <span className="font-mono font-bold text-teal-900 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded text-[11px] inline-block shadow-2xs">
+                              <span className="font-mono font-bold text-teal-900 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded text-[11px] inline-block shadow-2xs" dir="auto">
                                 {med.dosage}
                               </span>
                             </td>
-                            <td className="py-2.5 px-2 text-center border-r border-slate-200 font-semibold text-xs text-slate-800">
+                            <td className="py-2.5 px-2 text-center border-r border-slate-200 font-semibold text-xs text-slate-800" dir="auto">
                               {med.duration}
                             </td>
-                            <td className="py-2.5 px-3 text-left text-slate-700 font-medium text-xs">
+                            <td className="py-2.5 px-3 text-left text-slate-700 font-medium text-xs" dir="auto">
                               {med.instruction}
                             </td>
                           </tr>
@@ -3910,95 +4024,104 @@ export default function OPDPrescriptionPage() {
                       </div>
 
                       {/* Dosage, Duration, and Instructions Configuration Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs bg-white p-3 rounded-lg border border-slate-200/90 shadow-2xs">
                         {/* Dosage / Frequency */}
-                        <div className="space-y-1">
-                          <Label className="text-[11px] font-semibold text-slate-700">
-                            Dosage / Frequency
-                          </Label>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-[11px] font-bold text-slate-800">
+                              Frequency
+                            </Label>
+                            <span className="text-[10px] text-muted-foreground">Select or type</span>
+                          </div>
+                          <Select
+                            value={masterFrequencies.some((f) => f.frequency === item.dosage) ? item.dosage : undefined}
+                            onValueChange={(val) => handleUpdateMedicineDraft(index, "dosage", val)}
+                          >
+                            <SelectTrigger className="w-full h-8 text-xs bg-slate-50/70 hover:bg-slate-100 border-slate-300">
+                              <SelectValue placeholder="Select Frequency..." />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-56">
+                              {masterFrequencies.map((f) => (
+                                <SelectItem key={f.id || f.frequency} value={f.frequency} dir="auto" className="text-xs font-medium">
+                                  {f.frequency}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <Input
                             type="text"
-                            value={item.dosage}
+                            dir="auto"
+                            value={item.dosage || ""}
                             onChange={(e) => handleUpdateMedicineDraft(index, "dosage", e.target.value)}
-                            placeholder="e.g. 1-0-1"
-                            className="h-7 text-xs bg-white font-mono font-bold text-teal-900"
+                            placeholder="e.g. 1-0-1 or custom"
+                            className="h-7 text-xs bg-white font-mono font-bold text-teal-900 border-slate-200"
                           />
-                          <div className="flex flex-wrap gap-1 pt-0.5">
-                            {["1-0-1", "1-1-1", "1-0-0", "0-0-1", "SOS", "Stat"].map((freq) => (
-                              <button
-                                key={freq}
-                                type="button"
-                                onClick={() => handleUpdateMedicineDraft(index, "dosage", freq)}
-                                className={`text-[10px] px-1.5 py-0.5 rounded border transition-all ${
-                                  item.dosage === freq
-                                    ? "bg-teal-600 text-white font-bold border-teal-600 shadow-2xs"
-                                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
-                                }`}
-                              >
-                                {freq}
-                              </button>
-                            ))}
-                          </div>
                         </div>
 
                         {/* Duration */}
-                        <div className="space-y-1">
-                          <Label className="text-[11px] font-semibold text-slate-700">
-                            Duration
-                          </Label>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-[11px] font-bold text-slate-800">
+                              Duration
+                            </Label>
+                            <span className="text-[10px] text-muted-foreground">Select or type</span>
+                          </div>
+                          <Select
+                            value={masterDurations.some((d) => d.duration === item.duration) ? item.duration : undefined}
+                            onValueChange={(val) => handleUpdateMedicineDraft(index, "duration", val)}
+                          >
+                            <SelectTrigger className="w-full h-8 text-xs bg-slate-50/70 hover:bg-slate-100 border-slate-300">
+                              <SelectValue placeholder="Select Duration..." />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-56">
+                              {masterDurations.map((d) => (
+                                <SelectItem key={d.id || d.duration} value={d.duration} dir="auto" className="text-xs font-medium">
+                                  {d.duration}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <Input
                             type="text"
-                            value={item.duration}
+                            dir="auto"
+                            value={item.duration || ""}
                             onChange={(e) => handleUpdateMedicineDraft(index, "duration", e.target.value)}
-                            placeholder="e.g. 5 Days"
-                            className="h-7 text-xs bg-white font-medium"
+                            placeholder="e.g. 5 Days or custom"
+                            className="h-7 text-xs bg-white font-medium text-slate-800 border-slate-200"
                           />
-                          <div className="flex flex-wrap gap-1 pt-0.5">
-                            {["3 Days", "5 Days", "7 Days", "14 Days", "1 Month"].map((dur) => (
-                              <button
-                                key={dur}
-                                type="button"
-                                onClick={() => handleUpdateMedicineDraft(index, "duration", dur)}
-                                className={`text-[10px] px-1.5 py-0.5 rounded border transition-all ${
-                                  item.duration === dur
-                                    ? "bg-emerald-600 text-white font-bold border-emerald-600 shadow-2xs"
-                                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
-                                }`}
-                              >
-                                {dur}
-                              </button>
-                            ))}
-                          </div>
                         </div>
 
                         {/* Instructions */}
-                        <div className="space-y-1 sm:col-span-1">
-                          <Label className="text-[11px] font-semibold text-slate-700">
-                            Instructions
-                          </Label>
+                        <div className="space-y-1.5 sm:col-span-1">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-[11px] font-bold text-slate-800">
+                              Instructions
+                            </Label>
+                            <span className="text-[10px] text-muted-foreground">Select or type</span>
+                          </div>
+                          <Select
+                            value={masterInstructions.some((inst) => inst.instruction === item.instruction) ? item.instruction : undefined}
+                            onValueChange={(val) => handleUpdateMedicineDraft(index, "instruction", val)}
+                          >
+                            <SelectTrigger className="w-full h-8 text-xs bg-slate-50/70 hover:bg-slate-100 border-slate-300">
+                              <SelectValue placeholder="Select Instruction..." />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-56">
+                              {masterInstructions.map((inst) => (
+                                <SelectItem key={inst.id || inst.instruction} value={inst.instruction} dir="auto" className="text-xs font-medium">
+                                  {inst.instruction}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <Input
                             type="text"
-                            value={item.instruction}
+                            dir="auto"
+                            value={item.instruction || ""}
                             onChange={(e) => handleUpdateMedicineDraft(index, "instruction", e.target.value)}
-                            placeholder="e.g. After meals"
-                            className="h-7 text-xs bg-white font-medium"
+                            placeholder="e.g. After meals or custom"
+                            className="h-7 text-xs bg-white font-medium text-slate-800 border-slate-200"
                           />
-                          <div className="flex flex-wrap gap-1 pt-0.5">
-                            {["After meals", "Before meals", "At bedtime", "Empty stomach"].map((inst) => (
-                              <button
-                                key={inst}
-                                type="button"
-                                onClick={() => handleUpdateMedicineDraft(index, "instruction", inst)}
-                                className={`text-[10px] px-1.5 py-0.5 rounded border transition-all ${
-                                  item.instruction === inst
-                                    ? "bg-indigo-600 text-white font-bold border-indigo-600 shadow-2xs"
-                                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
-                                }`}
-                              >
-                                {inst}
-                              </button>
-                            ))}
-                          </div>
                         </div>
                       </div>
                     </div>

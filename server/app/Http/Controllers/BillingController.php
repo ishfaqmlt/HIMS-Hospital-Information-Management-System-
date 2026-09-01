@@ -245,6 +245,7 @@ class BillingController extends Controller
             'DepartmentId' => 'nullable|string|exists:departments,id',
             'DoctorId' => 'nullable|string|exists:doctors,id',
             'tokenNo' => 'nullable|integer',
+            'services' => 'nullable|array',
             'InvoiceDate' => 'required|date',
             'SubTotal' => 'required|numeric|min:0',
             'Discount' => 'required|numeric|min:0',
@@ -255,20 +256,42 @@ class BillingController extends Controller
             'Notes' => 'nullable|string',
         ]);
 
-        return DB::transaction(function () use ($validated) {
-            // Only handle appointment / tokenNo if tokenNo is explicitly provided and > 0
-            if (!empty($validated['DoctorId']) && !empty($validated['tokenNo']) && intval($validated['tokenNo']) > 0) {
-                $validated['tokenNo'] = intval($validated['tokenNo']);
-                $mrn = DB::table('patient_visits')
-                    ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.id')
-                    ->where('patient_visits.id', $validated['visitId'])
-                    ->value('patients.mrn');
+        return DB::transaction(function () use ($validated, $request) {
+            $servicesInput = $request->input('services', []);
+            $hasPrintTokenService = false;
+            if (!empty($servicesInput)) {
+                $serviceIds = array_filter(array_map(fn($s) => $s['serviceId'] ?? ($s['id'] ?? null), $servicesInput));
+                if (!empty($serviceIds)) {
+                    $hasPrintTokenService = DB::table('services')
+                        ->whereIn('id', $serviceIds)
+                        ->where('printToken', 1)
+                        ->exists();
+                }
+            }
+
+            $mrn = DB::table('patient_visits')
+                ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.id')
+                ->where('patient_visits.id', $validated['visitId'])
+                ->value('patients.mrn');
+
+            $doctorId = $validated['DoctorId'] ?? null;
+            $tokenNeeded = (!empty($doctorId)) && (
+                (!empty($validated['tokenNo']) && intval($validated['tokenNo']) > 0) ||
+                $hasPrintTokenService
+            );
+
+            if ($tokenNeeded) {
+                if (empty($validated['tokenNo']) || intval($validated['tokenNo']) <= 0) {
+                    $validated['tokenNo'] = self::generateNextTokenNo($doctorId, $mrn);
+                } else {
+                    $validated['tokenNo'] = intval($validated['tokenNo']);
+                }
 
                 $today = now()->toDateString();
                 $existingAppt = null;
                 if ($mrn) {
                     $existingAppt = DB::table('patient_appointments')
-                        ->where('DoctorId', $validated['DoctorId'])
+                        ->where('DoctorId', $doctorId)
                         ->where('mrn', $mrn)
                         ->whereDate('Appointmentat', $today)
                         ->whereIn('Status', ['Pending', 'Booked'])
@@ -286,10 +309,10 @@ class BillingController extends Controller
                                 'updated_at' => now(),
                             ]);
                     }
-                } else if ($mrn) {
+                } else if ($mrn && $validated['tokenNo']) {
                     DB::table('patient_appointments')->insert([
                         'Id' => (string) Str::uuid(),
-                        'DoctorId' => $validated['DoctorId'],
+                        'DoctorId' => $doctorId,
                         'mrn' => $mrn,
                         'Appointmentat' => now(),
                         'TokenNo' => $validated['tokenNo'],
@@ -303,6 +326,8 @@ class BillingController extends Controller
             } else {
                 $validated['tokenNo'] = null;
             }
+
+            unset($validated['services']);
 
             $validated['createdBy'] = Auth::id();
             $validated['id'] = (string) Str::uuid();
@@ -415,6 +440,7 @@ class BillingController extends Controller
             'DepartmentId' => 'nullable|string|exists:departments,id',
             'DoctorId' => 'nullable|string|exists:doctors,id',
             'tokenNo' => 'nullable|integer',
+            'services' => 'nullable|array',
             'InvoiceDate' => 'required|date',
             'SubTotal' => 'required|numeric|min:0',
             'Discount' => 'required|numeric|min:0',
@@ -424,20 +450,49 @@ class BillingController extends Controller
             'Notes' => 'nullable|string',
         ]);
 
-        return DB::transaction(function () use ($validated, $billing) {
-            // Only handle appointment / tokenNo if tokenNo is explicitly provided and > 0
-            if (!empty($validated['DoctorId']) && !empty($validated['tokenNo']) && intval($validated['tokenNo']) > 0) {
-                $validated['tokenNo'] = intval($validated['tokenNo']);
-                $mrn = DB::table('patient_visits')
-                    ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.id')
-                    ->where('patient_visits.id', $validated['visitId'])
-                    ->value('patients.mrn');
+        return DB::transaction(function () use ($validated, $billing, $request) {
+            $servicesInput = $request->input('services', []);
+            $hasPrintTokenService = false;
+            if (!empty($servicesInput)) {
+                $serviceIds = array_filter(array_map(fn($s) => $s['serviceId'] ?? ($s['id'] ?? null), $servicesInput));
+                if (!empty($serviceIds)) {
+                    $hasPrintTokenService = DB::table('services')
+                        ->whereIn('id', $serviceIds)
+                        ->where('printToken', 1)
+                        ->exists();
+                }
+            }
+            if (!$hasPrintTokenService) {
+                $hasPrintTokenService = DB::table('billing_details')
+                    ->join('services', 'billing_details.serviceId', '=', 'services.id')
+                    ->where('billing_details.BillingId', $billing->id)
+                    ->where('services.printToken', 1)
+                    ->exists();
+            }
+
+            $mrn = DB::table('patient_visits')
+                ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.id')
+                ->where('patient_visits.id', $validated['visitId'])
+                ->value('patients.mrn');
+
+            $doctorId = $validated['DoctorId'] ?? null;
+            $tokenNeeded = (!empty($doctorId)) && (
+                (!empty($validated['tokenNo']) && intval($validated['tokenNo']) > 0) ||
+                $hasPrintTokenService
+            );
+
+            if ($tokenNeeded) {
+                if (empty($validated['tokenNo']) || intval($validated['tokenNo']) <= 0) {
+                    $validated['tokenNo'] = self::generateNextTokenNo($doctorId, $mrn);
+                } else {
+                    $validated['tokenNo'] = intval($validated['tokenNo']);
+                }
 
                 $today = now()->toDateString();
                 $existingAppt = null;
                 if ($mrn) {
                     $existingAppt = DB::table('patient_appointments')
-                        ->where('DoctorId', $validated['DoctorId'])
+                        ->where('DoctorId', $doctorId)
                         ->where('mrn', $mrn)
                         ->whereDate('Appointmentat', $today)
                         ->whereIn('Status', ['Pending', 'Booked'])
@@ -455,10 +510,10 @@ class BillingController extends Controller
                                 'updated_at' => now(),
                             ]);
                     }
-                } else if ($mrn) {
+                } else if ($mrn && $validated['tokenNo']) {
                     DB::table('patient_appointments')->insert([
                         'Id' => (string) Str::uuid(),
-                        'DoctorId' => $validated['DoctorId'],
+                        'DoctorId' => $doctorId,
                         'mrn' => $mrn,
                         'Appointmentat' => now(),
                         'TokenNo' => $validated['tokenNo'],
@@ -472,6 +527,8 @@ class BillingController extends Controller
             } else {
                 $validated['tokenNo'] = null;
             }
+
+            unset($validated['services']);
 
             $oldTotal = DB::table('billings')->where('id', $billing->id)->lockForUpdate()->value('TotalAmount');
             $newTotal = $validated['TotalAmount'];

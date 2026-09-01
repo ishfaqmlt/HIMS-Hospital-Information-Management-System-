@@ -54,6 +54,52 @@ class BillingDetailController extends Controller
 
         $detail = BillingDetail::create($validated);
 
+        // Auto-assign token to parent billing if service has printToken = 1 and billing has no token yet
+        $service = \Illuminate\Support\Facades\DB::table('services')->where('id', $validated['serviceId'])->first();
+        if ($service && $service->printToken) {
+            $parentBilling = \Illuminate\Support\Facades\DB::table('billings')->where('id', $validated['BillingId'])->first();
+            if ($parentBilling && empty($parentBilling->tokenNo) && !empty($parentBilling->DoctorId)) {
+                $mrn = \Illuminate\Support\Facades\DB::table('patient_visits')
+                    ->leftJoin('patients', 'patient_visits.patientId', '=', 'patients.id')
+                    ->where('patient_visits.id', $parentBilling->visitId)
+                    ->value('patients.mrn');
+
+                $nextToken = BillingController::generateNextTokenNo($parentBilling->DoctorId, $mrn);
+                \Illuminate\Support\Facades\DB::table('billings')->where('id', $parentBilling->id)->update(['tokenNo' => $nextToken]);
+
+                if ($mrn) {
+                    $today = now()->toDateString();
+                    $existingAppt = \Illuminate\Support\Facades\DB::table('patient_appointments')
+                        ->where('DoctorId', $parentBilling->DoctorId)
+                        ->where('mrn', $mrn)
+                        ->whereDate('Appointmentat', $today)
+                        ->whereIn('Status', ['Pending', 'Booked'])
+                        ->first();
+
+                    if ($existingAppt) {
+                        if ($existingAppt->Status === 'Pending') {
+                            \Illuminate\Support\Facades\DB::table('patient_appointments')
+                                ->where('Id', $existingAppt->Id)
+                                ->update(['Status' => 'Booked', 'TokenNo' => $nextToken, 'updated_at' => now()]);
+                        }
+                    } else {
+                        \Illuminate\Support\Facades\DB::table('patient_appointments')->insert([
+                            'Id' => (string) \Illuminate\Support\Str::uuid(),
+                            'DoctorId' => $parentBilling->DoctorId,
+                            'mrn' => $mrn,
+                            'Appointmentat' => now(),
+                            'TokenNo' => $nextToken,
+                            'Status' => 'Booked',
+                            'Remarks' => 'Auto-created from Billing Detail',
+                            'CreatedBy' => Auth::id() ?: 1,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
+            }
+        }
+
         return response()->json($detail->load(['billing', 'service', 'createdByUser']), 201);
     }
 

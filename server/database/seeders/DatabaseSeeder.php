@@ -31,6 +31,9 @@ class DatabaseSeeder extends Seeder
             PharmacyMasterSeeder::class,
             PharmacySupplierSeeder::class,
             PharmacyMedicineSeeder::class,
+            MasterFrequencySeeder::class,
+            MasterDurationSeeder::class,
+            MasterInstructionSeeder::class,
         ]);
     }
 }

@@ -29,6 +29,7 @@ import {
   Settings,
   ChevronDown,
   AlertTriangle,
+  Clock,
 } from "lucide-react";
 
 export const OPDContext = createContext({
@@ -50,6 +51,57 @@ const opdMenuItems = [
     icon: Pill,
     href: "/Modules/OPD/prescription",
     permission: "view_opd_prescription",
+  },
+];
+
+const masterSettingsItems = [
+  {
+    label: "Symptoms",
+    icon: Activity,
+    href: "/Modules/OPD/MasterSettings/Symptoms",
+    color: "text-teal-600",
+  },
+  {
+    label: "Allergies",
+    icon: AlertTriangle,
+    href: "/Modules/OPD/MasterSettings/Allergies",
+    color: "text-amber-600",
+  },
+  {
+    label: "Physical Exam",
+    icon: Stethoscope,
+    href: "/Modules/OPD/MasterSettings/PhysicalExam",
+    color: "text-blue-600",
+  },
+  {
+    label: "Diagnosis",
+    icon: Brain,
+    href: "/Modules/OPD/MasterSettings/Diagnosis",
+    color: "text-purple-600",
+  },
+  {
+    label: "Medication",
+    icon: Pill,
+    href: "/Modules/OPD/MasterSettings/Medication",
+    color: "text-emerald-600",
+  },
+  {
+    label: "Frequency",
+    icon: Clock,
+    href: "/Modules/OPD/MasterSettings/Frequency",
+    color: "text-indigo-600",
+  },
+  {
+    label: "Duration",
+    icon: Calendar,
+    href: "/Modules/OPD/MasterSettings/Duration",
+    color: "text-rose-600",
+  },
+  {
+    label: "Instructions",
+    icon: FileText,
+    href: "/Modules/OPD/MasterSettings/Instructions",
+    color: "text-cyan-600",
   },
 ];
 
@@ -142,36 +194,17 @@ export default function OPDLayout({ children }) {
                   OPD Master Settings
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <Link href="/Modules/OPD/MasterSettings/Symptoms">
-                  <DropdownMenuItem className="text-xs cursor-pointer py-2">
-                    <Activity className="h-3.5 w-3.5 mr-2.5 text-teal-600" />
-                    <span>Symptoms</span>
-                  </DropdownMenuItem>
-                </Link>
-                <Link href="/Modules/OPD/MasterSettings/Allergies">
-                  <DropdownMenuItem className="text-xs cursor-pointer py-2">
-                    <AlertTriangle className="h-3.5 w-3.5 mr-2.5 text-amber-600" />
-                    <span>Allergies</span>
-                  </DropdownMenuItem>
-                </Link>
-                <Link href="/Modules/OPD/MasterSettings/PhysicalExam">
-                  <DropdownMenuItem className="text-xs cursor-pointer py-2">
-                    <Stethoscope className="h-3.5 w-3.5 mr-2.5 text-blue-600" />
-                    <span>Physical Exam</span>
-                  </DropdownMenuItem>
-                </Link>
-                <Link href="/Modules/OPD/MasterSettings/Diagnosis">
-                  <DropdownMenuItem className="text-xs cursor-pointer py-2">
-                    <Brain className="h-3.5 w-3.5 mr-2.5 text-purple-600" />
-                    <span>Diagnosis</span>
-                  </DropdownMenuItem>
-                </Link>
-                <Link href="/Modules/OPD/MasterSettings/Medication">
-                  <DropdownMenuItem className="text-xs cursor-pointer py-2">
-                    <Pill className="h-3.5 w-3.5 mr-2.5 text-emerald-600" />
-                    <span>Medication</span>
-                  </DropdownMenuItem>
-                </Link>
+                {masterSettingsItems.map((item, idx) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link key={idx} href={item.href}>
+                      <DropdownMenuItem className="text-xs cursor-pointer py-2">
+                        <Icon className={`h-3.5 w-3.5 mr-2.5 ${item.color || "text-teal-600"}`} />
+                        <span>{item.label}</span>
+                      </DropdownMenuItem>
+                    </Link>
+                  );
+                })}
               </DropdownMenuContent>
             </DropdownMenu>
           </nav>
