@@ -61,6 +61,7 @@ use App\Http\Controllers\OpdSymptomController;
 use App\Http\Controllers\OpdPhysicalExamController;
 use App\Http\Controllers\OpdDiagnosisController;
 use App\Http\Controllers\OpdInvestigationController;
+use App\Http\Controllers\OpdMedicationController;
 use App\Http\Controllers\AcceptSampleController;
 use App\Http\Controllers\TestPerformController;
 use Illuminate\Support\Facades\Route;
@@ -186,6 +187,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('opd-diagnoses', OpdDiagnosisController::class);
     Route::post('/opd-investigations/sync', [OpdInvestigationController::class, 'sync']);
     Route::apiResource('opd-investigations', OpdInvestigationController::class);
+    Route::post('/opd-medications/sync', [OpdMedicationController::class, 'sync']);
+    Route::apiResource('opd-medications', OpdMedicationController::class);
+    Route::apiResource('opd-medication', OpdMedicationController::class);
 
     // Patient Appointments
     Route::get('/patient-appointments/slots', [PatientAppointmentController::class, 'getSlots']);

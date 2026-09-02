@@ -52,12 +52,12 @@ class OpdHistoryController extends Controller
 
         if ($existing) {
             $updateData = [
-                'past_medical_history' => $validated['past_medical_history'] ?? $existing->past_medical_history,
-                'past_surgical_history' => $validated['past_surgical_history'] ?? $existing->past_surgical_history,
-                'medication_history' => $validated['medication_history'] ?? $existing->medication_history,
-                'allergy_history' => $validated['allergy_history'] ?? $existing->allergy_history,
-                'family_history' => $validated['family_history'] ?? $existing->family_history,
-                'social_history' => $validated['social_history'] ?? $existing->social_history,
+                'past_medical_history' => array_key_exists('past_medical_history', $validated) ? $validated['past_medical_history'] : $existing->past_medical_history,
+                'past_surgical_history' => array_key_exists('past_surgical_history', $validated) ? $validated['past_surgical_history'] : $existing->past_surgical_history,
+                'medication_history' => array_key_exists('medication_history', $validated) ? $validated['medication_history'] : $existing->medication_history,
+                'allergy_history' => array_key_exists('allergy_history', $validated) ? $validated['allergy_history'] : $existing->allergy_history,
+                'family_history' => array_key_exists('family_history', $validated) ? $validated['family_history'] : $existing->family_history,
+                'social_history' => array_key_exists('social_history', $validated) ? $validated['social_history'] : $existing->social_history,
                 'updated_by' => $userId,
                 'updated_at' => now(),
             ];
@@ -66,7 +66,20 @@ class OpdHistoryController extends Controller
                 ->where('id', $existing->id)
                 ->update($updateData);
 
-            $record = DB::table('opd_histories')->where('id', $existing->id)->first();
+            $record = DB::table('opd_histories')
+                ->leftJoin('patients', 'opd_histories.patientId', '=', 'patients.id')
+                ->leftJoin('users', 'opd_histories.updated_by', '=', 'users.id')
+                ->select(
+                    'opd_histories.*',
+                    'patients.mrn',
+                    'patients.pName as patientName',
+                    'patients.gender',
+                    'patients.dob',
+                    'users.name as updated_by_name'
+                )
+                ->where('opd_histories.id', $existing->id)
+                ->first();
+
             return response()->json($record, 200);
         }
 
@@ -88,7 +101,19 @@ class OpdHistoryController extends Controller
 
         DB::table('opd_histories')->insert($insertData);
 
-        $record = DB::table('opd_histories')->where('id', $id)->first();
+        $record = DB::table('opd_histories')
+            ->leftJoin('patients', 'opd_histories.patientId', '=', 'patients.id')
+            ->leftJoin('users', 'opd_histories.updated_by', '=', 'users.id')
+            ->select(
+                'opd_histories.*',
+                'patients.mrn',
+                'patients.pName as patientName',
+                'patients.gender',
+                'patients.dob',
+                'users.name as updated_by_name'
+            )
+            ->where('opd_histories.id', $id)
+            ->first();
 
         return response()->json($record, 201);
     }
@@ -133,19 +158,31 @@ class OpdHistoryController extends Controller
         ]);
 
         $updateData = [
-            'past_medical_history' => $validated['past_medical_history'] ?? $record->past_medical_history,
-            'past_surgical_history' => $validated['past_surgical_history'] ?? $record->past_surgical_history,
-            'medication_history' => $validated['medication_history'] ?? $record->medication_history,
-            'allergy_history' => $validated['allergy_history'] ?? $record->allergy_history,
-            'family_history' => $validated['family_history'] ?? $record->family_history,
-            'social_history' => $validated['social_history'] ?? $record->social_history,
+            'past_medical_history' => array_key_exists('past_medical_history', $validated) ? $validated['past_medical_history'] : $record->past_medical_history,
+            'past_surgical_history' => array_key_exists('past_surgical_history', $validated) ? $validated['past_surgical_history'] : $record->past_surgical_history,
+            'medication_history' => array_key_exists('medication_history', $validated) ? $validated['medication_history'] : $record->medication_history,
+            'allergy_history' => array_key_exists('allergy_history', $validated) ? $validated['allergy_history'] : $record->allergy_history,
+            'family_history' => array_key_exists('family_history', $validated) ? $validated['family_history'] : $record->family_history,
+            'social_history' => array_key_exists('social_history', $validated) ? $validated['social_history'] : $record->social_history,
             'updated_by' => Auth::id(),
             'updated_at' => now(),
         ];
 
         DB::table('opd_histories')->where('id', $id)->update($updateData);
 
-        $updated = DB::table('opd_histories')->where('id', $id)->first();
+        $updated = DB::table('opd_histories')
+            ->leftJoin('patients', 'opd_histories.patientId', '=', 'patients.id')
+            ->leftJoin('users', 'opd_histories.updated_by', '=', 'users.id')
+            ->select(
+                'opd_histories.*',
+                'patients.mrn',
+                'patients.pName as patientName',
+                'patients.gender',
+                'patients.dob',
+                'users.name as updated_by_name'
+            )
+            ->where('opd_histories.id', $id)
+            ->first();
 
         return response()->json($updated);
     }

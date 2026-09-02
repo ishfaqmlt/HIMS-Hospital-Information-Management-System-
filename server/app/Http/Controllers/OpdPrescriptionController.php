@@ -54,6 +54,27 @@ class OpdPrescriptionController extends Controller
             $query->where('opd_prescriptions.status', $request->status);
         }
 
+        if ($request->boolean('excludeToday') || $request->boolean('exclude_today')) {
+            $today = Carbon::today()->toDateString();
+            $query->where(function ($q) use ($today) {
+                $q->where(function ($sub) use ($today) {
+                    $sub->whereNotNull('opd_prescriptions.presc_date')
+                        ->whereDate('opd_prescriptions.presc_date', '<', $today);
+                })->orWhere(function ($sub) use ($today) {
+                    $sub->whereNull('opd_prescriptions.presc_date')
+                        ->whereDate('opd_prescriptions.created_at', '<', $today);
+                });
+            });
+        }
+
+        if ($request->filled('excludeVisitId')) {
+            $query->where('opd_prescriptions.visitId', '!=', $request->excludeVisitId);
+        }
+
+        if ($request->filled('excludePrescriptionId')) {
+            $query->where('opd_prescriptions.id', '!=', $request->excludePrescriptionId);
+        }
+
         $prescriptions = $query->orderBy('opd_prescriptions.created_at', 'desc')->get();
 
         return response()->json($prescriptions);
