@@ -93,6 +93,7 @@ import {
   AlertCircle,
   ShieldAlert,
   Users,
+  Eye,
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import { formatDate, getImageUrl, calculateAge } from "@/lib/utils";
@@ -257,6 +258,10 @@ export default function OPDPrescriptionPage() {
   // Left Column State: 1. Previous Prescriptions
   const [previousPrescriptions, setPreviousPrescriptions] = useState([]);
   const [loadingPrevPrescriptions, setLoadingPrevPrescriptions] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewPrescData, setPreviewPrescData] = useState(null);
+  const [loadingPreviewPresc, setLoadingPreviewPresc] = useState(false);
+  const prevContentRef = useRef(null);
 
   // Left Column State: 2. Previous Lab Results
   const [previousLabCases, setPreviousLabCases] = useState([]);
@@ -265,8 +270,11 @@ export default function OPDPrescriptionPage() {
 
   // Left Column State: 3. Prescription Advice & Follow-Up State
   const [advice, setAdvice] = useState("");
+  const [savedAdvice, setSavedAdvice] = useState("");
   const [followupDate, setFollowupDate] = useState("");
+  const [savedFollowupDate, setSavedFollowupDate] = useState("");
   const [rawFollowupDate, setRawFollowupDate] = useState("");
+  const [isSavingAdvice, setIsSavingAdvice] = useState(false);
 
   // Prescription Clinical Data State for A4 Print
   const [vitals, setVitals] = useState(null);
@@ -610,10 +618,22 @@ export default function OPDPrescriptionPage() {
         fetchPatientExams(p.id, targetPatientId, targetVisitId);
         fetchPatientDiagnoses(p.id, targetPatientId, targetVisitId);
         fetchPatientInvestigations(p.id, targetPatientId, targetVisitId);
-        if (p.advice) setAdvice(p.advice);
+        if (p.advice) {
+          setAdvice(p.advice);
+          setSavedAdvice(p.advice);
+        } else {
+          setAdvice("");
+          setSavedAdvice("");
+        }
         if (p.followUpDate) {
+          const formatted = `On ${formatDate(p.followUpDate)}`;
           setRawFollowupDate(p.followUpDate.split("T")[0]);
-          setFollowupDate(`On ${formatDate(p.followUpDate)}`);
+          setFollowupDate(formatted);
+          setSavedFollowupDate(formatted);
+        } else {
+          setRawFollowupDate("");
+          setFollowupDate("");
+          setSavedFollowupDate("");
         }
         return;
       }
@@ -633,11 +653,29 @@ export default function OPDPrescriptionPage() {
         fetchPatientDiagnoses(p.id, targetPatientId, targetVisitId);
         fetchPatientInvestigations(p.id, targetPatientId, targetVisitId);
         fetchPatientMedications(p.id, targetPatientId, targetVisitId);
-        if (p.advice) setAdvice(p.advice);
-        if (p.followUpDate) {
-          setRawFollowupDate(p.followUpDate.split("T")[0]);
-          setFollowupDate(`On ${formatDate(p.followUpDate)}`);
+        if (p.advice) {
+          setAdvice(p.advice);
+          setSavedAdvice(p.advice);
+        } else {
+          setAdvice("");
+          setSavedAdvice("");
         }
+        if (p.followUpDate) {
+          const formatted = `On ${formatDate(p.followUpDate)}`;
+          setRawFollowupDate(p.followUpDate.split("T")[0]);
+          setFollowupDate(formatted);
+          setSavedFollowupDate(formatted);
+        } else {
+          setRawFollowupDate("");
+          setFollowupDate("");
+          setSavedFollowupDate("");
+        }
+      } else {
+        setAdvice("");
+        setSavedAdvice("");
+        setRawFollowupDate("");
+        setFollowupDate("");
+        setSavedFollowupDate("");
       }
     } catch (err) {
       console.error("Failed to fetch today's prescription:", err);
@@ -707,22 +745,72 @@ export default function OPDPrescriptionPage() {
     }
   };
 
-  // Copy previous prescription data into today's active prescription
-  const handleCopyPrescription = (prevPresc) => {
-    if (!prevPresc) return;
-
-    if (prevPresc.advice) {
-      setAdvice(prevPresc.advice);
+  // Open previous prescription preview modal
+  const handleOpenPreviewPrevious = async (presc) => {
+    if (!presc?.id) return;
+    try {
+      setLoadingPreviewPresc(true);
+      setIsPreviewOpen(true);
+      setPreviewPrescData(null);
+      const res = await opdPrescriptionService.getById(presc.id);
+      setPreviewPrescData(res.data);
+    } catch (err) {
+      console.error("Failed to fetch prescription preview:", err);
+      setMessage({ type: "error", text: "Failed to load previous prescription preview." });
+      setIsPreviewOpen(false);
+    } finally {
+      setLoadingPreviewPresc(false);
     }
-    if (prevPresc.followUpDate) {
-      setRawFollowupDate(prevPresc.followUpDate.split("T")[0]);
-      setFollowupDate(`On ${formatDate(prevPresc.followUpDate)}`);
+  };
+
+  // Copy previous prescription data into today's active prescription
+  const handleCopyPrescription = async (prevPresc, fullData = null) => {
+    if (!prevPresc && !fullData) return;
+    const presc = fullData?.prescription || prevPresc;
+
+    if (presc.advice) {
+      setAdvice(presc.advice);
+    }
+    if (presc.followUpDate) {
+      setRawFollowupDate(presc.followUpDate.split("T")[0]);
+      setFollowupDate(`On ${formatDate(presc.followUpDate)}`);
+    }
+
+    // Copy medications
+    let medsToCopy = fullData?.medications || [];
+    if (medsToCopy.length === 0 && presc.id) {
+      try {
+        const res = await opdMedicationService.getAll({ prescriptionId: presc.id });
+        medsToCopy = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      } catch (e) {
+        console.warn("Could not fetch previous medications for copy:", e);
+      }
+    }
+
+    if (medsToCopy && medsToCopy.length > 0) {
+      const mapped = medsToCopy.map((item, idx) => ({
+        id: `copied-${Date.now()}-${idx}`,
+        medicineId: item.medicineId,
+        name: item.medicineName,
+        genericName: item.genericName || "",
+        dosageForm: item.dosageForm || "",
+        dosage: item.dosage || "",
+        frequency: item.frequency || item.dosage || "1-0-1",
+        duration: item.duration || "5 Days",
+        instruction: item.instruction || "After meals with water",
+        quantity: item.quantity || 1,
+      }));
+      setMedicines(mapped);
     }
 
     setMessage({
       type: "success",
-      text: `Prescription #${prevPresc.prescriptionNo} details copied into today's prescription!`,
+      text: `Prescription #${presc.prescriptionNo} advice & medications copied into today's prescription!`,
     });
+
+    if (isPreviewOpen) {
+      setIsPreviewOpen(false);
+    }
   };
 
   // Open full printable lab report in new window / tab
@@ -733,7 +821,7 @@ export default function OPDPrescriptionPage() {
 
   // Quick advice preset handler
   const handleApplyAdvicePreset = (text) => {
-    setAdvice((prev) => (prev ? `${prev.trim()} ${text}` : text));
+    setAdvice((prev) => (prev ? `${prev.trim()}\n${text}` : text));
   };
 
   // Quick followup date preset handler
@@ -759,7 +847,60 @@ export default function OPDPrescriptionPage() {
         setFollowupDate(val);
       }
     } else {
-      setFollowupDate("As directed / SOS");
+      setFollowupDate("");
+    }
+  };
+
+  // Save advice and followup date directly to opd_prescriptions table
+  const handleSaveAdviceAndFollowup = async () => {
+    if (!targetVisitId && !targetPatientId) {
+      setMessage({
+        type: "error",
+        text: "Please select an active patient with a registered visit before saving advice.",
+      });
+      return;
+    }
+
+    try {
+      setIsSavingAdvice(true);
+
+      const payload = {
+        visitId: targetVisitId,
+        patientId: targetPatientId,
+        doctorId: currentDoctor?.id || activePatient?.doctor_id || activePatient?.doctorId || authUser?.id || "1",
+        advice: advice || "",
+        followUpDate: rawFollowupDate || null,
+        status: "In Process",
+      };
+
+      let res;
+      if (currentPrescription?.id) {
+        res = await opdPrescriptionService.update(currentPrescription.id, {
+          advice: advice || "",
+          followUpDate: rawFollowupDate || null,
+        });
+      } else {
+        res = await opdPrescriptionService.create(payload);
+      }
+
+      if (res?.data) {
+        setCurrentPrescription(res.data);
+      }
+      setSavedAdvice(advice || "");
+      setSavedFollowupDate(followupDate || "");
+
+      setMessage({
+        type: "success",
+        text: "Prescription advice and follow-up date saved to database and added to print preview!",
+      });
+    } catch (err) {
+      console.error("Failed to save prescription advice & follow-up date:", err);
+      setMessage({
+        type: "error",
+        text: err?.response?.data?.message || "Failed to save advice and follow-up date. Please try again.",
+      });
+    } finally {
+      setIsSavingAdvice(false);
     }
   };
 
@@ -1723,6 +1864,51 @@ export default function OPDPrescriptionPage() {
     }
   };
 
+  const reactToPrintPrevFn = useReactToPrint({
+    contentRef: prevContentRef,
+    documentTitle: `Prescription_${previewPrescData?.prescription?.patientName || "Patient"}_${previewPrescData?.prescription?.prescriptionNo || "Previous"}`,
+    pageStyle: `
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+      @media print {
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        .prescription-sheet {
+          page-break-after: always !important;
+          break-after: page !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+          min-height: 290mm !important;
+          width: 210mm !important;
+          box-sizing: border-box !important;
+          margin: 0 !important;
+          padding: 8mm 10mm !important;
+          background: white !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+        .prescription-sheet:last-child {
+          page-break-after: auto !important;
+          break-after: auto !important;
+        }
+      }
+    `,
+  });
+
+  const handlePrintPrevious = () => {
+    if (reactToPrintPrevFn) {
+      reactToPrintPrevFn();
+    } else {
+      window.print();
+    }
+  };
+
   // Header settings & logo calculation
   const showHeader = outputSettings?.showHeader ?? true;
   const headerHeightMargin = outputSettings?.headerHeightMargin ? Number(outputSettings.headerHeightMargin) : 80;
@@ -2397,25 +2583,27 @@ export default function OPDPrescriptionPage() {
   );
 
   const renderAdviceAndFollowup = () => {
-    if (!advice && !followupDate) return null;
+    if (!savedAdvice && !savedFollowupDate) return null;
 
     return (
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 border-t border-slate-200 pt-3 text-sm">
-        {advice && (
-          <div className={`${followupDate ? "sm:col-span-8" : "sm:col-span-12"} border-l-4 border-teal-600 bg-slate-50 p-2.5 rounded-r-md`}>
+        {savedAdvice && (
+          <div className={`${savedFollowupDate ? "sm:col-span-8" : "sm:col-span-12"} border-l-4 border-teal-600 bg-slate-50 p-2.5 rounded-r-md`}>
             <span className="font-bold text-slate-900 uppercase text-xs tracking-wider block mb-1">
               Advice & Special Instructions:
             </span>
-            <p className="text-slate-800 font-medium leading-relaxed text-xs sm:text-sm">{advice}</p>
+            <p className="text-slate-800 font-medium leading-relaxed text-xs sm:text-sm whitespace-pre-line" dir="auto">
+              {savedAdvice}
+            </p>
           </div>
         )}
 
-        {followupDate && (
-          <div className={`${advice ? "sm:col-span-4" : "sm:col-span-12"} bg-teal-50/70 border border-teal-200 p-2.5 rounded-md text-right flex flex-col justify-center`}>
+        {savedFollowupDate && (
+          <div className={`${savedAdvice ? "sm:col-span-4" : "sm:col-span-12"} bg-teal-50/70 border border-teal-200 p-2.5 rounded-md text-right flex flex-col justify-center`}>
             <span className="font-bold text-teal-950 uppercase text-xs tracking-wider block mb-0.5">
               Next Review / Follow-Up:
             </span>
-            <p className="font-black text-teal-950 text-sm font-mono">{followupDate}</p>
+            <p className="font-black text-teal-950 text-sm font-mono">{savedFollowupDate}</p>
           </div>
         )}
       </div>
@@ -2696,16 +2884,28 @@ export default function OPDPrescriptionPage() {
                             {presc.doctorName || presc.doctor?.Name || "Consultant"}
                           </TableCell>
                           <TableCell className="py-2.5 text-right">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleCopyPrescription(presc)}
-                              className="h-7 text-xs px-2.5 bg-teal-50 border-teal-200 text-teal-900 hover:bg-teal-100 font-bold gap-1"
-                              title="Copy to Today's Prescription"
-                            >
-                              <Copy className="h-3 w-3" />
-                              Copy
-                            </Button>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenPreviewPrevious(presc)}
+                                className="h-7 text-xs px-2.5 bg-blue-50 border-blue-200 text-blue-900 hover:bg-blue-100 font-bold gap-1 cursor-pointer"
+                                title="Preview Previous Prescription"
+                              >
+                                <Eye className="h-3 w-3" />
+                                Preview
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleCopyPrescription(presc)}
+                                className="h-7 text-xs px-2.5 bg-teal-50 border-teal-200 text-teal-900 hover:bg-teal-100 font-bold gap-1 cursor-pointer"
+                                title="Copy to Today's Prescription"
+                              >
+                                <Copy className="h-3 w-3" />
+                                Copy
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -2719,78 +2919,171 @@ export default function OPDPrescriptionPage() {
           {/* ========================================================================= */}
           {/* COLUMN 2: Prescription Advice & Follow-Up Date */}
           {/* ========================================================================= */}
-          <Card className="border border-slate-200 shadow-xs bg-white">
-            <CardHeader className="p-4 border-b bg-slate-50/70">
+          {/* ========================================================================= */}
+          {/* COLUMN 2: Prescription Advice & Follow-Up Date (ui-ux-pro-max) */}
+          {/* ========================================================================= */}
+          <Card className="border border-slate-200/90 shadow-xs bg-white overflow-hidden">
+            <CardHeader className="p-3.5 sm:p-4 border-b bg-gradient-to-r from-slate-50 to-blue-50/30 flex flex-row items-center justify-between space-y-0">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-md bg-blue-500/10 text-blue-700">
-                  <CalendarDays className="h-5 w-5" />
+                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-700 border border-blue-200/70 shadow-2xs">
+                  <CalendarDays className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-bold text-slate-900">
+                  <CardTitle className="text-sm font-bold text-slate-900 leading-tight">
                     Prescription Advice & Follow-Up Date
                   </CardTitle>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Doctors precautions, diet advice, and review schedule
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Dietary precautions, instructions & review schedule
                   </p>
                 </div>
               </div>
+
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                {((advice || "").trim() !== (savedAdvice || "").trim() || (followupDate || "").trim() !== (savedFollowupDate || "").trim()) ? (
+                  <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 text-xs px-2 py-0.5 font-semibold">
+                    Unsaved to Print
+                  </Badge>
+                ) : (savedAdvice || savedFollowupDate) ? (
+                  <Badge variant="outline" className="bg-emerald-50 text-emerald-900 border-emerald-300 text-xs px-2 py-0.5 font-semibold flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3 text-emerald-600" /> Synced to Print
+                  </Badge>
+                ) : null}
+
+                {currentPrescription?.prescriptionNo ? (
+                  <Badge variant="outline" className="bg-teal-50 text-teal-900 border-teal-300 font-mono text-xs px-2.5 py-0.5 font-bold">
+                    #{currentPrescription.prescriptionNo}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-200 text-xs px-2 py-0.5 font-medium">
+                    Draft
+                  </Badge>
+                )}
+              </div>
             </CardHeader>
+
             <CardContent className="p-4 sm:p-5 space-y-4">
-              {/* Advice Input Field */}
-              <div className="space-y-1.5">
-                <Label htmlFor="advice-input" className="text-sm font-bold text-slate-800 flex items-center justify-between">
-                  <span>Special Advice & Precautions:</span>
-                </Label>
+              {/* Section 1: Special Advice & Dietary Precautions */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="advice-input" className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <MessageSquare className="h-3.5 w-3.5 text-teal-600" />
+                    <span>Special Advice & Precautions:</span>
+                  </Label>
+                  {advice && (
+                    <button
+                      type="button"
+                      onClick={() => setAdvice("")}
+                      className="text-[11px] text-slate-400 hover:text-rose-600 font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Clear advice text"
+                    >
+                      <X className="h-3 w-3" /> Clear Text
+                    </button>
+                  )}
+                </div>
+
                 <Textarea
                   id="advice-input"
                   rows={3}
                   value={advice}
                   onChange={(e) => setAdvice(e.target.value)}
-                  placeholder="Enter diet, precautions, and instructions for the patient..."
-                  className="text-sm font-medium resize-none"
+                  placeholder="Enter diet, precautions, and instructions for the patient / مریض کے لیے پرہیز اور ہدایات..."
+                  dir="auto"
+                  className="text-sm font-medium resize-none min-h-[85px] border-slate-200 focus-visible:ring-teal-500/20 focus-visible:border-teal-500 rounded-lg shadow-2xs leading-relaxed"
                 />
 
-                {/* Quick Advice Chips */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {[
-                    "Take medicines after meals with water.",
-                    "Complete bed rest for 3 days.",
-                    "Low salt & low fat diet.",
-                    "Drink plenty of boiled water / ORS.",
-                    "Avoid cold drinks, oily & spicy food.",
-                  ].map((preset, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleApplyAdvicePreset(preset)}
-                      className="text-xs px-2.5 py-1 bg-slate-100 hover:bg-teal-50 hover:text-teal-900 hover:border-teal-300 text-slate-700 font-medium rounded-md border border-slate-200 transition-colors"
-                    >
-                      + {preset}
-                    </button>
-                  ))}
+                {/* Urdu Quick Advice Presets Container */}
+                <div className="rounded-lg bg-slate-50/90 border border-slate-200/80 p-2.5 space-y-2 shadow-2xs">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-600 px-0.5">
+                    <span className="flex items-center gap-1.5 text-slate-800">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                      کلینکل ہدایات و پرہیز (Quick Presets):
+                    </span>
+                    <span className="text-[11px] text-slate-500 font-normal">کلک کر کے شامل کریں</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5" dir="rtl">
+                    {[
+                      "دوائیں کھانے کے بعد پانی کے ساتھ لیں۔",
+                      "۳ دن مکمل آرام کریں۔",
+                      "کم نمک اور کم چکنائی والی غذا لیں۔",
+                      "ابلا ہوا پانی اور او آر ایس زیادہ پیئیں۔",
+                      "ٹھنڈے مشروبات، تلی ہوئی اور تیز مرچ مصالحے سے پرہیز کریں۔",
+                      "شوگر اور بلڈ پریشر باقاعدگی سے چیک کروائیں۔",
+                      "طبیعت بگڑنے کی صورت میں فوری ایمرجنسی رجوع کریں۔",
+                    ].map((preset, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleApplyAdvicePreset(preset)}
+                        className="text-xs px-2.5 py-1 bg-white hover:bg-teal-50 hover:text-teal-950 hover:border-teal-300 text-slate-800 font-medium rounded-md border border-slate-200 shadow-2xs transition-all active:scale-95 cursor-pointer flex items-center gap-1"
+                        dir="rtl"
+                      >
+                        <span className="text-teal-600 font-bold text-xs">+</span>
+                        <span>{preset}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Follow-up Date Field */}
-              <div className="space-y-2 pt-3 border-t border-slate-100">
-                <Label htmlFor="followup-input" className="text-sm font-bold text-slate-800">
-                  Next Review / Follow-Up Appointment:
-                </Label>
+              {/* Section 2: Next Review / Follow-Up Appointment */}
+              <div className="space-y-2.5 pt-3.5 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="followup-input" className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-blue-600" />
+                    <span>Next Review / Follow-Up Appointment:</span>
+                  </Label>
+                  {rawFollowupDate && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRawFollowupDate("");
+                        setFollowupDate("");
+                      }}
+                      className="text-[11px] text-slate-400 hover:text-rose-600 font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Clear review date"
+                    >
+                      <X className="h-3 w-3" /> No Follow-up
+                    </button>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-center">
                   <Input
                     id="followup-input"
                     type="date"
                     value={rawFollowupDate}
                     onChange={handleManualFollowupDateChange}
-                    className="h-9 text-sm font-medium"
+                    className="h-9 text-xs sm:text-sm font-medium border-slate-200 rounded-lg bg-white shadow-2xs"
                   />
-                  <span className="text-sm font-bold text-teal-900 truncate bg-teal-50/90 px-3 py-2 rounded-md border border-teal-200">
-                    {followupDate}
-                  </span>
+                  {followupDate ? (
+                    <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-teal-50 border border-teal-200 text-teal-950 text-xs font-bold shadow-2xs">
+                      <span className="flex items-center gap-1.5 truncate">
+                        <CheckCircle className="h-3.5 w-3.5 text-teal-600 shrink-0" />
+                        {followupDate}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRawFollowupDate("");
+                          setFollowupDate("");
+                        }}
+                        className="text-teal-600 hover:text-rose-600 p-0.5 ml-1.5 cursor-pointer"
+                        title="Remove follow-up date"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center px-3 py-2 rounded-lg bg-slate-50 border border-dashed border-slate-200 text-slate-400 text-xs italic">
+                      <Clock className="h-3.5 w-3.5 mr-1.5 text-slate-400 shrink-0" />
+                      No review date scheduled
+                    </div>
+                  )}
                 </div>
 
                 {/* Quick Follow-up Preset Buttons */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
                   {[
                     { days: 3, label: "After 3 Days" },
                     { days: 5, label: "After 5 Days" },
@@ -2798,19 +3091,57 @@ export default function OPDPrescriptionPage() {
                     { days: 10, label: "After 10 Days" },
                     { days: 14, label: "After 2 Weeks" },
                     { days: 30, label: "After 1 Month" },
-                  ].map((p, idx) => (
-                    <Button
-                      key={idx}
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleApplyFollowupDays(p.days, p.label)}
-                      className="h-7 text-xs px-2.5 font-semibold bg-blue-50/50 text-blue-950 border-blue-200 hover:bg-blue-100"
-                    >
-                      {p.label}
-                    </Button>
-                  ))}
+                  ].map((p, idx) => {
+                    const isSelected = followupDate && followupDate.includes(p.label);
+                    return (
+                      <Button
+                        key={idx}
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleApplyFollowupDays(p.days, p.label)}
+                        className={`h-7 text-xs px-2.5 font-semibold transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-blue-600 text-white border-blue-600 shadow-2xs hover:bg-blue-700"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-blue-50 hover:text-blue-950 hover:border-blue-300"
+                        }`}
+                      >
+                        {p.label}
+                      </Button>
+                    );
+                  })}
                 </div>
+              </div>
+
+              {/* Section 3: Save Advice & Follow-Up Action Footer */}
+              <div className="pt-3.5 mt-2 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/70 -mx-4 -mb-4 sm:-mx-5 sm:-mb-5 p-3 sm:p-4 rounded-b-xl">
+                <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
+                  {((advice || "").trim() !== (savedAdvice || "").trim() || (followupDate || "").trim() !== (savedFollowupDate || "").trim()) ? (
+                    <span className="text-amber-800 font-medium flex items-center gap-1.5">
+                      <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                      Draft changes: Click <strong>Save Advice</strong> to update print preview
+                    </span>
+                  ) : (
+                    <span className="text-slate-500 flex items-center gap-1.5">
+                      <Save className="h-3.5 w-3.5 text-teal-600 shrink-0" />
+                      Saves to <strong>opd_prescriptions</strong> ({currentPrescription?.prescriptionNo ? `#${currentPrescription.prescriptionNo}` : "active visit"})
+                    </span>
+                  )}
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={handleSaveAdviceAndFollowup}
+                  disabled={isSavingAdvice || (!targetVisitId && !targetPatientId)}
+                  className="w-full sm:w-auto h-9 px-5 text-xs sm:text-sm font-bold bg-teal-600 hover:bg-teal-700 text-white shadow-xs gap-2 transition-all cursor-pointer"
+                >
+                  {isSavingAdvice ? (
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Save className="h-3.5 w-3.5" />
+                  )}
+                  {isSavingAdvice ? "Saving Advice..." : "Save Advice & Follow-Up"}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -5652,6 +5983,453 @@ export default function OPDPrescriptionPage() {
               Close
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* Previous Prescription Full A4 Preview Modal (ui-ux-pro-max) */}
+      {/* ========================================================================= */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl lg:max-w-5xl max-h-[94vh] flex flex-col p-0 overflow-hidden shadow-2xl bg-slate-100">
+          {/* 1. Dialog Header with Action Buttons & Clear Spacing (No 'X' collision) */}
+          <DialogHeader className="p-3.5 sm:p-4 border-b bg-white shrink-0 shadow-xs">
+            <div className="flex items-center justify-between pr-8">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-blue-500/10 text-blue-700 border border-blue-200/80 shadow-xs flex items-center justify-center shrink-0">
+                  <Eye className="h-4.5 w-4.5 text-blue-600" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <DialogTitle className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+                      Previous Prescription Preview
+                    </DialogTitle>
+                    {previewPrescData?.prescription?.prescriptionNo && (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-900 border-blue-300 font-mono text-xs px-2 py-0.5 font-bold">
+                        #{previewPrescData.prescription.prescriptionNo}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {previewPrescData?.prescription?.presc_date ? `Consultation on ${formatDate(previewPrescData.prescription.presc_date)}` : "Historical medical record"}
+                    {previewPrescData?.prescription?.doctorName ? ` • Dr. ${previewPrescData.prescription.doctorName}` : ""}
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Action Buttons on Top Bar */}
+              {previewPrescData && !loadingPreviewPresc && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handlePrintPrevious}
+                    className="h-8 text-xs font-bold gap-1.5 border-slate-300 text-slate-800 hover:bg-slate-50 cursor-pointer shadow-2xs"
+                  >
+                    <Printer className="h-3.5 w-3.5 text-slate-600" />
+                    Print A4
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleCopyPrescription(null, previewPrescData)}
+                    className="h-8 text-xs font-bold gap-1.5 bg-teal-600 hover:bg-teal-700 text-white cursor-pointer shadow-2xs"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy to Today's Rx
+                  </Button>
+                </div>
+              )}
+            </div>
+          </DialogHeader>
+
+          {/* 2. Scrollable Body: A4 Paper Representation */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col items-center bg-slate-200/70">
+            {loadingPreviewPresc ? (
+              <div className="py-24 text-center text-slate-500 flex flex-col items-center justify-center gap-3">
+                <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+                <p className="text-sm font-medium">Loading previous prescription record...</p>
+              </div>
+            ) : !previewPrescData ? (
+              <div className="py-24 text-center text-slate-400">
+                <FileText className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm">Could not find prescription details.</p>
+              </div>
+            ) : (
+              <div className="w-full flex flex-col items-center">
+                {/* Print Sheet Container */}
+                <div
+                  ref={prevContentRef}
+                  className="prescription-sheet w-[210mm] min-h-[297mm] bg-white border border-slate-300 shadow-md p-8 flex flex-col justify-between text-slate-800 text-sm shrink-0"
+                  style={{ width: "210mm", minHeight: "297mm", fontFamily: outputSettings?.textFont || "Inter, Arial, sans-serif" }}
+                >
+                  {/* Top & Body Section */}
+                  <div className="space-y-3">
+                    {/* Header */}
+                    <div className="flex items-start justify-between border-b-2 border-slate-900 pb-3 mb-3 min-h-24">
+                      <div className="flex items-center gap-3.5 max-w-[62%]">
+                        {logoSrc ? (
+                          <Image
+                            src={getImageUrl(logoSrc)}
+                            alt="Hospital Logo"
+                            width={80}
+                            height={80}
+                            className="h-16 w-16 object-contain rounded-lg border border-slate-200 bg-white p-1 shrink-0"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="p-2.5 rounded-lg bg-slate-900 text-white font-bold text-xl shrink-0">HIMS</div>
+                        )}
+                        <div className="space-y-0.5">
+                          <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-slate-950 font-serif leading-tight">
+                            {hospitalName}
+                          </h2>
+                          <p className="text-xs text-slate-700 font-medium">{hospitalAddress}</p>
+                          <p className="text-xs text-slate-500 font-mono">
+                            Ph: {hospitalPhone} {hospitalEmail ? `| Email: ${hospitalEmail}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right space-y-0.5">
+                        <h3 className="text-lg font-bold text-slate-950 leading-tight">
+                          {previewPrescData.prescription?.doctorName || doctorName}
+                        </h3>
+                        <p className="text-sm font-bold text-teal-800">
+                          {previewPrescData.prescription?.doctorQualification || doctorQualification}
+                        </p>
+                        <p className="text-sm font-medium text-slate-700">
+                          {previewPrescData.prescription?.doctorDept || doctorDept}
+                        </p>
+                        <p className="text-xs text-slate-500 font-mono">
+                          {previewPrescData.prescription?.doctorPmdc ? `PMDC Reg #: ${previewPrescData.prescription.doctorPmdc}` : doctorPmdc}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Patient Demographics */}
+                    <div className="border border-slate-300 rounded-md p-2.5 mb-3 bg-slate-50/50 text-xs shadow-2xs">
+                      <div className="grid grid-cols-12 gap-2 items-center">
+                        <div className="col-span-4 border-r border-slate-200 pr-2">
+                          <p className="font-extrabold text-slate-950 text-sm tracking-tight">
+                            {previewPrescData.prescription?.patientName || patientName}
+                          </p>
+                          <p className="text-xs text-slate-600 font-medium">
+                            {previewPrescData.prescription?.guardianName || guardianName}
+                          </p>
+                        </div>
+                        <div className="col-span-3 border-r border-slate-200 px-2 space-y-0.5">
+                          <p className="text-xs text-slate-700">
+                            MRN: <strong className="text-slate-950 font-mono font-bold">{previewPrescData.prescription?.mrn || patientMrn}</strong>
+                          </p>
+                          <p className="text-xs text-slate-700">
+                            Mobile: <strong className="text-slate-950 font-mono font-medium">{previewPrescData.prescription?.mobile || patientMobile}</strong>
+                          </p>
+                        </div>
+                        <div className="col-span-3 border-r border-slate-200 px-2 space-y-0.5">
+                          <p className="text-xs text-slate-700">
+                            Age / Sex: <strong className="text-slate-950 font-bold">
+                              {previewPrescData.prescription?.dob ? calculateAge(previewPrescData.prescription.dob) : patientAge} / {previewPrescData.prescription?.gender || patientGender}
+                            </strong>
+                          </p>
+                          <p className="text-xs text-slate-700">
+                            Visit No: <strong className="text-slate-950 font-mono font-bold">{previewPrescData.prescription?.visitNo || "-"}</strong>
+                          </p>
+                        </div>
+                        <div className="col-span-2 text-right pl-2 space-y-0.5">
+                          <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Date:</p>
+                          <p className="text-slate-950 font-bold text-xs font-mono">
+                            {formatDate(previewPrescData.prescription?.presc_date || previewPrescData.prescription?.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Vitals Strip */}
+                    {previewPrescData.vitals && (
+                      <div className="flex items-center gap-3.5 bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 mb-3 text-xs">
+                        <span className="font-bold text-slate-900 uppercase text-xs tracking-wider flex items-center gap-1 shrink-0">
+                          <Activity className="h-4 w-4 text-teal-700" />
+                          VITALS:
+                        </span>
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-800">
+                          {(previewPrescData.vitals.blood_pressure || (previewPrescData.vitals.systolic && previewPrescData.vitals.diastolic)) && (
+                            <span>
+                              BP: <strong className="text-slate-950 font-bold font-mono">
+                                {previewPrescData.vitals.blood_pressure || `${previewPrescData.vitals.systolic}/${previewPrescData.vitals.diastolic} mmHg`}
+                              </strong>
+                            </span>
+                          )}
+                          {previewPrescData.vitals.pulse_rate && (
+                            <span>
+                              Pulse: <strong className="text-slate-950 font-bold font-mono">{previewPrescData.vitals.pulse_rate} bpm</strong>
+                            </span>
+                          )}
+                          {previewPrescData.vitals.temperature && (
+                            <span>
+                              Temp: <strong className="text-slate-950 font-bold font-mono">{previewPrescData.vitals.temperature} °F</strong>
+                            </span>
+                          )}
+                          {previewPrescData.vitals.weight && (
+                            <span>
+                              Weight: <strong className="text-slate-950 font-bold font-mono">{previewPrescData.vitals.weight} kg</strong>
+                            </span>
+                          )}
+                          {previewPrescData.vitals.spo2 && (
+                            <span>
+                              SpO2: <strong className="text-slate-950 font-bold font-mono">{previewPrescData.vitals.spo2}%</strong>
+                            </span>
+                          )}
+                          {previewPrescData.vitals.bsr && (
+                            <span>
+                              BSR: <strong className="text-slate-950 font-bold font-mono">{previewPrescData.vitals.bsr} mg/dL</strong>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Clinical Assessment Strip */}
+                    {((previewPrescData.symptoms && previewPrescData.symptoms.length > 0) ||
+                      (previewPrescData.exams && previewPrescData.exams.length > 0) ||
+                      (previewPrescData.diagnoses && previewPrescData.diagnoses.length > 0) ||
+                      (previewPrescData.investigations && previewPrescData.investigations.length > 0)) && (
+                      <div className="border border-slate-200 rounded-lg p-3 mb-3 bg-white space-y-2.5 shadow-2xs">
+                        {previewPrescData.symptoms && previewPrescData.symptoms.length > 0 && (
+                          <div className="space-y-1 text-xs">
+                            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                              <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                              Presenting Symptoms:
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {previewPrescData.symptoms.map((s, idx) => (
+                                <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded bg-amber-50/80 border border-amber-200 text-amber-950 font-medium text-xs">
+                                  • {s}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {previewPrescData.exams && previewPrescData.exams.length > 0 && (
+                          <div className="border-t border-slate-100 pt-2 text-xs space-y-1">
+                            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                              <Stethoscope className="h-3.5 w-3.5 text-blue-600" />
+                              Physical Examination Findings:
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {previewPrescData.exams.map((exam, idx) => (
+                                <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded bg-slate-50 border border-slate-200 text-slate-900 font-medium text-xs">
+                                  • {exam}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {((previewPrescData.diagnoses && previewPrescData.diagnoses.length > 0) || (previewPrescData.investigations && previewPrescData.investigations.length > 0)) && (
+                          <div className="border-t border-slate-100 pt-2 grid grid-cols-1 md:grid-cols-12 gap-3 text-xs items-start">
+                            {previewPrescData.diagnoses && previewPrescData.diagnoses.length > 0 && (
+                              <div className="md:col-span-6 space-y-1">
+                                <span className="text-xs font-bold text-teal-900 uppercase tracking-wider flex items-center gap-1.5">
+                                  <Brain className="h-3.5 w-3.5 text-teal-700" />
+                                  Diagnosis / Clinical Impression:
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {previewPrescData.diagnoses.map((d, idx) => (
+                                    <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-teal-50 border border-teal-300 text-teal-950 font-bold text-xs shadow-2xs">
+                                      ✓ {d}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {previewPrescData.investigations && previewPrescData.investigations.length > 0 && (
+                              <div className="md:col-span-6 space-y-1">
+                                <span className="text-xs font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
+                                  <TestTube className="h-3.5 w-3.5 text-amber-700" />
+                                  Investigations Ordered:
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {previewPrescData.investigations.map((inv, idx) => (
+                                    <span key={idx} className="inline-flex items-center px-2.5 py-0.5 rounded bg-amber-50/70 border border-amber-300 text-slate-900 font-bold text-xs font-mono">
+                                      • {inv.serviceName || inv.ServiceName || inv.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Prescribed Medications Table */}
+                    <div className="space-y-1.5 mb-3">
+                      <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1.5">
+                        <div className="flex items-center gap-1.5 text-slate-950">
+                          <span className="text-2xl font-serif font-black italic text-teal-800 leading-none">℞</span>
+                          <span className="text-sm font-black uppercase tracking-wider ml-1">Prescribed Medications</span>
+                        </div>
+                        {previewPrescData.medications && previewPrescData.medications.length > 0 && (
+                          <span className="text-xs font-mono text-slate-600 font-semibold">
+                            Total: {previewPrescData.medications.length} Item(s)
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="border border-slate-300 rounded-md overflow-hidden">
+                        <table className="w-full border-collapse text-sm">
+                          <thead>
+                            <tr className="bg-slate-200 border-b border-slate-300 font-bold text-xs uppercase tracking-wider">
+                              <th className="py-1.5 px-2.5 text-center w-10 border-r border-slate-700">#</th>
+                              <th className="py-1.5 px-3 text-left border-r border-slate-700">Medicine / Formulation</th>
+                              <th className="py-1.5 px-2.5 text-center w-32 border-r border-slate-700">Frequency</th>
+                              <th className="py-1.5 px-2.5 text-center w-28 border-r border-slate-700">Duration</th>
+                              <th className="py-1.5 px-3 text-left">Instructions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {previewPrescData.medications && previewPrescData.medications.length > 0 ? (
+                              previewPrescData.medications.map((med, idx) => (
+                                <tr key={med.id || idx} className="border-b border-slate-200 odd:bg-white even:bg-slate-50/70">
+                                  <td className="py-2 px-2.5 text-center border-r border-slate-200 font-bold text-slate-700 font-mono text-xs">
+                                    {idx + 1}
+                                  </td>
+                                  <td className="py-2 px-3 text-left border-r border-slate-200">
+                                    <div className="font-bold text-slate-950 text-sm flex items-center gap-2 flex-wrap">
+                                      <span>{med.medicineName || med.name}</span>
+                                      {med.dosageForm && (
+                                        <span className="text-xs text-slate-700 font-semibold border border-slate-200 bg-slate-100 px-1.5 py-0.5 rounded">
+                                          {med.dosageForm}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {med.genericName && (
+                                      <div className="text-xs text-slate-500 font-normal mt-0.5">
+                                        Formula: {med.genericName}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="py-2 px-2.5 text-center border-r border-slate-200">
+                                    <span className="font-mono font-bold text-teal-950 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded text-xs inline-block shadow-2xs" dir="auto">
+                                      {med.frequency || med.dosage}
+                                    </span>
+                                  </td>
+                                  <td className="py-2 px-2.5 text-center border-r border-slate-200 font-bold text-xs text-slate-900" dir="auto">
+                                    {med.duration}
+                                  </td>
+                                  <td className="py-2 px-3 text-left text-slate-800 font-medium text-xs" dir="auto">
+                                    {med.instruction}
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={5} className="py-6 text-center text-slate-400 italic text-sm">
+                                  No medicines recorded for this prescription.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Advice & Follow-Up */}
+                    {(previewPrescData.prescription?.advice || previewPrescData.prescription?.followUpDate) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 border-t border-slate-200 pt-3 text-sm">
+                        {previewPrescData.prescription.advice && (
+                          <div className={`${previewPrescData.prescription.followUpDate ? "sm:col-span-8" : "sm:col-span-12"} border-l-4 border-teal-600 bg-slate-50 p-2.5 rounded-r-md`}>
+                            <span className="font-bold text-slate-900 uppercase text-xs tracking-wider block mb-1">
+                              Advice & Special Instructions:
+                            </span>
+                            <p className="text-slate-800 font-medium leading-relaxed text-xs sm:text-sm whitespace-pre-line" dir="auto">
+                              {previewPrescData.prescription.advice}
+                            </p>
+                          </div>
+                        )}
+                        {previewPrescData.prescription.followUpDate && (
+                          <div className={`${previewPrescData.prescription.advice ? "sm:col-span-4" : "sm:col-span-12"} bg-teal-50/70 border border-teal-200 p-2.5 rounded-md text-right flex flex-col justify-center`}>
+                            <span className="font-bold text-teal-950 uppercase text-xs tracking-wider block mb-0.5">
+                              Next Review / Follow-Up:
+                            </span>
+                            <p className="font-black text-teal-950 text-sm font-mono">
+                              On {formatDate(previewPrescData.prescription.followUpDate)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Doctor Signature Footer */}
+                  <div className="pt-4 border-t border-slate-200 mt-4 flex items-end justify-between text-xs shrink-0">
+                    <div className="space-y-0.5">
+                      <p className="text-slate-600 text-xs font-mono">
+                        Prescription #{previewPrescData.prescription?.prescriptionNo} • Visit: {previewPrescData.prescription?.visitNo || "-"}
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Electronic Medical Record • Historical record view
+                      </p>
+                    </div>
+                    <div className="text-center space-y-0.5 min-w-48">
+                      <div className="w-48 border-b border-slate-400 mb-1.5 mx-auto"></div>
+                      {previewPrescData.prescription?.doctorStamp ? (
+                        <p className="text-sm text-slate-950 font-bold whitespace-pre-line leading-tight">
+                          {previewPrescData.prescription.doctorStamp}
+                        </p>
+                      ) : (
+                        <>
+                          <p className="font-bold text-slate-950 text-sm">
+                            {previewPrescData.prescription?.doctorName || doctorName}
+                          </p>
+                          <p className="text-slate-600 text-xs">Consultant Physician</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 3. Fixed Dialog Footer */}
+          <DialogFooter className="p-3.5 sm:p-4 border-t bg-slate-50/95 shrink-0 flex items-center justify-between sm:justify-between">
+            <span className="text-xs text-slate-500 font-medium hidden sm:inline">
+              Prescription #{previewPrescData?.prescription?.prescriptionNo || "---"} •{" "}
+              {previewPrescData?.medications?.length || 0} medication(s) prescribed
+            </span>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsPreviewOpen(false)}
+                className="h-8 text-xs cursor-pointer"
+              >
+                Close
+              </Button>
+              {previewPrescData && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleCopyPrescription(null, previewPrescData)}
+                    className="h-8 text-xs font-bold gap-1 bg-teal-50 border-teal-300 text-teal-900 hover:bg-teal-100 cursor-pointer"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy to Today
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handlePrintPrevious}
+                    className="h-8 text-xs font-bold gap-1.5 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-xs"
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    Print Prescription
+                  </Button>
+                </>
+              )}
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -104,6 +104,18 @@ class OpdPrescriptionController extends Controller
             ->first();
 
         if ($existing) {
+            $updateData = ['updated_at' => now()];
+            if (array_key_exists('advice', $validated)) {
+                $updateData['advice'] = $validated['advice'] ?? '';
+            }
+            if (array_key_exists('followUpDate', $validated)) {
+                $updateData['followUpDate'] = !empty($validated['followUpDate']) ? Carbon::parse($validated['followUpDate'])->toDateString() : null;
+            }
+            if (!empty($validated['status'])) {
+                $updateData['status'] = $validated['status'];
+            }
+            DB::table('opd_prescriptions')->where('id', $existing->id)->update($updateData);
+            $existing = DB::table('opd_prescriptions')->where('id', $existing->id)->first();
             return response()->json($existing, 200);
         }
 
@@ -145,7 +157,15 @@ class OpdPrescriptionController extends Controller
                 'patient_visits.visitNo',
                 'patients.mrn',
                 'patients.pName as patientName',
-                'doctors.Name as doctorName'
+                'patients.gender',
+                'patients.dob',
+                'patients.mobile',
+                'patients.gName as guardianName',
+                'doctors.Name as doctorName',
+                'doctors.Qualification as doctorQualification',
+                'doctors.Specialization as doctorDept',
+                'doctors.RegistrationNo as doctorPmdc',
+                'doctors.Stamp as doctorStamp'
             )
             ->where('opd_prescriptions.id', $id)
             ->orWhere('opd_prescriptions.prescriptionNo', $id)
@@ -155,7 +175,56 @@ class OpdPrescriptionController extends Controller
             return response()->json(['message' => 'Prescription not found'], 404);
         }
 
-        return response()->json($prescription);
+        // Associated clinical details
+        $symptoms = DB::table('opd_symptoms')
+            ->leftJoin('master_symptoms', 'opd_symptoms.symptomId', '=', 'master_symptoms.id')
+            ->where('opd_symptoms.prescriptionId', $prescription->id)
+            ->pluck('master_symptoms.name')
+            ->filter()
+            ->values();
+
+        $exams = DB::table('opd_physical_exams')
+            ->leftJoin('master_physical_exam', 'opd_physical_exams.physicalExamId', '=', 'master_physical_exam.id')
+            ->where('opd_physical_exams.prescriptionId', $prescription->id)
+            ->pluck('master_physical_exam.name')
+            ->filter()
+            ->values();
+
+        $diagnoses = DB::table('opd_diagnoses')
+            ->leftJoin('master_diagnosis', 'opd_diagnoses.diagnosisId', '=', 'master_diagnosis.id')
+            ->where('opd_diagnoses.prescriptionId', $prescription->id)
+            ->pluck('master_diagnosis.name')
+            ->filter()
+            ->values();
+
+        $investigations = DB::table('opd_investigations')
+            ->leftJoin('services', 'opd_investigations.serviceId', '=', 'services.id')
+            ->leftJoin('departments', 'opd_investigations.departmentId', '=', 'departments.id')
+            ->select(
+                'opd_investigations.*',
+                'services.ServiceName as serviceName',
+                'services.Code as serviceCode',
+                'departments.DepartmentName as departmentName'
+            )
+            ->where('opd_investigations.prescriptionId', $prescription->id)
+            ->get();
+
+        $medications = DB::table('opd_medications')
+            ->where('opd_medications.prescriptionId', $prescription->id)
+            ->orderBy('opd_medications.created_at', 'asc')
+            ->get();
+
+        $vitals = DB::table('patient_vitals')->where('visitId', $prescription->visitId)->first();
+
+        return response()->json([
+            'prescription' => $prescription,
+            'symptoms' => $symptoms,
+            'exams' => $exams,
+            'diagnoses' => $diagnoses,
+            'investigations' => $investigations,
+            'medications' => $medications,
+            'vitals' => $vitals,
+        ]);
     }
 
     public function update(Request $request, $id)
@@ -177,14 +246,19 @@ class OpdPrescriptionController extends Controller
         ]);
 
         $prescDate = !empty($validated['presc_date']) ? Carbon::parse($validated['presc_date'])->toDateTimeString() : $prescription->presc_date;
-        $followUpDate = !empty($validated['followUpDate']) ? Carbon::parse($validated['followUpDate'])->toDateString() : $prescription->followUpDate;
+        $followUpDate = array_key_exists('followUpDate', $validated)
+            ? (!empty($validated['followUpDate']) ? Carbon::parse($validated['followUpDate'])->toDateString() : null)
+            : $prescription->followUpDate;
+        $advice = array_key_exists('advice', $validated)
+            ? ($validated['advice'] ?? '')
+            : $prescription->advice;
 
         $data = [
             'visitId' => $validated['visitId'] ?? $prescription->visitId,
             'patientId' => $validated['patientId'] ?? $prescription->patientId,
             'doctorId' => $validated['doctorId'] ?? $prescription->doctorId,
             'presc_date' => $prescDate,
-            'advice' => $validated['advice'] ?? $prescription->advice,
+            'advice' => $advice,
             'followUpDate' => $followUpDate,
             'status' => $validated['status'] ?? $prescription->status,
             'updated_at' => now(),
