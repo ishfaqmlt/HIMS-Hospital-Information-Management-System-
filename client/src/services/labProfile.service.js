@@ -27,3 +27,12 @@ export const updateLabProfile = async (id, labProfileData) => {
     throw error;
   }
 };
+
+export const deleteLabProfile = async (id) => {
+  try {
+    const res = await api.delete(`/lab-profile/${id}`);
+    return res.data;
+  } catch (error) {
+    throw error;
+  }
+};

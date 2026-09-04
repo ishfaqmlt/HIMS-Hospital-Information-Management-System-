@@ -44,7 +44,7 @@ export const getColumns = ({ onEdit, onDelete }) => [
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 w-7 p-0 text-slate-600 hover:text-rose-700 hover:bg-rose-50"
+            className="h-7 w-7 p-0 text-slate-600 hover:text-teal-700 hover:bg-teal-50 cursor-pointer"
             onClick={() => onEdit(item)}
             title="Edit Duration"
           >
@@ -54,7 +54,7 @@ export const getColumns = ({ onEdit, onDelete }) => [
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 w-7 p-0 text-slate-600 hover:text-destructive hover:bg-destructive/10"
+              className="h-7 w-7 p-0 text-slate-600 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
               onClick={() => onDelete(item)}
               title="Delete Duration"
             >

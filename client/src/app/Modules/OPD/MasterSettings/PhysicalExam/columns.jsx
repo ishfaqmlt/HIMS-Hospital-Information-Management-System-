@@ -44,7 +44,7 @@ export const getColumns = ({ onEdit }) => [
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 w-7 p-0 text-slate-600 hover:text-blue-700 hover:bg-blue-50"
+            className="h-7 w-7 p-0 text-slate-600 hover:text-teal-700 hover:bg-teal-50 cursor-pointer"
             onClick={() => onEdit(item)}
             title="Edit Physical Exam"
           >

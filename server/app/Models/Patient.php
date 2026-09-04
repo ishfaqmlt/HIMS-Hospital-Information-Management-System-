@@ -43,6 +43,34 @@ class Patient extends Model
                 $patient->mrn = self::generateMrn();
             }
         });
+
+        static::saving(function (Patient $patient) {
+            if ($patient->pName !== null) {
+                $patient->pName = self::toProperCase($patient->pName);
+            }
+            if ($patient->gName !== null) {
+                $patient->gName = self::toProperCase($patient->gName);
+            }
+            if ($patient->address !== null) {
+                $patient->address = self::toProperCase($patient->address);
+            }
+            if ($patient->email !== null) {
+                $trimmedEmail = trim($patient->email);
+                $patient->email = $trimmedEmail === '' ? null : strtolower($trimmedEmail);
+            }
+        });
+    }
+
+    public static function toProperCase(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $cleaned = trim(preg_replace('/\s+/', ' ', $value));
+        if ($cleaned === '') {
+            return '';
+        }
+        return mb_convert_case(mb_strtolower($cleaned, 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
     }
 
     public static function generateMrn(): string

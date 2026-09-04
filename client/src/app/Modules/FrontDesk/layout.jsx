@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
@@ -19,7 +19,9 @@ import {
   BarChart3,
   Settings,
   ChevronDown,
+  Wallet,
 } from "lucide-react";
+import ShiftSummaryDialog from "@/components/billing/ShiftSummaryDialog";
 
 const frontDeskItems = [
   {
@@ -88,6 +90,7 @@ const CollectionItems = [
 const FrontDeskLayout = ({ children }) => {
   const pathname = usePathname();
   const { user, roles, permissions } = useSelector((state) => state.auth || {});
+  const [isShiftSummaryOpen, setIsShiftSummaryOpen] = useState(false);
 
   const hasPermission = (permissionName) => {
     if (!permissionName) return true;
@@ -164,7 +167,23 @@ const FrontDeskLayout = ({ children }) => {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+
+        {/* Shift Handover Button */}
+        <div className="ml-auto">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-white hover:bg-white/20 text-xs font-semibold h-8 px-3 bg-white/15 border border-white/25 shadow-2xs cursor-pointer"
+            onClick={() => setIsShiftSummaryOpen(true)}
+          >
+            <Wallet className="h-3.5 w-3.5 mr-1.5" />
+            Shift Handover
+          </Button>
+        </div>
       </div>
+
+      {/* Shift Summary Dialog */}
+      <ShiftSummaryDialog open={isShiftSummaryOpen} onOpenChange={setIsShiftSummaryOpen} />
 
       {/* Page Content */}
       <div className="p-4">{children}</div>

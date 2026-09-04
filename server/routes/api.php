@@ -34,6 +34,7 @@ use App\Http\Controllers\FloorController;
 use App\Http\Controllers\RoomsWardsController;
 use App\Http\Controllers\BedMasterController;
 use App\Http\Controllers\LabHeaderController;
+use App\Http\Controllers\LabProfileController;
 use App\Http\Controllers\LabOutputSettingController;
 use App\Http\Controllers\HospitalOutputSettingController;
 use App\Http\Controllers\PatientVitalController;
@@ -246,6 +247,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/lab-output-settings', [LabOutputSettingController::class, 'show']);
     Route::put('/lab-output-settings', [LabOutputSettingController::class, 'update']);
     Route::post('/lab-output-settings/upload-image', [LabOutputSettingController::class, 'uploadImage']);
+    Route::apiResource('lab-profile', LabProfileController::class);
 
     Route::get('/hospital-output-settings', [HospitalOutputSettingController::class, 'show']);
     Route::put('/hospital-output-settings', [HospitalOutputSettingController::class, 'update']);

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
@@ -19,7 +19,7 @@ import { masterAllergySchema } from "@/lib/zodeSchema";
 import masterAllergyService from "@/services/masterAllergy.service";
 import { DataTable } from "@/components/data-table/data-table";
 import { getColumns } from "./columns";
-import { AlertTriangle, Plus, Loader2, RefreshCw } from "lucide-react";
+import { AlertTriangle, Plus, Loader2, RefreshCw, Check, X, Save } from "lucide-react";
 
 export default function AllergiesMasterPage() {
   const [loading, setLoading] = useState(true);
@@ -125,31 +125,39 @@ export default function AllergiesMasterPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Toast Alert */}
       {message && (
         <Alert
+          variant={message.type === "error" ? "destructive" : "default"}
           className={
             message.type === "error"
-              ? "bg-red-50 text-red-900 border-red-200"
-              : "bg-emerald-50 text-emerald-900 border-emerald-200"
+              ? "shadow-2xs"
+              : "bg-emerald-50 text-emerald-900 border-emerald-300 shadow-2xs"
           }
         >
-          <AlertDescription>{message.text}</AlertDescription>
+          {message.type === "error" ? (
+            <X className="h-4 w-4" />
+          ) : (
+            <Check className="h-4 w-4 text-emerald-600" />
+          )}
+          <AlertDescription className="font-semibold text-sm">
+            {message.text}
+          </AlertDescription>
         </Alert>
       )}
 
       {/* Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-linear-to-r from-slate-900 via-slate-800 to-teal-950 text-white rounded-xl shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-600">
+          <div className="p-2 rounded-lg bg-white/10 text-amber-400">
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-800 leading-tight">
-              Master Allergies Settings
+            <h1 className="text-base font-bold tracking-wide leading-tight">
+              MASTER ALLERGIES SETTINGS
             </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-slate-300 mt-0.5">
               Manage clinical allergies library for doctor consultation & prescription alerts
             </p>
           </div>
@@ -161,7 +169,7 @@ export default function AllergiesMasterPage() {
             variant="outline"
             onClick={fetchAllergies}
             disabled={loading}
-            className="h-8 text-xs border-slate-200 text-slate-700 hover:bg-slate-50"
+            className="h-8 px-3 text-xs border-slate-700 bg-white/10 hover:bg-white/20 text-white cursor-pointer"
           >
             <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading ? "animate-spin" : ""}`} />
             Refresh
@@ -170,7 +178,7 @@ export default function AllergiesMasterPage() {
           <Button
             size="sm"
             onClick={openCreateDialog}
-            className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+            className="h-8 px-3 text-xs bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5 mr-1" />
             Add Allergy
@@ -179,11 +187,17 @@ export default function AllergiesMasterPage() {
       </div>
 
       {/* Data Listing Table */}
-      <Card className="border border-slate-200 shadow-2xs">
-        <CardContent className="p-4">
+      <Card className="border border-slate-200/90 shadow-xs rounded-xl overflow-hidden">
+        <CardHeader className="py-2.5 px-4 bg-slate-50 border-b">
+          <CardTitle className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            Configured Allergies ({allergies.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 bg-white">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-              <Loader2 className="h-8 w-8 animate-spin text-amber-600 mb-2" />
+            <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2">
+              <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
               <p className="text-xs">Loading allergies list...</p>
             </div>
           ) : (
@@ -196,90 +210,99 @@ export default function AllergiesMasterPage() {
         </CardContent>
       </Card>
 
-      {/* Create / Edit Dialog Modal */}
+      {/* Create / Edit Widescreen Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-slate-800">
+        <DialogContent className="!max-w-3xl sm:!max-w-3xl w-[95vw] md:w-[750px] max-h-[92vh] overflow-y-auto p-6 sm:p-7">
+          <DialogHeader className="pb-3 border-b flex flex-row items-center justify-between space-y-0">
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
               <AlertTriangle className="h-5 w-5 text-amber-600" />
               {editingItem ? "Edit Master Allergy" : "Add New Master Allergy"}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="code" className="text-xs font-semibold">
-                Allergy Code *
-              </Label>
-              <Input
-                id="code"
-                {...register("code")}
-                placeholder="e.g. ALG-001"
-                className="h-8 text-xs font-mono font-bold"
-              />
-              {errors.code && (
-                <p className="text-[11px] text-destructive font-medium">
-                  {errors.code.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-xs font-semibold">
-                Allergy Name *
-              </Label>
-              <Input
-                id="name"
-                {...register("name")}
-                placeholder="e.g. Penicillin / Latex"
-                className="h-8 text-xs font-medium"
-              />
-              {errors.name && (
-                <p className="text-[11px] text-destructive font-medium">
-                  {errors.name.message}
-                </p>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <div>
-                <Label htmlFor="is_active" className="text-xs font-semibold block">
-                  Active Status
+            {/* 2-Column Spacious Grid for Wide Input Boxes (~340-360px each) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              {/* Field 1: Allergy Code */}
+              <div className="space-y-1.5">
+                <Label htmlFor="code" className="text-xs font-semibold text-slate-700">
+                  Allergy Code *
                 </Label>
-                <p className="text-[11px] text-muted-foreground">
-                  Enable or disable this allergy in prescription drop-downs
-                </p>
-              </div>
-              <Controller
-                name="is_active"
-                control={control}
-                render={({ field }) => (
-                  <Switch
-                    id="is_active"
-                    checked={Boolean(field.value)}
-                    onCheckedChange={field.onChange}
-                  />
+                <Input
+                  id="code"
+                  {...register("code")}
+                  placeholder="e.g. ALG-001"
+                  className="h-10 text-sm font-mono font-bold border-slate-300 rounded-md focus:border-teal-500 bg-white"
+                />
+                {errors.code && (
+                  <p className="text-xs text-destructive font-medium">
+                    {errors.code.message}
+                  </p>
                 )}
-              />
+              </div>
+
+              {/* Field 2: Allergy Name */}
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-xs font-semibold text-slate-700">
+                  Allergy Name *
+                </Label>
+                <Input
+                  id="name"
+                  {...register("name")}
+                  placeholder="e.g. Penicillin, Latex, Peanuts, Aspirin"
+                  className="h-10 text-sm font-medium border-slate-300 rounded-md focus:border-teal-500 bg-white"
+                />
+                {errors.name && (
+                  <p className="text-xs text-destructive font-medium">
+                    {errors.name.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Field 3: Active Status (Full Width Card) */}
+              <div className="md:col-span-2 flex items-center justify-between p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/90">
+                <div className="space-y-0.5">
+                  <Label htmlFor="is_active" className="text-sm font-semibold text-slate-900 block cursor-pointer">
+                    Active Status
+                  </Label>
+                  <p className="text-xs text-slate-500">
+                    Enable or disable this allergy from appearing in doctor prescription alerts & drop-downs
+                  </p>
+                </div>
+                <Controller
+                  name="is_active"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      id="is_active"
+                      checked={Boolean(field.value)}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+              </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+            {/* Pinned Action Footer */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 mt-4">
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 onClick={() => setIsDialogOpen(false)}
-                className="h-8 text-xs"
+                className="h-10 px-5 text-sm font-semibold border-slate-300 hover:bg-slate-100 cursor-pointer"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                size="sm"
                 disabled={isSubmitting}
-                className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+                className="h-10 px-6 text-sm bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs cursor-pointer"
               >
-                {isSubmitting && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
                 {editingItem ? "Update Allergy" : "Save Allergy"}
               </Button>
             </div>

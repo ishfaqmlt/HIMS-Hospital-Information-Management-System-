@@ -43,8 +43,7 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { Loader2, Plus, Save, Printer, X, Trash2, UserPlus, Search, Check, ChevronsUpDown, Wallet, Badge } from "lucide-react";
-import ShiftSummaryDialog from "@/components/billing/ShiftSummaryDialog";
+import { Loader2, Plus, Save, Printer, X, Trash2, UserPlus, Search, Check, ChevronsUpDown, Badge } from "lucide-react";
 import { DataTable } from "@/components/data-table/data-table";
 import { getColumns } from "./invoiceColumns";
 import PatientDetailsCard from "@/components/patients/PatientDetailsCard";
@@ -122,7 +121,6 @@ export default function BillingPage() {
 
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [editingInvoiceId, setEditingInvoiceId] = useState(null);
-  const [isShiftSummaryOpen, setIsShiftSummaryOpen] = useState(false);
 
   const [invoices, setInvoices] = useState([]);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
@@ -934,19 +932,8 @@ export default function BillingPage() {
           <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
             Front Desk Billing & Invoicing
           </h1>
-          <p className="text-xs text-slate-300 mt-0.5">Generate patient OPD/IPD invoices, record payments, and manage shift closures</p>
         </div>
-        <Button
-          size="sm"
-          className="h-8 text-xs bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs border-0"
-          onClick={() => setIsShiftSummaryOpen(true)}
-        >
-          <Wallet className="h-3.5 w-3.5 mr-1.5 text-teal-100" />
-          Shift Handover Report
-        </Button>
       </div>
-
-      <ShiftSummaryDialog open={isShiftSummaryOpen} onOpenChange={setIsShiftSummaryOpen} />
 
       {message && (
         <div className={`px-4 py-3 rounded-lg text-xs font-semibold flex items-center gap-2 shadow-xs border ${message.type === "success" ? "bg-emerald-50 text-emerald-900 border-emerald-300" : "bg-rose-50 text-rose-900 border-rose-300"}`}>
@@ -986,27 +973,27 @@ export default function BillingPage() {
       />
 
       {/* Three Column Layout: Left (Select Service) | Center (Selected Services) | Right (Bill Details) */}
-      <div className="grid grid-cols-12 gap-3 items-start">
+      <div className="grid grid-cols-12 gap-3.5 items-start">
         {/* Left Column - Select Service */}
-        <Card className="col-span-12 lg:col-span-3 shadow-xs border border-slate-200">
-          <CardHeader className="py-2.5 bg-linear-to-r from-teal-800 to-slate-800 text-white rounded-t-lg">
+        <Card className="col-span-12 lg:col-span-3 shadow-xs border border-slate-200/90 rounded-xl overflow-hidden">
+          <CardHeader className="py-2.5 px-4 bg-linear-to-r from-teal-800 to-slate-800 text-white rounded-t-xl">
             <CardTitle className="text-xs font-bold tracking-wide flex items-center gap-2">
               <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-teal-400/20 text-teal-200 text-[10px] font-bold border border-teal-400/30">1</span>
               SELECT SERVICE
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-3 space-y-2.5 bg-slate-50/40">
-            <div className="space-y-1">
-              <Label className="text-[11px] font-semibold text-slate-700">Token No</Label>
+          <CardContent className="p-3.5 space-y-3 bg-slate-50/40">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700">Token No</Label>
               <Input
                 type="number"
                 {...register("tokenNo")}
-                className="h-8 text-xs font-mono bg-white border-slate-200 focus:border-teal-500"
+                className="h-9 text-sm font-mono bg-white border-slate-300 focus:border-teal-500 rounded-md shadow-2xs"
                 placeholder="Auto"
               />
             </div>
-            <div className="space-y-1">
-              <Label className="text-[11px] font-semibold text-slate-700">Consultant Doctor</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700">Consultant Doctor</Label>
               <Controller
                 name="selectedConsultant"
                 control={control}
@@ -1020,7 +1007,7 @@ export default function BillingPage() {
                     }}
                     disabled={fromVisit || serviceFields.length > 0}
                   >
-                    <SelectTrigger className="w-full h-8 text-xs bg-white border-slate-200">
+                    <SelectTrigger className="w-full h-9 text-sm font-medium bg-white border-slate-300 rounded-md shadow-2xs">
                       <SelectValue placeholder="Select consultant..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -1033,8 +1020,8 @@ export default function BillingPage() {
                 )}
               />
             </div>
-            <div className="space-y-1">
-              <Label className="text-[11px] font-semibold text-slate-700">Department</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700">Department</Label>
               <Controller
                 name="selectedDepartment"
                 control={control}
@@ -1047,7 +1034,7 @@ export default function BillingPage() {
                     }}
                     disabled={serviceFields.length > 0}
                   >
-                    <SelectTrigger className="w-full h-8 text-xs bg-white border-slate-200">
+                    <SelectTrigger className="w-full h-9 text-sm font-medium bg-white border-slate-300 rounded-md shadow-2xs">
                       <SelectValue placeholder="Select department..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -1062,13 +1049,13 @@ export default function BillingPage() {
                 )}
               />
             </div>
-            <div className="space-y-1">
-              <Label className="text-[11px] font-semibold text-slate-700">Service Code Search</Label>
-              <div className="flex gap-1">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700">Service Code Search</Label>
+              <div className="flex gap-1.5 items-center">
                 <Input
                   value={serviceCodeSearch}
                   onChange={(e) => setServiceCodeSearch(e.target.value)}
-                  className="h-8 text-xs font-mono bg-white border-slate-200"
+                  className="h-9 text-sm font-mono bg-white border-slate-300 rounded-md flex-1 min-w-0 shadow-2xs focus:border-teal-500"
                   placeholder="e.g. 401.402"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -1077,14 +1064,14 @@ export default function BillingPage() {
                     }
                   }}
                 />
-                <Button size="sm" className="h-8 px-2.5 shrink-0 bg-teal-700 hover:bg-teal-800 text-white" onClick={handleServiceCodeSearch} disabled={!serviceCodeSearch.trim()}>
+                <Button size="sm" className="h-9 px-3 shrink-0 bg-teal-700 hover:bg-teal-800 text-white rounded-md shadow-2xs" onClick={handleServiceCodeSearch} disabled={!serviceCodeSearch.trim()}>
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-[11px] font-semibold text-slate-700">Select Service Name</Label>
-              <div className="flex gap-1">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700">Select Service Name</Label>
+              <div className="flex gap-1.5 items-center">
                 <Controller
                   name="selectedService"
                   control={control}
@@ -1099,14 +1086,14 @@ export default function BillingPage() {
                           ref={serviceTriggerRef}
                           nativeButton={false}
                           render={<div />}
-                          className="flex h-8 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs ring-offset-background placeholder:text-muted-foreground focus:outline-none cursor-pointer"
+                          className="flex h-9 w-full items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none cursor-pointer shadow-2xs"
                         >
                           <span className="truncate">{selectedSvc ? selectedSvc.ServiceName : "Select service..."}</span>
                           <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50 text-slate-500" />
                         </PopoverTrigger>
                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                           <Command>
-                            <CommandInput placeholder="Search service..." className="h-8 text-xs" />
+                            <CommandInput placeholder="Search service..." className="h-9 text-sm" />
                             <CommandList>
                               <CommandEmpty>No service found.</CommandEmpty>
                               <CommandGroup>
@@ -1131,17 +1118,16 @@ export default function BillingPage() {
                     );
                   }}
                 />
-                <Button size="sm" className="h-8 px-2.5 shrink-0 bg-teal-700 hover:bg-teal-800 text-white" onClick={addService} disabled={!watch("selectedService")}>
+                <Button size="sm" className="h-9 px-3 shrink-0 bg-teal-700 hover:bg-teal-800 text-white rounded-md shadow-2xs" onClick={addService} disabled={!watch("selectedService")}>
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
-
         {/* Center Column - Selected Services Table */}
-        <Card className="col-span-12 lg:col-span-6 shadow-xs border border-slate-200">
-          <CardHeader className="py-2.5 bg-linear-to-r from-slate-800 to-slate-900 text-white rounded-t-lg">
+        <Card className="col-span-12 lg:col-span-5 shadow-xs border border-slate-200/90 rounded-xl overflow-hidden">
+          <CardHeader className="py-2.5 px-4 bg-linear-to-r from-slate-800 to-slate-900 text-white rounded-t-xl">
             <CardTitle className="text-xs font-bold tracking-wide flex items-center gap-2">
               <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-bold border border-slate-600">2</span>
               SELECTED SERVICES
@@ -1155,29 +1141,29 @@ export default function BillingPage() {
           <CardContent className="p-0 overflow-x-auto min-h-65">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-100/80 hover:bg-slate-100/80">
-                  <TableHead className="text-[11px] h-8 font-bold text-slate-700 w-10">Flag</TableHead>
-                  <TableHead className="text-[11px] h-8 font-bold text-slate-700">Code</TableHead>
-                  <TableHead className="text-[11px] h-8 font-bold text-slate-700">Service Name</TableHead>
-                  <TableHead className="text-[11px] h-8 font-bold text-slate-700">Charges</TableHead>
-                  <TableHead className="text-[11px] h-8 font-bold text-slate-700 w-16">Qty</TableHead>
-                  <TableHead className="text-[11px] h-8 font-bold text-slate-700">Amount</TableHead>
-                  <TableHead className="text-[11px] h-8 font-bold text-slate-700 text-center w-12">Delete</TableHead>
+                <TableRow className="bg-slate-100/90 hover:bg-slate-100/90">
+                  <TableHead className="text-xs h-9 font-bold text-slate-700 w-12">Flag</TableHead>
+                  <TableHead className="text-xs h-9 font-bold text-slate-700">Code</TableHead>
+                  <TableHead className="text-xs h-9 font-bold text-slate-700">Service Name</TableHead>
+                  <TableHead className="text-xs h-9 font-bold text-slate-700">Charges</TableHead>
+                  <TableHead className="text-xs h-9 font-bold text-slate-700 w-20">Qty</TableHead>
+                  <TableHead className="text-xs h-9 font-bold text-slate-700">Amount</TableHead>
+                  <TableHead className="text-xs h-9 font-bold text-slate-700 text-center w-14">Delete</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {serviceFields.length > 0 ? (
                   serviceFields.map((field, index) => (
                     <TableRow key={field.fieldId} className={index % 2 === 0 ? "bg-white hover:bg-teal-50/30" : "bg-slate-50/50 hover:bg-teal-50/30"}>
-                      <TableCell className="text-xs py-1.5">
+                      <TableCell className="text-xs py-2">
                         <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold border ${field.flag === "I" ? "bg-emerald-100 text-emerald-800 border-emerald-300" : "bg-sky-100 text-sky-800 border-sky-300"}`}>
                           {field.flag}
                         </span>
                       </TableCell>
-                      <TableCell className="text-xs py-1.5 font-mono text-slate-600 font-medium">{field.serviceCode}</TableCell>
-                      <TableCell className="text-xs py-1.5 font-medium text-slate-900">{field.serviceName}</TableCell>
-                      <TableCell className="text-xs py-1.5 font-mono font-medium text-slate-700">{field.fee}</TableCell>
-                      <TableCell className="text-xs py-1.5">
+                      <TableCell className="text-xs py-2 font-mono text-slate-600 font-medium">{field.serviceCode}</TableCell>
+                      <TableCell className="text-xs py-2 font-medium text-slate-900">{field.serviceName}</TableCell>
+                      <TableCell className="text-xs py-2 font-mono font-medium text-slate-700">{field.fee}</TableCell>
+                      <TableCell className="text-xs py-2">
                         <Input
                           type="number"
                           min={1}
@@ -1189,17 +1175,17 @@ export default function BillingPage() {
                               }, 0);
                             },
                           })}
-                          className="h-6 text-xs w-14 font-mono text-center border-slate-200"
+                          className="h-8 text-sm w-16 font-mono font-bold text-center border-slate-300 rounded-md focus:border-teal-500 bg-white shadow-2xs"
                         />
                       </TableCell>
-                      <TableCell className="text-xs py-1.5 font-mono font-bold text-emerald-700">
+                      <TableCell className="text-xs py-2 font-mono font-bold text-emerald-700">
                         {((Number(field.fee) || 0) * (Number(field.qty) || 0)).toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-xs py-1.5 text-center">
+                      <TableCell className="text-xs py-2 text-center">
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-6 w-6 p-0 text-rose-600 hover:bg-rose-100 hover:text-rose-700"
+                          className="h-7 w-7 p-0 text-rose-600 hover:bg-rose-100 hover:text-rose-700 rounded-md cursor-pointer"
                           onClick={() => removeService(index)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -1226,35 +1212,35 @@ export default function BillingPage() {
         </Card>
 
         {/* Right Column - Bill Details */}
-        <Card className="col-span-12 lg:col-span-3 shadow-xs border border-slate-200">
-          <CardHeader className="py-2.5 bg-linear-to-r from-emerald-800 via-teal-800 to-slate-900 text-white rounded-t-lg">
+        <Card className="col-span-12 lg:col-span-4 shadow-xs border border-slate-200/90 rounded-xl overflow-hidden">
+          <CardHeader className="py-2.5 px-4 bg-linear-to-r from-emerald-800 via-teal-800 to-slate-900 text-white rounded-t-xl">
             <CardTitle className="text-xs font-bold tracking-wide flex items-center gap-2">
               <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-400/20 text-emerald-200 text-[10px] font-bold border border-emerald-400/30">3</span>
               BILL DETAILS
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-3 space-y-2.5 bg-slate-50/30">
-            <div className="space-y-1">
-              <Label className="text-[11px] font-semibold text-slate-700">Date & Time</Label>
+          <CardContent className="p-3.5 space-y-3 bg-slate-50/30">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700">Date & Time</Label>
               <Input
                 type="datetime-local"
                 {...register("regDate")}
-                className="h-8 text-xs font-mono bg-white border-slate-200"
+                className="h-9 text-sm font-mono bg-white border-slate-300 rounded-md shadow-2xs focus:border-teal-500"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-[11px] font-semibold text-slate-700">SubTotal</Label>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700">SubTotal</Label>
                 <Input
                   type="number"
                   value={totalBill}
-                  className="h-8 text-xs font-mono font-bold bg-slate-100 text-slate-800 border-slate-200"
+                  className="h-9 text-sm font-mono font-bold bg-slate-100 text-slate-900 border-slate-300 rounded-md"
                   disabled
                 />
               </div>
-              <div className="space-y-1">
-                <Label className="text-[11px] font-semibold text-slate-700">Discount %</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700">Discount %</Label>
                 <Input
                   type="number"
                   value={watchedDiscountPercent}
@@ -1265,14 +1251,14 @@ export default function BillingPage() {
                     setValue("discount", disc);
                     setValue("paid", totalBill - disc);
                   }}
-                  className="h-8 text-xs font-mono bg-white border-slate-200"
+                  className="h-9 text-sm font-mono bg-white border-slate-300 rounded-md focus:border-teal-500 shadow-2xs"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-[11px] font-semibold text-slate-700">Discount Amt</Label>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700">Discount Amt</Label>
                 <Input
                   type="number"
                   value={watchedDiscount}
@@ -1283,42 +1269,42 @@ export default function BillingPage() {
                     setValue("discountPercent", pct);
                     setValue("paid", totalBill - disc);
                   }}
-                  className="h-8 text-xs font-mono bg-white border-slate-200"
+                  className="h-9 text-sm font-mono bg-white border-slate-300 rounded-md focus:border-teal-500 shadow-2xs"
                 />
               </div>
-              <div className="space-y-1">
-                <Label className="text-[11px] font-bold text-emerald-800">Net Total</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-emerald-800">Net Total</Label>
                 <Input
                   type="number"
                   value={netAmount}
-                  className="h-8 text-xs font-mono font-extrabold bg-emerald-50 text-emerald-950 border-2 border-emerald-300"
+                  className="h-9 text-sm font-mono font-black bg-emerald-50 text-emerald-950 border-2 border-emerald-400 rounded-md shadow-2xs"
                   disabled
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-[11px] font-semibold text-slate-700">Paid Amount</Label>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700">Paid Amount</Label>
                 <Input
                   type="number"
                   {...register("paid", { valueAsNumber: true })}
-                  className="h-8 text-xs font-mono font-bold text-emerald-800 bg-white border-slate-200 focus:border-emerald-500"
+                  className="h-9 text-sm font-mono font-bold text-emerald-800 bg-white border-slate-300 rounded-md focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 shadow-2xs"
                 />
               </div>
-              <div className="space-y-1">
-                <Label className="text-[11px] font-semibold text-slate-700">Balance</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700">Balance</Label>
                 <Input
                   type="number"
                   value={remaining}
-                  className={`h-8 text-xs font-mono font-extrabold ${remaining > 0 ? "bg-amber-50 text-amber-900 border-amber-300" : "bg-emerald-50 text-emerald-900 border-emerald-300"}`}
+                  className={`h-9 text-sm font-mono font-black rounded-md shadow-2xs ${remaining > 0 ? "bg-amber-50 text-amber-900 border-2 border-amber-300" : "bg-emerald-50 text-emerald-900 border-2 border-emerald-300"}`}
                   disabled
                 />
               </div>
             </div>
 
             {advanceBalance > 0 && !editingInvoiceId && (
-              <div className="p-2.5 rounded-lg bg-emerald-50 border-2 border-emerald-400 flex flex-col gap-1.5 shadow-xs">
+              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-300 flex flex-col gap-2 shadow-2xs">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-emerald-950">Patient Advance Available</span>
                   <Badge variant="outline" className="bg-emerald-100 text-emerald-900 border-emerald-400 font-mono font-bold text-xs">
@@ -1347,7 +1333,7 @@ export default function BillingPage() {
                   <Button
                     type="button"
                     size="sm"
-                    className="h-6 text-[10px] px-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold"
+                    className="h-6.5 text-[10px] px-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded cursor-pointer"
                     onClick={() => {
                       const nextState = !applyAdvance;
                       setApplyAdvance(nextState);
@@ -1362,18 +1348,18 @@ export default function BillingPage() {
                 </div>
 
                 {applyAdvance && (
-                  <span className="text-[10px] font-medium text-emerald-800 bg-emerald-100/80 p-1 rounded text-center font-mono">
+                  <span className="text-[10px] font-medium text-emerald-800 bg-emerald-100/80 p-1.5 rounded text-center font-mono">
                     Applying Rs. {Math.min(advanceBalance, netAmount).toFixed(2)} towards invoice net total
                   </span>
                 )}
               </div>
             )}
 
-            <div className="flex gap-2 items-center justify-end pt-3 border-t border-slate-200 mt-2">
-              <Button variant="outline" size="sm" className="h-8 flex-1 text-xs font-medium border-slate-200" onClick={handleNewInvoice} disabled={loading}>
+            <div className="flex gap-2.5 items-center justify-end pt-3 border-t border-slate-200 mt-2">
+              <Button variant="outline" size="sm" className="h-9.5 flex-1 text-sm font-semibold border-slate-300 hover:bg-slate-100 text-slate-800 rounded-md shadow-2xs cursor-pointer" onClick={handleNewInvoice} disabled={loading}>
                 <Plus className="h-3.5 w-3.5 mr-1" /> New
               </Button>
-              <Button size="sm" className="h-8 flex-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold tracking-wide shadow-sm" onClick={handleSubmit(onSubmit)} disabled={loading}>
+              <Button size="sm" className="h-9.5 flex-1 text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-bold tracking-wide shadow-xs rounded-md cursor-pointer" onClick={handleSubmit(onSubmit)} disabled={loading}>
                 {loading ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
                 {editingInvoiceId ? "Update Bill (Ctrl+S)" : "Save Invoice (Ctrl+S)"}
               </Button>
@@ -1384,39 +1370,41 @@ export default function BillingPage() {
 
       {/* Mobile Patient Select Dialog */}
       <Dialog open={isMobileSelectDialogOpen} onOpenChange={setIsMobileSelectDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Select Patient</DialogTitle>
+        <DialogContent className="!max-w-2xl sm:!max-w-2xl w-[95vw] md:w-[650px] p-6 sm:p-7">
+          <DialogHeader className="pb-3 border-b">
+            <DialogTitle className="text-lg font-bold text-slate-900">Select Patient</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              {mobileSearchResults.length} patients found with this mobile number. Select one:
+          <div className="space-y-4 pt-2">
+            <p className="text-xs font-medium text-slate-600">
+              Found <strong className="text-teal-700">{mobileSearchResults.length}</strong> patient(s) matching this mobile number. Select one to proceed:
             </p>
-            <div className="border rounded-lg divide-y max-h-75 overflow-y-auto">
+            <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-80 overflow-y-auto bg-slate-50/40 p-1 space-y-1">
               {mobileSearchResults.map((patient) => (
                 <div
                   key={patient.id}
-                  className="flex items-center justify-between p-3 hover:bg-muted cursor-pointer"
+                  className="flex items-center justify-between p-3 rounded-lg bg-white border border-slate-200/70 hover:border-teal-300 hover:bg-teal-50/30 transition-all cursor-pointer shadow-2xs"
                   onClick={() => handleSelectMobilePatient(patient)}
                 >
-                  <div>
-                    <p className="font-medium">{patient.pName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {patient.mrn} | {patient.gender || "N/A"} | {patient.cnic || "No CNIC"}
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-bold text-slate-900">{patient.pName}</p>
+                    <p className="text-xs text-slate-500 flex items-center gap-2">
+                      <span className="font-mono font-semibold text-slate-700">{patient.mrn}</span>
+                      <span>• {patient.gender || "N/A"}</span>
+                      {patient.cnic && <span>• CNIC: {patient.cnic}</span>}
                     </p>
                   </div>
-                  <Button size="sm" variant="outline">Select</Button>
+                  <Button size="sm" variant="outline" className="h-8 px-3 text-xs font-semibold text-teal-800 border-teal-200 hover:bg-teal-50">Select</Button>
                 </div>
               ))}
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => {
+            <div className="flex justify-end gap-2 pt-3 border-t">
+              <Button variant="outline" className="h-9 px-4 text-xs font-semibold" onClick={() => {
                 setIsMobileSelectDialogOpen(false);
                 setIsPatientDialogOpen(true);
               }}>
-                <UserPlus className="h-4 w-4 mr-1" /> Add New Patient
+                <UserPlus className="h-3.5 w-3.5 mr-1 text-teal-700" /> Add New Patient
               </Button>
-              <Button variant="outline" onClick={() => setIsMobileSelectDialogOpen(false)}>Cancel</Button>
+              <Button variant="outline" className="h-9 px-4 text-xs font-semibold" onClick={() => setIsMobileSelectDialogOpen(false)}>Cancel</Button>
             </div>
           </div>
         </DialogContent>
@@ -1424,39 +1412,41 @@ export default function BillingPage() {
 
       {/* CNIC Patient Select Dialog */}
       <Dialog open={isCnicSelectDialogOpen} onOpenChange={setIsCnicSelectDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Select Patient</DialogTitle>
+        <DialogContent className="!max-w-2xl sm:!max-w-2xl w-[95vw] md:w-[650px] p-6 sm:p-7">
+          <DialogHeader className="pb-3 border-b">
+            <DialogTitle className="text-lg font-bold text-slate-900">Select Patient</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              {cnicSearchResults.length} patients found with this CNIC. Select one:
+          <div className="space-y-4 pt-2">
+            <p className="text-xs font-medium text-slate-600">
+              Found <strong className="text-teal-700">{cnicSearchResults.length}</strong> patient(s) matching this CNIC. Select one to proceed:
             </p>
-            <div className="border rounded-lg divide-y max-h-75 overflow-y-auto">
+            <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-80 overflow-y-auto bg-slate-50/40 p-1 space-y-1">
               {cnicSearchResults.map((patient) => (
                 <div
                   key={patient.id}
-                  className="flex items-center justify-between p-3 hover:bg-muted cursor-pointer"
+                  className="flex items-center justify-between p-3 rounded-lg bg-white border border-slate-200/70 hover:border-teal-300 hover:bg-teal-50/30 transition-all cursor-pointer shadow-2xs"
                   onClick={() => handleSelectCnicPatient(patient)}
                 >
-                  <div>
-                    <p className="font-medium">{patient.pName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {patient.mrn} | {patient.gender || "N/A"} | {patient.mobile || "No Mobile"}
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-bold text-slate-900">{patient.pName}</p>
+                    <p className="text-xs text-slate-500 flex items-center gap-2">
+                      <span className="font-mono font-semibold text-slate-700">{patient.mrn}</span>
+                      <span>• {patient.gender || "N/A"}</span>
+                      {patient.mobile && <span>• Mobile: {patient.mobile}</span>}
                     </p>
                   </div>
-                  <Button size="sm" variant="outline">Select</Button>
+                  <Button size="sm" variant="outline" className="h-8 px-3 text-xs font-semibold text-teal-800 border-teal-200 hover:bg-teal-50">Select</Button>
                 </div>
               ))}
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => {
+            <div className="flex justify-end gap-2 pt-3 border-t">
+              <Button variant="outline" className="h-9 px-4 text-xs font-semibold" onClick={() => {
                 setIsCnicSelectDialogOpen(false);
                 setIsPatientDialogOpen(true);
               }}>
-                <UserPlus className="h-4 w-4 mr-1" /> Add New Patient
+                <UserPlus className="h-3.5 w-3.5 mr-1 text-teal-700" /> Add New Patient
               </Button>
-              <Button variant="outline" onClick={() => setIsCnicSelectDialogOpen(false)}>Cancel</Button>
+              <Button variant="outline" className="h-9 px-4 text-xs font-semibold" onClick={() => setIsCnicSelectDialogOpen(false)}>Cancel</Button>
             </div>
           </div>
         </DialogContent>
@@ -1472,43 +1462,43 @@ export default function BillingPage() {
 
       {/* Invoice List Section */}
       <div className="mt-6 space-y-4">
-        <Card className="shadow-xs border border-slate-200">
-          <CardHeader className="py-2.5 bg-linear-to-r from-slate-900 via-slate-800 to-teal-950 text-white rounded-t-lg">
+        <Card className="shadow-xs border border-slate-200/90 rounded-xl overflow-hidden">
+          <CardHeader className="py-2.5 px-4 bg-linear-to-r from-slate-900 via-slate-800 to-teal-950 text-white rounded-t-xl">
             <CardTitle className="text-xs font-bold tracking-wide">INVOICE HISTORY & SEARCH</CardTitle>
           </CardHeader>
-          <CardContent className="p-4 space-y-4">
-            <div className="grid grid-cols-12 gap-3">
-              <div className="col-span-3 space-y-1">
+          <CardContent className="p-4 space-y-4 bg-white">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 items-end">
+              <div className="lg:col-span-3 space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-700">MRN</Label>
                 <Input
                   value={searchMrn}
                   onChange={(e) => setSearchMrn(e.target.value)}
-                  className="h-8 text-xs font-mono bg-white border-slate-200"
-                  placeholder=""
+                  className="h-9 text-sm font-mono bg-white border-slate-300 rounded-md shadow-2xs focus:border-teal-500"
+                  placeholder="e.g. MRN-26-1"
                 />
               </div>
-              <div className="col-span-3 space-y-1">
+              <div className="lg:col-span-3 space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-700">From Date</Label>
                 <Input
                   type="datetime-local"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="h-8 text-xs font-mono bg-white border-slate-200"
+                  className="h-9 text-sm font-mono bg-white border-slate-300 rounded-md shadow-2xs focus:border-teal-500"
                 />
               </div>
-              <div className="col-span-3 space-y-1">
+              <div className="lg:col-span-3 space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-700">To Date</Label>
                 <Input
                   type="datetime-local"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="h-8 text-xs font-mono bg-white border-slate-200"
+                  className="h-9 text-sm font-mono bg-white border-slate-300 rounded-md shadow-2xs focus:border-teal-500"
                 />
               </div>
-              <div className="col-span-2 flex items-end">
-                <Button size="sm" className="w-full h-8 text-xs bg-slate-800 hover:bg-slate-900 text-white font-medium" onClick={searchInvoices} disabled={invoiceLoading}>
-                  {invoiceLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Search className="h-3.5 w-3.5 mr-1" />}
-                  Search
+              <div className="lg:col-span-3">
+                <Button size="sm" className="w-full h-9 text-sm bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-md shadow-xs flex items-center justify-center gap-1.5 cursor-pointer" onClick={searchInvoices} disabled={invoiceLoading}>
+                  {invoiceLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  Search Invoices
                 </Button>
               </div>
             </div>

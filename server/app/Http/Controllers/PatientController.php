@@ -69,7 +69,8 @@ class PatientController extends Controller
             'isActive' => 'boolean',
         ]);
 
-        $patient = Patient::create($validated);
+        $sanitized = $this->sanitizePatientData($validated);
+        $patient = Patient::create($sanitized);
 
         return response()->json($patient, 201);
     }
@@ -93,9 +94,28 @@ class PatientController extends Controller
             'isActive' => 'boolean',
         ]);
 
-        $patient->update($validated);
+        $sanitized = $this->sanitizePatientData($validated);
+        $patient->update($sanitized);
 
         return response()->json($patient);
+    }
+
+    private function sanitizePatientData(array $data): array
+    {
+        if (array_key_exists('pName', $data) && $data['pName'] !== null) {
+            $data['pName'] = Patient::toProperCase($data['pName']);
+        }
+        if (array_key_exists('gName', $data) && $data['gName'] !== null) {
+            $data['gName'] = Patient::toProperCase($data['gName']);
+        }
+        if (array_key_exists('address', $data) && $data['address'] !== null) {
+            $data['address'] = Patient::toProperCase($data['address']);
+        }
+        if (array_key_exists('email', $data) && $data['email'] !== null) {
+            $trimmed = trim($data['email']);
+            $data['email'] = $trimmed === '' ? null : strtolower($trimmed);
+        }
+        return $data;
     }
 
     public function destroy(Patient $patient)

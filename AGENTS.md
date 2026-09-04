@@ -155,12 +155,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
   </SelectContent>
 </Select>
 
-// Dialog
+// Dialog — always use wide override for form dialogs (!max-w-4xl sm:!max-w-4xl md:w-[850px])
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 <Dialog open={isOpen} onOpenChange={setIsOpen}>
-  <DialogContent>
-    <DialogHeader><DialogTitle>Title</DialogTitle></DialogHeader>
-    {/* content */}
+  <DialogContent className="!max-w-4xl sm:!max-w-4xl w-[95vw] md:w-[850px] max-h-[92vh] overflow-y-auto p-6 sm:p-7">
+    <DialogHeader className="pb-3 border-b flex flex-row items-center justify-between space-y-0">
+      <DialogTitle className="text-lg font-bold">Title</DialogTitle>
+    </DialogHeader>
+    <form className="space-y-4 pt-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        {/* wide ~400px inputs */}
+      </div>
+    </form>
   </DialogContent>
 </Dialog>
 
@@ -363,6 +369,27 @@ const [editingItem, setEditingItem] = useState(null);
 const openCreate = () => { setEditingItem(null); setIsDialogOpen(true); };
 const openEdit = (item) => { setEditingItem(item); setIsDialogOpen(true); };
 ```
+
+### Standard Form Dialog Pattern (Widescreen, Wide Inputs & Clean UI)
+- **STRICT RULE — Widescreen Modal Width**: Never allow shadcn `DialogContent` to default to `sm:max-w-lg` (512px) for form modals. Always override with:
+  `className="!max-w-4xl sm:!max-w-4xl w-[95vw] md:w-[850px] max-h-[92vh] overflow-y-auto p-6 sm:p-7"`
+  (or `!max-w-3xl sm:!max-w-3xl md:w-[750px]` for smaller 3-4 field forms).
+- **Spacious 2-Column Grid (Wide Inputs)**:
+  - Multi-field forms must strictly use a 2-column layout: `<div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">`.
+  - Guarantees ~400px horizontal room per input box, ensuring patient names, CNICs, mobile numbers, dates, and emails never truncate.
+  - Full-width fields (Address, Notes, Remarks, Description) must span both columns: `className="space-y-1.5 md:col-span-2"`.
+- **Input Heights & Sizing**:
+  - All form inputs, selects, and action buttons in dialogs must use `h-10 text-sm font-medium` (avoid cramped `h-8` or `h-9` in modal forms).
+- **Clean Minimalist Healthcare UI (No Unnecessary Text)**:
+  - No wordy subtitle paragraphs below `DialogTitle`.
+  - No decorative section banner boxes inside dialog forms.
+  - No repetitive helper legends (e.g. `* Indicates required field`).
+- **Date of Birth & Age (DOB-to-Age Auto-Calculation)**:
+  - Date of Birth and Age must always be placed side-by-side on the same row.
+  - Age must use a 3-column subgrid with internal suffix indicators (`Y`, `M`, `D`) and calculate bidirectionally with DOB using local calendar math (`calculateAgeFromDob`).
+- **Standard Action Footer**:
+  - Pinned footer with `Cancel` (`variant="outline" className="h-10 px-5 text-sm"`) and `Create / Update` (`className="h-10 px-6 text-sm bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs"`).
+
 
 ### Bulk Operations Pattern (DoctorShareMaster)
 ```php
